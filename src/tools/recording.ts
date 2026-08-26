@@ -27,6 +27,12 @@ function failure(body: string) {
   return { content: [{ type: 'text' as const, text: body }], isError: true }
 }
 
+/**
+ * Set once narration has failed in a way that will not recover (bad key, quota).
+ * Reset at the start of each recording so a fixed key takes effect immediately.
+ */
+let narrationDisabledReason: string | null = null
+
 export function registerRecordingTools(server: McpServer, config: Config): void {
   server.registerTool(
     'tutorial_start',
@@ -74,6 +80,7 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
       }
 
       const preset = PRESETS[args.resolution]
+      narrationDisabledReason = null
       try {
         const session = await RecordingSession.start(config, {
           title: args.title,
@@ -152,8 +159,17 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
       const index = session.cues.length
       let audioFile: string | null = null
       let durationMs: number
+      let silentBecause: string | null = null
 
-      if (config.elevenLabsApiKey) {
+      if (!config.elevenLabsApiKey) {
+        silentBecause = 'no ELEVENLABS_API_KEY is set'
+        durationMs = estimateSpokenMs(args.text)
+      } else if (narrationDisabledReason) {
+        // The key was already rejected once. Retrying on every line would add a
+        // failed round-trip per sentence for no possible gain.
+        silentBecause = narrationDisabledReason
+        durationMs = estimateSpokenMs(args.text)
+      } else {
         try {
           const result = await synthesise(config, {
             text: args.text,
@@ -170,11 +186,13 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           audioFile = local
           durationMs = result.durationMs
         } catch (err) {
-          log.warn('Narration failed; pacing with an estimate instead', err)
+          const reason = (err as Error).message
+          log.warn(`Narration failed, continuing silently: ${reason}`)
+          // Authentication and quota problems will not fix themselves mid-recording.
+          if (/HTTP (400|401|403|422)/.test(reason)) narrationDisabledReason = reason
+          silentBecause = reason
           durationMs = estimateSpokenMs(args.text)
         }
-      } else {
-        durationMs = estimateSpokenMs(args.text)
       }
 
       session.addCue({
@@ -190,7 +208,10 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
 
       return text(
         `Narrated at ${(atMs / 1000).toFixed(1)}s for ${(durationMs / 1000).toFixed(1)}s` +
-          (audioFile ? '.' : ' (silent - no API key; the pacing is still correct).'),
+          (audioFile
+            ? '.'
+            : ` - SILENT, because ${(silentBecause ?? 'narration is unavailable').replace(/[.\s]+$/, '')}.` +
+              ' The recording is still paced correctly and the line will appear in the subtitles.'),
       )
     },
   )

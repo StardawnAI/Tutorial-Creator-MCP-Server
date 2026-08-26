@@ -16,6 +16,33 @@ import { log } from './logger.js'
 
 const API_ROOT = 'https://api.elevenlabs.io/v1'
 
+/**
+ * Turn an ElevenLabs error response into something actionable.
+ *
+ * Their errors carry a `detail.message` that usually says exactly what is wrong -
+ * for instance that a key ID was pasted where the key belongs. Swallowing it and
+ * reporting only the status code wastes the diagnosis they handed over.
+ */
+async function describeApiError(response: Response, action: string): Promise<Error> {
+  const body = await response.text().catch(() => '')
+  let message = body.slice(0, 400)
+  try {
+    const parsed = JSON.parse(body) as { detail?: { message?: string } | string }
+    if (typeof parsed.detail === 'string') message = parsed.detail
+    else if (parsed.detail?.message) message = parsed.detail.message
+  } catch {
+    // not JSON - keep the raw text
+  }
+  return new Error(
+    `ElevenLabs refused to ${action} (HTTP ${response.status}). ${message}`.trim(),
+  )
+}
+
+/** Cheap sanity check on the API key shape before spending a request. */
+export function looksLikeApiKey(key: string): boolean {
+  return key.startsWith('sk_')
+}
+
 export interface VoiceSettings {
   stability: number
   similarity_boost: number
@@ -106,12 +133,7 @@ export async function synthesise(
     }),
   })
 
-  if (!response.ok) {
-    const detail = await response.text().catch(() => '')
-    throw new Error(
-      `ElevenLabs returned ${response.status} ${response.statusText}. ${detail.slice(0, 500)}`,
-    )
-  }
+  if (!response.ok) throw await describeApiError(response, 'synthesise narration')
 
   const audio = Buffer.from(await response.arrayBuffer())
   if (audio.length === 0) throw new Error('ElevenLabs returned an empty audio response.')
@@ -135,9 +157,7 @@ export interface Voice {
 export async function listVoices(config: Config): Promise<Voice[]> {
   const apiKey = requireElevenLabsKey(config)
   const response = await fetch(`${API_ROOT}/voices`, { headers: { 'xi-api-key': apiKey } })
-  if (!response.ok) {
-    throw new Error(`ElevenLabs returned ${response.status} while listing voices.`)
-  }
+  if (!response.ok) throw await describeApiError(response, 'list voices')
   const data = (await response.json()) as {
     voices?: Array<{
       voice_id: string

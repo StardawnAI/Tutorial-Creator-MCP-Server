@@ -7,6 +7,7 @@
 import fs from 'node:fs'
 import { loadConfig } from '../lib/env.js'
 import { probeDuration, run } from '../lib/ffmpeg.js'
+import { listVoices, looksLikeApiKey } from '../lib/tts.js'
 
 const TICK = '  ok  '
 const CROSS = ' FAIL '
@@ -62,9 +63,35 @@ async function main(): Promise<void> {
     problems.push('A Chromium build is required to record.')
   }
 
-  // ElevenLabs
+  // ElevenLabs. Reporting "the variable is set" is worse than useless - a key that
+  // is present but wrong looked fine here while every recording came out silent.
+  // So actually call the API.
   if (config.elevenLabsApiKey) {
-    lines.push(`[${TICK}] narration ELEVENLABS_API_KEY is set (voice ${config.defaultVoiceId})`)
+    if (!looksLikeApiKey(config.elevenLabsApiKey)) {
+      lines.push(`[${WARN}] narration ELEVENLABS_API_KEY does not start with "sk_"`)
+      warnings.push(
+        'ElevenLabs API keys start with "sk_" and are shown only when the key is created ' +
+          'or rotated. A value without that prefix is usually the key ID copied from the ' +
+          'key list, which cannot be used for requests.',
+      )
+    }
+    try {
+      const voices = await listVoices(config)
+      const named = voices.find(v => v.voiceId === config.defaultVoiceId)
+      lines.push(
+        `[${TICK}] narration key works - ${voices.length} voices available, ` +
+          `default is ${named ? named.name : 'NOT in this account'}`,
+      )
+      if (!named) {
+        warnings.push(
+          `The configured voice ${config.defaultVoiceId} is not in this account. Pick one ` +
+            'with the tutorial_voices tool and set TUTORIAL_MCP_VOICE_ID.',
+        )
+      }
+    } catch (err) {
+      lines.push(`[${CROSS}] narration key rejected`)
+      warnings.push(`Narration will be silent: ${(err as Error).message}`)
+    }
   } else {
     lines.push(`[${WARN}] narration no ELEVENLABS_API_KEY - recordings will be silent`)
     warnings.push(

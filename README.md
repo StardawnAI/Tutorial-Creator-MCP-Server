@@ -47,6 +47,22 @@ npm run doctor          # reports what is present and what is missing
 Add a background music track to `assets/music/` — any `.m4a`, `.mp3` or `.wav`. The
 first file found is used by default.
 
+### The API key
+
+Put it in a `.env` file in the project root (git-ignored):
+
+```
+ELEVENLABS_API_KEY=sk_...
+```
+
+The server reads `.env` at start-up. Anything already set in the environment — for
+instance in the MCP client's own config — takes precedence over the file.
+
+**The key starts with `sk_`.** It is shown only once, when the key is created or
+rotated. The value listed next to a key in the ElevenLabs dashboard is the key
+*ID*, not the key, and requests made with it fail. `npm run doctor` calls the API
+and tells you which one you have.
+
 ### Sign in once
 
 Recording a signed-in app needs a profile that is logged in. This opens a visible

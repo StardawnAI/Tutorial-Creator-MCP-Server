@@ -100,6 +100,44 @@ function findPlaywrightBrowser(): string | null {
   return null
 }
 
+/**
+ * Load `.env` from the project root.
+ *
+ * The MCP server is launched by the client from an arbitrary working directory, so
+ * the file is read relative to the installation rather than the cwd. Variables that
+ * are already set win, so an explicit entry in the client's config still overrides
+ * the file.
+ */
+function loadDotEnv(): void {
+  const file = path.join(PROJECT_ROOT, '.env')
+  let contents: string
+  try {
+    // utf8 strips no BOM, so handle one explicitly - editors on Windows add them.
+    contents = fs.readFileSync(file, 'utf8').replace(/^﻿/, '')
+  } catch {
+    return // no .env is perfectly normal
+  }
+
+  for (const line of contents.split(/\r?\n/)) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith('#')) continue
+
+    const eq = trimmed.indexOf('=')
+    if (eq <= 0) continue
+
+    const key = trimmed.slice(0, eq).trim().replace(/^export\s+/, '')
+    let value = trimmed.slice(eq + 1).trim()
+    // Strip one layer of matching quotes.
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1)
+    }
+    if (key && process.env[key] === undefined) process.env[key] = value
+  }
+}
+
 /** Pick the first background-music file present in `assets/music`. */
 function findDefaultMusic(assetsDir: string): string | null {
   const dir = path.join(assetsDir, 'music')
@@ -116,6 +154,8 @@ let cached: Config | null = null
 
 export function loadConfig(): Config {
   if (cached) return cached
+
+  loadDotEnv()
 
   const home = process.env.TUTORIAL_MCP_HOME
     ? path.resolve(process.env.TUTORIAL_MCP_HOME)

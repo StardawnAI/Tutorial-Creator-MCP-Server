@@ -5,6 +5,50 @@ Newest entry on top.
 
 ---
 
+## 2026-08-26 - .env support, and the API key turned out to be the wrong one
+
+### Done
+
+- The server now reads `.env` from the project root at start-up. It previously only
+  looked at the process environment, so a key placed in `.env` had no effect.
+  Variables already set in the environment still win over the file.
+- `scripts/live-run.mjs`: records a complete tutorial *through the MCP protocol*,
+  the same path Claude Code takes. Verified end to end - 31.7s video, 1812 frames,
+  every tool exercised including chapter cards, highlighting and sensitive input.
+- Confirmed visually that `sensitive: true` works: typing the email shows the action
+  caption `Type "jim@example.com"` on screen, while typing the verification code
+  shows no caption at all.
+
+### The key problem
+
+The supplied `ELEVENLABS_API_KEY` is a **key ID, not a key**. ElevenLabs answers
+every request with HTTP 400: *"API key ID used as API key - only valid API keys can
+be used. API keys start with 'sk_' and are shown when the key is created or
+rotated."* Narration therefore still has never been heard.
+
+Three fixes came out of this:
+
+1. **`doctor` now calls the API instead of checking that a variable is set.** It
+   previously reported `[ ok ] narration` for a key that could not authenticate,
+   which is worse than saying nothing. It also warns when the key does not start
+   with `sk_`.
+2. **API errors surface the provider's own message.** `listVoices` threw a bare
+   "returned 400", discarding the explanation ElevenLabs had just handed over.
+3. **`tutorial_say` reports the real reason for silence.** It said "no API key" for
+   any failure, including a rejected key - pointing at the wrong problem. It now
+   quotes the actual error, and after an authentication failure it stops retrying
+   for the rest of the recording rather than burning a failed request per sentence.
+
+### Next
+
+- Create a fresh ElevenLabs key (it is shown only once, at creation) and put it in
+  `.env` as `ELEVENLABS_API_KEY=sk_...`. Then `npm run doctor` should report the key
+  works and name the default voice.
+- After that: record a real tutorial against a logged-in app, which also needs
+  `npm run login -- --url <site>` once.
+
+---
+
 ## 2026-08-24 - Server built, tested and registered
 
 ### Done
