@@ -1,0 +1,29 @@
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Recording workspace: raw frames, intermediate audio, rendered videos
+recordings/
+out/
+tmp/
+
+# Browser profile holding the user's real logins - must never be committed
+profiles/
+
+# Local media assets (large binaries, user-supplied)
+assets/music/*
+!assets/music/.gitkeep
+assets/branding/*
+!assets/branding/.gitkeep
+
+# Secrets
+.env
+.env.local
+
+# OS noise
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Playwright MCP debug artefacts
+.playwright-mcp/
