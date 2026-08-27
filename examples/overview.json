@@ -1,0 +1,83 @@
+{
+  "start": {
+    "title": "Tutorial Creator Overview",
+    "url": "https://github.com/StardawnAI/Tutorial-Creator-MCP-Server",
+    "resolution": "1080p",
+    "profile": "demo",
+    "music": true,
+    "showActions": true
+  },
+  "steps": [
+    {
+      "tool": "tutorial_wait",
+      "args": { "ms": 2500 }
+    },
+    {
+      "tool": "tutorial_chapter",
+      "args": {
+        "title": "Tutorial Creator",
+        "description": "Narrated walkthrough videos, recorded by an agent",
+        "durationMs": 2600
+      }
+    },
+    {
+      "tool": "tutorial_say",
+      "args": {
+        "text": "This is the Tutorial Creator, a server that records narrated walkthrough videos of web applications."
+      }
+    },
+    {
+      "tool": "tutorial_say",
+      "args": {
+        "text": "An agent drives a browser that is already signed in, speaks over what it is doing, and returns a finished video."
+      }
+    },
+    {
+      "tool": "tutorial_scroll",
+      "args": { "text": "How it works" }
+    },
+    {
+      "tool": "tutorial_say",
+      "args": {
+        "text": "The browser it records is invisible, so recordings run in the background and your machine stays usable."
+      }
+    },
+    {
+      "tool": "tutorial_say",
+      "args": {
+        "text": "Each line of narration is generated before it is spoken, and the recording waits for exactly as long as the speech takes. Picture and sound cannot drift apart."
+      }
+    },
+    {
+      "tool": "tutorial_scroll",
+      "args": { "text": "Sign in once" }
+    },
+    {
+      "tool": "tutorial_say",
+      "args": {
+        "text": "To record an application you are logged into, you sign in once. The session is then reused by every later recording."
+      }
+    },
+    {
+      "tool": "tutorial_scroll",
+      "args": { "text": "Keeping secrets out of the video" }
+    },
+    {
+      "tool": "tutorial_say",
+      "args": {
+        "text": "Passwords and verification codes can be marked as sensitive, so they are never captioned on screen."
+      },
+      "comment": "The section this scrolls to is the one it is describing."
+    },
+    {
+      "tool": "tutorial_say",
+      "args": {
+        "text": "That is the whole idea. Ask for a tutorial in plain language, and get back a video you can share.",
+        "pauseAfterMs": 1200
+      }
+    }
+  ],
+  "finish": {
+    "subtitles": true
+  }
+}

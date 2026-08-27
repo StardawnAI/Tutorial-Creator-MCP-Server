@@ -55,8 +55,10 @@ Status legend: `[ ]` open · `[x]` done · `[~]` in progress · `[!]` blocked
 - [x] On-disk cache keyed by text + voice + model + settings
 - [x] Silent fallback that still paces the recording when no key is set
       → verified: e2e runs end to end with no API key
-- [!] **Real speech is untested** — no `ELEVENLABS_API_KEY` is available yet.
-      Blocked on the key. Everything around it is built and exercised.
+- [x] **Real speech verified.** With a valid key, a 70.8 s tutorial synthesised 7
+      narration clips and mixed them under the picture.
+      → verified: overall loudness -17.3 LUFS; music alone measures -31 to -35 LUFS
+        while speech measures -16 to -18 LUFS, i.e. the ducking works
 
 ## M5 — Composition (ffmpeg)
 
@@ -89,8 +91,12 @@ Status legend: `[ ]` open · `[x]` done · `[~]` in progress · `[!]` blocked
 - [x] Register the server in Claude Code
       → verified: launched exactly as Claude Code will (command + args from
         `.claude.json`) and completed the handshake
-- [ ] **Record a real tutorial against a live logged-in app**
-      → needs: an ElevenLabs key, and a one-time `npm run login` for the target site
+- [x] **Record a real tutorial against a real website**
+      → verified: `node scripts/record.mjs examples/overview.json` produced a 70.8 s
+        1920x1080 mp4 with 7 spoken lines, music and subtitles
+- [ ] Record against an app that needs a login
+      → needs a one-time `npm run login -- --url <site>`; nothing in the code is
+        outstanding for this
 - [x] Confirm the tools appear after a full Claude Code restart
       → verified: all 16 tutorial_* tools are exposed in the running session
 

@@ -5,6 +5,43 @@ Newest entry on top.
 
 ---
 
+## 2026-08-27 - Narration works; first real tutorial recorded
+
+### Done
+
+- A valid ElevenLabs key is in place and `doctor` confirms it: 24 voices reachable.
+- The configured default voice was not in this account, which `doctor` caught and
+  named. Switched to **River** (relaxed, neutral, informative), set via
+  `TUTORIAL_MCP_VOICE_ID` in `.env`. The account also holds cloned voices of the
+  user, which may suit their own tutorials better.
+- Recorded a genuine 70.8 s tutorial at 1920x1080 against the project's own public
+  GitHub page: 7 narration clips synthesised, music mixed, subtitles written,
+  4086 frames.
+
+### Verified numbers
+
+- Overall loudness -17.3 LUFS, on target for web video.
+- Ducking works: music alone measures -31.5 / -34.9 / -33.5 LUFS while narration
+  measures -17.7 / -16.5 LUFS - roughly 15 dB of separation.
+- Video and audio streams are both exactly 70.84 s.
+- Subtitle timings carry the real synthesised durations, not estimates.
+
+### A trap worth remembering
+
+An MCP server reads its configuration once, at start-up. The `tutorial-creator`
+server running inside the editor had been started before the key was added, so it
+kept recording silently while a fresh process narrated perfectly. `scripts/record.mjs`
+exists partly for this: it records through a newly spawned server and prints the
+resolved configuration first, so the discrepancy is visible immediately. The
+long-lived server picks the key up after the editor is restarted.
+
+### Next
+
+- The only thing left is recording an app that needs a login, which needs
+  `npm run login -- --url <site>` once. No code is outstanding for it.
+
+---
+
 ## 2026-08-26 - .env support, and the API key turned out to be the wrong one
 
 ### Done
