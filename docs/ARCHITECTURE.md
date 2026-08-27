@@ -153,12 +153,37 @@ Two ffmpeg passes, deliberately separate so each is independently inspectable wh
 something sounds wrong.
 
 **Pass 1 — audio.** Narration clips are placed on a silent timeline at their cue
-offsets with `adelay`, summed with `amix`, and normalised with `loudnorm` to
-−16 LUFS. Background music is looped to length, faded at both ends, and pushed
-under the voice with `sidechaincompress` keyed off the narration.
+offsets with `adelay` and summed with `amix`. Each clip is normalised **on its own**
+with `loudnorm`, to −16 LUFS with a −1.5 dBFS ceiling. Background music is looped to
+length, normalised to −22 LUFS, faded at both ends, and ducked under the voice with
+`sidechaincompress` keyed off the narration.
 
-**Pass 2 — video and mux.** The WebM is transcoded to H.264, the mixed audio
-attached as AAC, `-movflags +faststart` set for web playback.
+Both of those choices were arrived at by getting them wrong first, and the reasons
+are worth stating because neither is obvious.
+
+*Why per clip.* A single `loudnorm` across the assembled timeline does not settle:
+the track is mostly silence, a few seconds of speech every ten seconds or so, and a
+clip measured at −27.8 LUFS still came out at −23.1 in the finished mix.
+
+*Why loudness normalisation rather than a measured gain.* Speech has a crest factor
+around 20 dB — the narration clips here averaged −23.5 LUFS while peaking at
+−2.8 dBFS. Reaching −16 LUFS needs +7.5 dB, but only +1.3 dB fits under the ceiling,
+so a gain calculation that refuses to clip refuses to do its job: narration landed at
+−21.7 LUFS against music at −22.0. Loudness and true peak cannot both be satisfied by
+a constant gain, which is precisely the problem `loudnorm` exists to solve.
+
+*Why music sits at −22 and not lower.* Music “in the background” was read as −32 LUFS,
+applied whenever narration existed anywhere in the recording — including the opening,
+before anyone speaks. That opening measured −31.9 LUFS: inaudible. The ducking is what
+makes room for the voice, not the resting level.
+
+Measured on a finished recording: music alone −21.9 LUFS, narration −17.4 LUFS.
+
+**Pass 2 — video and mux.** The stream is made constant-rate with `fps=25`, camera
+moves are applied with `zoompan` (§6), the result is transcoded to H.264, the mixed
+audio attached as AAC, and `-movflags +faststart` set for web playback. swscale runs
+with `lanczos`, since a camera move enlarges pixels and the default scaler makes that
+look worse than it needs to.
 
 All required filters are **verified** present in the local ffmpeg 6.1 build:
 `adelay`, `amix`, `sidechaincompress`, `loudnorm`, `afade`, `atrim`, `apad`,
@@ -171,7 +196,53 @@ careful escaping on Windows — a naive path fails to parse.
 
 ---
 
-## 6. Known risks
+## 6. Showing where to look
+
+A screen recording of an app is a poor teacher on its own: the pointer arrives
+somewhere, something changes, and the viewer reconstructs afterwards what was
+clicked. Two things fix that, and both run *before* the action.
+
+**Emphasis.** The target is ringed, everything else dimmed by a full-screen scrim,
+and an optional caption placed beside it; a pulse marks the moment of contact. All of
+it is drawn into the screencast's own overlay layer — never into the page. The
+application under demonstration is not modified, which matters: the recording is
+supposed to show how the app really behaves.
+
+**Camera moves.** Applied after recording, with `zoompan`, eased in and out. Again
+this keeps the page untouched: scaling the document would risk reflowing the very
+application being demonstrated and would shift every coordinate. During the session
+only the intent is recorded — time, centre, magnification — and `src/lib/zoom.ts`
+turns those into one filter expression. `zoompan` honours `ot` to within a frame: a
+move scheduled for 4.0 s began at 4.04 s and one scheduled to end at 8.0 s ended at
+8.00 s.
+
+The camera **holds its framing** while subsequent actions fall inside the region it is
+already showing, and **releases on scroll or navigation**. The recorded centre is a
+fixed point in the viewport; once the page moves underneath it, it would frame
+whatever happened to slide into that spot.
+
+### What a camera move cannot do
+
+It magnifies the pixels that were captured. It does not add detail.
+
+The obvious way to add detail — capture at twice the output size and crop — does not
+work with this API, and it takes a measurement to see that rather than an assumption.
+`page.screencast` delivers frames at the CSS viewport size and nothing else: at
+viewport 1280x720 with `deviceScaleFactor: 2` the frames still arrive as 1280x720,
+byte-for-byte identical to density 1, and asking the screencast for a 2560x1440 `size`
+yields a 2560x1440 canvas with the 1280x720 picture sitting unscaled in one corner.
+`--force-device-scale-factor=2` changes nothing. `page.screenshot()` *does* honour the
+density, which is what makes the assumption so easy to believe — and checking only
+that the output file had the requested dimensions confirmed it falsely.
+
+So `MAX_ZOOM` is 1.75, where an enlargement still reads as a deliberate move rather
+than as softness, and capture quality is 96 so that what gets enlarged is the picture
+rather than compression artefacts. The gain is legibility: text at 1.75x is far easier
+to read than the same text at full-page size.
+
+---
+
+## 7. Known risks
 
 | Risk | Mitigation |
 |---|---|
@@ -185,7 +256,7 @@ careful escaping on Windows — a naive path fails to parse.
 
 ---
 
-## 7. Relationship to the existing Playwright MCP
+## 8. Relationship to the existing Playwright MCP
 
 They are independent. The existing `@playwright/mcp` keeps driving the user's real
 Chrome for ordinary browsing work. This server has its own browser and its own

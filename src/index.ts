@@ -32,6 +32,13 @@ async function main(): Promise<void> {
         'tutorial_say waits for the speech to finish, so the pacing takes care of itself.\n\n' +
         'Use tutorial_snapshot to see what is on the page before clicking. Mark passwords and ' +
         'verification codes as sensitive when typing so they are not captioned on screen.\n\n' +
+        'Marking targets and moving the camera in on them happens automatically for every ' +
+        'click and every typed field, so do not ask for it. Pass a short `label` to ' +
+        'tutorial_click and tutorial_type - two or three words naming the intent, such as ' +
+        '"Open the settings menu" - and it is shown beside the ring. Reach for tutorial_zoom ' +
+        'only to frame something you are talking about but not acting on, or to pull back out ' +
+        'early; the camera holds its framing while actions stay in one area and releases by ' +
+        'itself on scrolling and navigation.\n\n' +
         'Recording an app the user is signed into needs that session in the recording ' +
         'profile. Do NOT ask the user to log in by hand if a Playwright MCP server is ' +
         'available that drives their real browser: navigate to the site there FIRST, then ' +

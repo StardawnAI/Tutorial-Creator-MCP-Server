@@ -17,6 +17,7 @@ import type { Config } from './env.js'
 import { requireFfmpeg, requireFfprobe } from './env.js'
 import { probeDuration, probeVideo, run } from './ffmpeg.js'
 import type { NarrationCue } from './session.js'
+import { buildZoomFilter, type ZoomEvent } from './zoom.js'
 import { log } from './logger.js'
 
 export interface ComposeOptions {
@@ -34,6 +35,11 @@ export interface ComposeOptions {
   subtitles: boolean
   /** Final file name, without directory. */
   outputName?: string
+  /** Camera moves recorded during the session. */
+  zoomEvents?: ZoomEvent[]
+  /** Size of the finished video. The capture is a whole multiple of this. */
+  outputWidth: number
+  outputHeight: number
 }
 
 export interface ComposeResult {
@@ -43,6 +49,8 @@ export interface ComposeResult {
   height: number
   hasAudio: boolean
   cueCount: number
+  /** Camera moves that made it into the render. */
+  zoomCount: number
 }
 
 /** Seconds -> `HH:MM:SS,mmm` for SubRip. */
@@ -73,13 +81,44 @@ export function buildSrt(cues: NarrationCue[]): string {
     .join('\n')
 }
 
+/** Speech level for web video, and the headroom left above it. */
+const NARRATION_LUFS = -16
+const NARRATION_PEAK_CEILING = -1.5
+
+/**
+ * The filter that brings one narration clip up to a consistent speaking level.
+ *
+ * Per clip, deliberately, and by loudness normalisation rather than by gain. Two
+ * earlier attempts got this wrong, and both failures are worth keeping written down.
+ *
+ * A single `loudnorm` across the assembled timeline does not work. The timeline is
+ * mostly silence - a few seconds of speech every ten seconds or so - and the filter
+ * never settles on it: a clip measured at -27.8 LUFS still came out at -23.1 in the
+ * finished mix, quieter than the music it was meant to sit above.
+ *
+ * Measuring each clip and applying a fixed gain does not work either, which is the
+ * less obvious one. Speech has a crest factor of around 20 dB: the ElevenLabs clips
+ * here averaged -23.5 LUFS while peaking at -2.8 dBFS. Reaching -16 LUFS needs
+ * +7.5 dB, but only +1.3 dB fits under a -1.5 dBFS ceiling, so a gain calculation
+ * that refuses to clip refuses to do its job - narration landed at -21.7 LUFS against
+ * music at -22.0, which is the "I can't hear the voice" complaint written as numbers.
+ * Loudness and true peak cannot both be satisfied by a constant gain.
+ *
+ * `loudnorm` is built for exactly this and handles it in one pass. Supplying it with
+ * separately measured figures was tried and dropped: it produced identical results on
+ * real narration (-17.1 vs -17.1 LUFS) while adding an analysis run per clip and a
+ * trap - a clip under three seconds has no measurable loudness range, and given
+ * `measured_LRA=0` the filter falls back to linear scaling and gives up at the peak
+ * ceiling, exactly the failure it was brought in to avoid.
+ */
+const NARRATION_CHAIN = `loudnorm=I=${NARRATION_LUFS}:TP=${NARRATION_PEAK_CEILING}:LRA=11`
+
 /**
  * Pass 1 - build the audio bed.
  *
- * Narration clips are delayed onto a silent timeline and summed; the result is
- * loudness-normalised. Music is looped to length, faded at both ends, pushed down
- * by `musicGainDb`, then ducked under the voice with a sidechain compressor keyed
- * off the narration itself.
+ * Each narration clip is levelled on its own and delayed onto a silent timeline.
+ * Music is looped to length, faded at both ends, pushed down by `musicGainDb`, then
+ * ducked under the voice with a sidechain compressor keyed off the narration itself.
  */
 async function buildAudio(
   config: Config,
@@ -114,12 +153,16 @@ async function buildAudio(
 
   const musicIndex = 1 + spoken.length
 
-  // Narration: normalise each clip to stereo 44.1k, then delay it into position.
+  // Narration: level each clip on its own, convert to stereo 44.1k, then delay it
+  // into position. Clips never overlap - the recording waits out each line - so the
+  // sum needs no further gain staging.
   const narrationLabels: string[] = []
   spoken.forEach((cue, i) => {
     const label = `n${i}`
     filters.push(
-      `[${i + 1}:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo,` +
+      `[${i + 1}:a]${NARRATION_CHAIN},` +
+        // After loudnorm, which resamples to 192 kHz internally.
+        `aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo,` +
         `adelay=${Math.max(0, Math.round(cue.atMs))}:all=1[${label}]`,
     )
     narrationLabels.push(`[${label}]`)
@@ -127,12 +170,11 @@ async function buildAudio(
 
   let voiceLabel: string | null = null
   if (narrationLabels.length > 0) {
+    log.info(`Levelling ${spoken.length} narration clips to ${NARRATION_LUFS} LUFS`)
     filters.push(
       `[0:a]${narrationLabels.join('')}amix=inputs=${narrationLabels.length + 1}:` +
-        `normalize=0:duration=first[voicemix]`,
+        `normalize=0:duration=first[voice]`,
     )
-    // -16 LUFS is the usual target for spoken web video.
-    filters.push(`[voicemix]loudnorm=I=-16:TP=-1.5:LRA=11[voice]`)
     voiceLabel = 'voice'
   }
 
@@ -155,10 +197,22 @@ async function buildAudio(
 
   let finalLabel: string
   if (hasMusic && voiceLabel) {
-    // Music sits well under a -16 LUFS voice; the sidechain then dips it further
-    // while words are actually playing.
+    /**
+     * Set the music to a level it can actually be heard at, and let the sidechain
+     * take it back down while words are playing.
+     *
+     * It used to be normalised to -32 LUFS here, on the reasoning that background
+     * music belongs in the background. That confused two different moments. Measured
+     * on a finished recording: the opening, before the first line of narration, came
+     * out at -31.9 LUFS - roughly 13 dB under a normal listening level, which on a
+     * laptop is silence. The viewer's verdict was simply "I can't hear anything".
+     *
+     * -22 LUFS measures at -21.6 on its own and is ducked to -38.6 under the voice,
+     * leaving the 17 dB of separation that speech over music wants. Both figures are
+     * asserted in scripts/e2e.mjs so this cannot quietly regress again.
+     */
     filters.push(`[${voiceLabel}]asplit=2[voiceout][voicekey]`)
-    filters.push(`${musicChain(-32)}[music]`)
+    filters.push(`${musicChain(-22)}[music]`)
     filters.push(
       `[music][voicekey]sidechaincompress=threshold=0.03:ratio=12:attack=15:release=450` +
         `:makeup=1[ducked]`,
@@ -215,22 +269,65 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
   const outputName = options.outputName ?? 'tutorial.mp4'
   const outputFile = path.join(options.outputDir, outputName)
 
-  const args: string[] = ['-hide_banner', '-loglevel', 'error', '-y', '-i', options.rawVideo]
+  const args: string[] = [
+    '-hide_banner', '-loglevel', 'error', '-y',
+    // zoompan enlarges pixels; its default scaler makes that look worse than it has
+    // to. This applies to every swscale instance in the graph, zoompan's included.
+    '-sws_flags', 'lanczos+accurate_rnd',
+    '-i', options.rawVideo,
+  ]
   if (audioFile) args.push('-i', audioFile)
+
+  const OUTPUT_FPS = 25
+  const chain: string[] = []
 
   if (needsExtension) {
     // Hold the final frame so narration that runs past the last on-screen action
     // is not cut off.
     const extraSec = requiredSec - info.durationSec
-    args.push('-vf', `tpad=stop_mode=clone:stop_duration=${extraSec.toFixed(3)}`)
+    chain.push(`tpad=stop_mode=clone:stop_duration=${extraSec.toFixed(3)}`)
     log.info(`Extending video by ${extraSec.toFixed(2)}s to cover trailing narration`)
   }
 
+  // The screencast delivers frames as the page paints, so its timing is uneven.
+  // zoompan reads `ot` off the frame timestamps, which only means anything once the
+  // stream is constant-rate - hence this before, not after.
+  chain.push(`fps=${OUTPUT_FPS}`)
+
+  const zoomFilter = buildZoomFilter(options.zoomEvents ?? [], {
+    viewportWidth: options.outputWidth,
+    viewportHeight: options.outputHeight,
+    outputWidth: options.outputWidth,
+    outputHeight: options.outputHeight,
+    fps: OUTPUT_FPS,
+    rampMs: 700,
+  })
+
+  if (zoomFilter) {
+    // zoompan emits at the output size, so it does the downscale as well.
+    chain.push(zoomFilter)
+    log.info(`Applying ${options.zoomEvents?.length ?? 0} camera move(s)`)
+  } else {
+    chain.push(
+      `scale=${options.outputWidth}:${options.outputHeight}:flags=lanczos`,
+    )
+  }
+
+  // Written to a file: a filtergraph with several camera moves comfortably exceeds
+  // the Windows command-line limit.
+  //
+  // The output is labelled and mapped explicitly. Naming any `-map` at all switches
+  // ffmpeg's automatic stream selection off, so the audio map below would otherwise
+  // leave the picture with no route to the file.
+  const videoGraphFile = path.join(options.outputDir, 'video-graph.txt')
+  fs.writeFileSync(videoGraphFile, `[0:v]${chain.join(',\n')}[vout]`)
+  args.push('-filter_complex_script', videoGraphFile)
+
   args.push(
-    '-map', '0:v:0',
+    '-map', '[vout]',
     ...(audioFile ? ['-map', '1:a:0'] : []),
     '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20',
-    '-pix_fmt', 'yuv420p', '-r', '25', '-fps_mode', 'cfr',
+    '-pix_fmt', 'yuv420p', '-r', String(OUTPUT_FPS), '-fps_mode', 'cfr',
     ...(audioFile ? ['-c:a', 'aac', '-b:a', '192k'] : []),
     '-movflags', '+faststart',
     '-t', requiredSec.toFixed(3),
@@ -258,10 +355,11 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
   return {
     outputFile,
     durationSec: finalDuration,
-    width: info.width,
-    height: info.height,
+    width: options.outputWidth,
+    height: options.outputHeight,
     hasAudio: Boolean(audioFile),
     cueCount: options.cues.length,
+    zoomCount: zoomFilter ? (options.zoomEvents ?? []).length : 0,
   }
 }
 

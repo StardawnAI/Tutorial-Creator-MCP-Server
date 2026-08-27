@@ -102,6 +102,32 @@ Status legend: `[ ]` open · `[x]` done · `[~]` in progress · `[!]` blocked
 - [x] Confirm the tools appear after a full Claude Code restart
       → verified: all 16 tutorial_* tools are exposed in the running session
 
+## M9 - Professional presentation: audible music, emphasis, zoom
+
+Raised after watching the first real recording: the sound was inaudible and the
+picture was a plain screen capture with nothing guiding the eye.
+
+- [x] Music is audible when nobody is speaking
+      -> verified: the music-only opening measures -21.9 LUFS on a real recording,
+        up from -31.9; ducked to -38.6 under the voice, 17 dB of separation
+- [x] Narration reaches a speaking level whatever the synthesiser hands over
+      -> verified: real clips arriving at -23.5 LUFS now render at -17.4. A measured
+        constant gain could not do this - speech peaks at -2.8 dBFS leave only 1.3 dB
+        of the 7.5 dB needed - so each clip is loudness-normalised instead
+- [!] Capture at 2x so a zoom stays sharp - ABANDONED, not possible
+      -> measured: `page.screencast` delivers at the CSS viewport size regardless of
+        device scale factor; `size` only pads the canvas. A camera move magnifies
+        captured pixels, so MAX_ZOOM is 1.75 and capture quality is 96 instead
+- [x] Emphasis layer: ring on the target, dimmed surroundings, click pulse
+      -> verified: extracted frames show the ring, scrim and caption in place
+- [x] Automatic camera move onto the region being acted on, eased in and out
+      -> verified: 46.0 dB against a no-zoom render before the move, 17.2 dB during it
+- [x] Camera holds its framing in one region, releases on scroll/navigate
+      -> verified: two adjacent fields produce one camera move, not two
+- [x] Regression assertions for all of the above in `scripts/e2e.mjs`
+      -> verified: `node scripts/e2e.mjs` 23/23. The fixture had to be rebuilt twice:
+        a stand-in gentler than real speech passed a mix that was actually broken
+
 ---
 
 ## Deferred / out of scope

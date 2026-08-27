@@ -5,6 +5,113 @@ Newest entry on top.
 
 ---
 
+## 2026-08-27 (latest) - Audible sound, and a camera that shows where to look
+
+Raised after the user watched the first real recording: no sound could be heard, and
+the picture was a plain screen capture with nothing guiding the eye. Both were fair.
+
+### The sound: three separate mistakes, each hiding the next
+
+**1. Music normalised for the wrong moment.** It was set to -32 LUFS whenever any
+narration existed in the recording - including the stretches where nobody speaks. The
+opening of the finished video measured **-31.9 LUFS**, which on a laptop is silence.
+Nothing errored; the file simply sounded empty. Raised to -22 LUFS, which measures
+-21.6 alone and ducks to -38.6 under the voice: 17 dB of separation, the usual figure
+for speech over music.
+
+**2. `loudnorm` across the whole timeline never settled.** The narration track is
+mostly silence - a few seconds of speech every ten seconds - and a single normaliser
+spread over that under-delivers badly. A clip measured at -27.8 LUFS still came out
+at -23.1 in the mix. Moved to per-clip normalisation.
+
+**3. Per-clip *gain* could not work either, and this one is worth remembering.**
+Speech has a crest factor around 20 dB: the ElevenLabs clips averaged -23.5 LUFS
+while peaking at -2.8 dBFS. Reaching -16 LUFS needs +7.5 dB, but only +1.3 dB fits
+under a -1.5 dBFS ceiling. A gain calculation that refuses to clip therefore refuses
+to do its job - narration landed at **-21.7 LUFS against music at -22.0**, a
+separation of 0.3 dB. Loudness and true peak cannot both be satisfied by a constant
+gain; that is what `loudnorm` is for. One `loudnorm` per clip now gets real narration
+to -17.1 LUFS.
+
+Supplying separately measured figures to `loudnorm` was built, measured, and then
+removed: identical results on real narration (-17.1 vs -17.1) for an extra analysis
+pass per clip, plus a trap - a clip under three seconds has no measurable loudness
+range, and given `measured_LRA=0` the filter reverts to linear scaling and gives up
+at the peak ceiling, which is the exact failure it was brought in to prevent.
+
+Final measured mix on a real recording: music alone **-21.9 LUFS**, narration
+**-17.4 LUFS**, whole file -18.9 LUFS.
+
+### The test that passed while the product was broken
+
+Defect 3 shipped past a green suite, twice, and that is the more useful lesson.
+
+The e2e stand-in for a narration clip was plain band-limited noise: even, quiet,
+about 9 dB from average level to peak. Real speech has over 20 dB. The peak ceiling
+never bound, so the broken gain calculation looked fine. **A test fixture that is
+gentler than reality tests nothing.**
+
+Version two added a sharp transient to get the spread, and then failed a mix that was
+actually correct - steady noise has a loudness range of exactly zero, which no real
+recording has, and `loudnorm` treats zero as a special case. Version three needed all
+three properties together: level below target, peaks near the ceiling, and a loudness
+range that varies. Clip length matters too - under three seconds there are too few
+short-term windows to measure a range at all, so the fixture clips are now four
+seconds and up, as real narration is.
+
+### The picture: marking and a camera move
+
+- **Emphasis** (`src/lib/emphasis.ts`) - before acting, the target is ringed, its
+  surroundings dimmed, and an optional caption placed beside it; a pulse marks the
+  moment of the click. Drawn into the screencast's overlay layer, never into the page.
+- **Camera moves** (`src/lib/zoom.ts`) - `zoompan`, eased in and out, applied after
+  recording. Clicking and typing move the camera on their own; `tutorial_zoom` is
+  there for framing something that is only being talked about.
+- The camera **holds its framing** while following actions are in the same region,
+  and releases on scroll or navigation - a fixed viewport point stops meaning
+  anything once the page moves under it.
+
+Nothing here scales or modifies the application. That is deliberate: the app being
+demonstrated must behave exactly as it does for the user.
+
+### The assumption that cost the most time
+
+The plan was to capture at twice the output size so a 2x move would crop real pixels.
+A probe "confirmed" it: asking `page.screencast` for 3840x2160 produced a 3840x2160
+file. I checked the dimensions and never looked at a frame.
+
+The frames showed the page sitting unscaled in the top-left corner of a mostly grey
+canvas. `page.screencast` delivers at the CSS viewport size and nothing else -
+byte-for-byte identical output at density 1 and 2 - while `size` only enlarges the
+canvas. `--force-device-scale-factor=2` changed nothing. `page.screenshot()` *does*
+honour the density, which is exactly what makes the assumption so easy to believe.
+
+**Checking that an artefact exists is not checking that it is right.** The dimensions
+were correct and the content was wrong, and everything built on top inherited that.
+
+So a camera move magnifies captured pixels. `MAX_ZOOM` is 1.75, where that still
+reads as deliberate; capture quality was raised to 96 so it is not compression
+artefacts being magnified; and swscale is set to lanczos. The gain is legibility, not
+detail, and the code says so rather than implying otherwise.
+
+### Verified
+
+- `node scripts/e2e.mjs` - **23/23**, including the new checks: music audible when
+  nobody speaks, narration reaching a speaking level, the voice clearly above the
+  music, and the picture measurably magnified during a move but untouched before it.
+- `node scripts/handshake.mjs` - **11/11**, 19 tools.
+- `node scripts/record.mjs examples/emphasis.json` - 50.4 s at 1920x1080, 2 camera
+  moves, levels as above.
+
+### Known problems / open items
+
+- A camera move is a magnification of the captured picture, not extra detail. This is
+  a hard limit of `page.screencast` and is documented rather than worked around.
+- The caption beside a ring can overlap dense page content. It is legible as an
+  overlay, but placement is naive.
+
+---
+
 ## 2026-08-27 (later) - Sessions are transferred, not typed in again
 
 ### The design error

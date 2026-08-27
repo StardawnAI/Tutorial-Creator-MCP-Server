@@ -118,7 +118,7 @@ async function main() {
     'tutorial_cancel', 'tutorial_status', 'tutorial_voices',
     'tutorial_goto', 'tutorial_click', 'tutorial_type', 'tutorial_press',
     'tutorial_scroll', 'tutorial_wait', 'tutorial_snapshot', 'tutorial_screenshot',
-    'tutorial_highlight',
+    'tutorial_highlight', 'tutorial_zoom',
     'tutorial_import_session', 'tutorial_profiles',
   ]
   const names = list.map(t => t.name)

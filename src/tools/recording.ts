@@ -13,9 +13,25 @@ import { synthesise, estimateSpokenMs, listVoices } from '../lib/tts.js'
 import { compose, verifyOutput } from '../lib/compose.js'
 import { log } from '../lib/logger.js'
 
+/**
+ * Output size. The capture is always 1:1 with the viewport.
+ *
+ * `deviceScaleFactor` is deliberately 1 everywhere. It looks like the obvious way to
+ * capture extra detail for a camera move to crop into, and it is not: measured on
+ * this machine, `page.screencast` delivers frames at the CSS viewport size and
+ * nothing else. At viewport 1280x720 with density 2 the frames still arrived as
+ * 1280x720 - byte-for-byte identical to density 1 - and asking the screencast for a
+ * 2560x1440 `size` produced a 2560x1440 canvas with the 1280x720 picture sitting
+ * unscaled in the corner. `--force-device-scale-factor=2` changed nothing either,
+ * while `page.screenshot()` does honour the density, which is what makes the
+ * assumption so easy to believe.
+ *
+ * So a camera move magnifies the pixels that were captured. That is a real limit,
+ * and raising the density only costs rendering work for no gain.
+ */
 const PRESETS = {
   '1080p': { width: 1920, height: 1080, deviceScaleFactor: 1 },
-  '720p': { width: 1280, height: 720, deviceScaleFactor: 2 },
+  '720p': { width: 1280, height: 720, deviceScaleFactor: 1 },
   '1440p': { width: 2560, height: 1440, deviceScaleFactor: 1 },
 } as const
 
@@ -67,6 +83,20 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           .boolean()
           .default(true)
           .describe('Draw an animated pointer and caption each action.'),
+        emphasis: z
+          .boolean()
+          .default(true)
+          .describe(
+            'Ring each target and dim its surroundings before acting on it, and pulse at ' +
+              'the point of the click.',
+          ),
+        autoZoom: z
+          .boolean()
+          .default(true)
+          .describe(
+            'Move the camera in on whatever is being acted on, so small controls are legible. ' +
+              'The move is applied after recording, so the app itself is never scaled.',
+          ),
       },
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
     },
@@ -94,7 +124,11 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           music: args.music ? config.defaultMusic : null,
           musicGainDb: 0,
           showActions: args.showActions,
-          quality: 92,
+          // The raw capture is an intermediate, and a camera move enlarges whatever
+          // compression artefacts it contains - so spend the bytes here.
+          quality: 96,
+          emphasis: args.emphasis,
+          autoZoom: args.autoZoom,
         })
         setSession(session)
 
@@ -115,7 +149,8 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
 
         return text(
           [
-            `Recording "${args.title}" at ${preset.width}x${preset.height}.`,
+            `Recording "${args.title}" at ${preset.width}x${preset.height}` +
+            `${preset.deviceScaleFactor > 1 ? ` (captured at ${preset.deviceScaleFactor}x)` : ''}.`,
             args.url ? `Opened ${args.url}.` : 'No page opened yet - use tutorial_goto.',
             `Output folder: ${session.outputDir}`,
             ...warnings.map(w => `Note: ${w}`),
@@ -288,7 +323,10 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
         const result = await compose(config, {
           rawVideo,
           cues: session.cues,
+          zoomEvents: session.zoomEvents,
           outputDir: session.outputDir,
+          outputWidth: session.options.width,
+          outputHeight: session.options.height,
           music: session.options.music,
           musicGainDb: args.musicGainDb,
           subtitles: args.subtitles,
@@ -301,7 +339,8 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           `Finished "${session.title}".`,
           `File: ${result.outputFile}`,
           `${result.durationSec.toFixed(1)}s, ${result.width}x${result.height}, ` +
-            `${result.cueCount} narration lines, audio ${result.hasAudio ? 'mixed' : 'absent'}.`,
+            `${result.cueCount} narration lines, audio ${result.hasAudio ? 'mixed' : 'absent'}` +
+            `${result.zoomCount > 0 ? `, ${result.zoomCount} camera moves` : ''}.`,
           `Recorded ${(videoMs / 1000).toFixed(1)}s across ${session.frameCount} frames.`,
         ]
         if (!check.ok) {

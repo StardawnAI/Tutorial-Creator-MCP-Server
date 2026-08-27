@@ -9,7 +9,8 @@
 import { z } from 'zod'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { Locator, Page } from 'playwright-core'
-import { requireSession } from '../lib/session.js'
+import { requireSession, type RecordingSession } from '../lib/session.js'
+import { ripple, spotlight, type Box } from '../lib/emphasis.js'
 import { log } from '../lib/logger.js'
 
 function text(body: string) {
@@ -68,6 +69,44 @@ function describeTarget(target: Target): string {
   return 'target'
 }
 
+/**
+ * Bring the target on screen, mark it, and move the camera to it.
+ *
+ * This runs before the action itself, never after, and that ordering is the whole
+ * point: the viewer is shown where something is about to happen while there is still
+ * time to look, rather than being asked to reconstruct it from the aftermath.
+ *
+ * Returns the element's box, or null when it has no geometry to point at.
+ */
+async function prepareTarget(
+  session: RecordingSession,
+  locator: Locator,
+  label: string | undefined,
+): Promise<Box | null> {
+  const page = session.page
+  await locator.scrollIntoViewIfNeeded({ timeout: 10_000 }).catch(() => {})
+
+  // Measure only after scrolling: a box read beforehand describes where the element
+  // used to be, and the camera would frame empty screen.
+  const box = await locator.boundingBox({ timeout: 10_000 }).catch(() => null)
+  if (!box) return null
+
+  const scale = session.focusOn(box, label ?? 'action')
+  const zoomed = scale > 1
+
+  if (session.options.emphasis) {
+    // Long enough to register, and long enough for the camera to arrive: the push-in
+    // takes 700 ms, so acting sooner would click during the move.
+    const dwell = zoomed ? 1000 : 640
+    await spotlight(page, box, { durationMs: dwell + 500, ...(label ? { label } : {}) })
+    await page.waitForTimeout(dwell)
+  } else if (zoomed) {
+    await page.waitForTimeout(750)
+  }
+
+  return box
+}
+
 export function registerActionTools(server: McpServer): void {
   server.registerTool(
     'tutorial_goto',
@@ -89,6 +128,10 @@ export function registerActionTools(server: McpServer): void {
     async args => {
       try {
         const session = requireSession()
+        // A camera framing a fixed point in the viewport has to come back out before
+        // a different page slides under it, or it will end up magnifying whatever
+        // happens to land there.
+        session.releaseZoom()
         await session.page.goto(args.url, { waitUntil: 'domcontentloaded', timeout: 45_000 })
         await session.page.waitForTimeout(args.waitForMs)
         return text(`Opened ${args.url} (now at ${session.page.url()}).`)
@@ -103,17 +146,30 @@ export function registerActionTools(server: McpServer): void {
     {
       title: 'Click something',
       description:
-        'Clicks an element. The recorded pointer glides to it first and the click is ' +
-        'captioned, so the viewer can follow along.',
-      inputSchema: { ...TARGET_SHAPE, waitForMs: z.number().int().min(0).max(30_000).default(BEAT_MS) },
+        'Clicks an element. Before the click the target is ringed, the surroundings are ' +
+        'dimmed and the camera moves in on it, so the viewer sees where the click is going ' +
+        'while there is still time to look. A pulse marks the moment of contact.',
+      inputSchema: {
+        ...TARGET_SHAPE,
+        label: z
+          .string()
+          .optional()
+          .describe('Short caption shown beside the ring, e.g. "Open the settings menu".'),
+        waitForMs: z.number().int().min(0).max(30_000).default(BEAT_MS),
+      },
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
     },
     async args => {
       try {
         const session = requireSession()
         const locator = resolveTarget(session.page, args)
-        await locator.scrollIntoViewIfNeeded({ timeout: 10_000 }).catch(() => {})
+        const box = await prepareTarget(session, locator, args.label)
+
         await locator.click({ timeout: 20_000 })
+
+        if (box && session.options.emphasis) {
+          await ripple(session.page, box.x + box.width / 2, box.y + box.height / 2)
+        }
         await session.page.waitForTimeout(args.waitForMs)
         return text(`Clicked ${describeTarget(args)}.`)
       } catch (err) {
@@ -133,6 +189,10 @@ export function registerActionTools(server: McpServer): void {
       inputSchema: {
         ...TARGET_SHAPE,
         value: z.string().describe('What to type.'),
+        label: z
+          .string()
+          .optional()
+          .describe('Short caption shown beside the ring, e.g. "Enter your email address".'),
         sensitive: z
           .boolean()
           .default(false)
@@ -153,7 +213,7 @@ export function registerActionTools(server: McpServer): void {
         const session = requireSession()
         const page = session.page
         const locator = resolveTarget(page, args)
-        await locator.scrollIntoViewIfNeeded({ timeout: 10_000 }).catch(() => {})
+        await prepareTarget(session, locator, args.label)
 
         // The action caption prints the typed value, which would put a verification
         // code or password on screen. Turn decorations off around sensitive input.
@@ -221,6 +281,8 @@ export function registerActionTools(server: McpServer): void {
       try {
         const session = requireSession()
         const page = session.page
+        // Same reason as navigation: the page is about to move under the camera.
+        session.releaseZoom()
 
         if (args.selector || args.text || args.role) {
           const locator = resolveTarget(page, args)
@@ -350,10 +412,16 @@ export function registerActionTools(server: McpServer): void {
     {
       title: 'Draw attention to an element',
       description:
-        'Outlines an element on screen for a moment, so the viewer knows where to look before ' +
-        'anything happens.',
+        'Rings an element, dims everything around it and moves the camera in on it, without ' +
+        'clicking anything. Use it while narrating something the viewer needs to find but ' +
+        'should not interact with yet.',
       inputSchema: {
         ...TARGET_SHAPE,
+        label: z.string().optional().describe('Short caption shown beside the ring.'),
+        zoom: z
+          .boolean()
+          .default(true)
+          .describe('Also move the camera in. Turn off to mark something in the wider view.'),
         durationMs: z.number().int().min(300).max(10_000).default(1600),
       },
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
@@ -367,19 +435,72 @@ export function registerActionTools(server: McpServer): void {
         const box = await locator.boundingBox({ timeout: 10_000 })
         if (!box) return failure(`${describeTarget(args)} is not visible on the page.`)
 
-        // `duration` removes the overlay on its own, so there is nothing to dispose.
-        await page.screencast.showOverlay(
-          `<div style="position:fixed;left:${box.x - 6}px;top:${box.y - 6}px;` +
-            `width:${box.width + 12}px;height:${box.height + 12}px;` +
-            'border:3px solid #38bdf8;border-radius:10px;' +
-            'box-shadow:0 0 0 4px rgba(56,189,248,.25),0 0 0 9999px rgba(15,23,42,.35);' +
-            'pointer-events:none"></div>',
-          { duration: args.durationMs },
-        )
+        const scale = args.zoom ? session.focusOn(box, args.label ?? 'highlight') : 1
+        await spotlight(page, box, {
+          durationMs: args.durationMs,
+          ...(args.label ? { label: args.label } : {}),
+        })
         await page.waitForTimeout(args.durationMs)
-        return text(`Highlighted ${describeTarget(args)}.`)
+        return text(
+          `Highlighted ${describeTarget(args)}${scale > 1 ? ` at ${scale.toFixed(1)}x` : ''}.`,
+        )
       } catch (err) {
         return failure(`Could not highlight ${describeTarget(args)}: ${(err as Error).message}`)
+      }
+    },
+  )
+
+  server.registerTool(
+    'tutorial_zoom',
+    {
+      title: 'Move the camera',
+      description:
+        'Moves the camera in on a region, or back out to the full page.\n\n' +
+        'Clicking and typing already do this on their own, and the camera stays put while ' +
+        'the following actions are in the same area - so reach for this only to frame ' +
+        'something being talked about rather than acted on, or to pull back out early.\n\n' +
+        'Call with reset: true to return to the full view.',
+      inputSchema: {
+        ...TARGET_SHAPE,
+        reset: z.boolean().default(false).describe('Pull the camera back out to the full page.'),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
+    },
+    async args => {
+      try {
+        const session = requireSession()
+        if (args.reset) {
+          const wasZoomed = session.isZoomed
+          session.releaseZoom()
+          // Let the pull-out actually play before anything else happens.
+          await session.page.waitForTimeout(wasZoomed ? 800 : 0)
+          return text(wasZoomed ? 'Camera back out to the full page.' : 'Camera was already wide.')
+        }
+
+        if (!session.options.autoZoom) {
+          return failure(
+            'Camera moves are switched off for this recording. Start it with autoZoom: true.',
+          )
+        }
+        if (!args.selector && !args.text && !args.role) {
+          return failure('Say what to move the camera to, or pass reset: true to pull back out.')
+        }
+
+        const locator = resolveTarget(session.page, args)
+        await locator.scrollIntoViewIfNeeded({ timeout: 10_000 }).catch(() => {})
+        const box = await locator.boundingBox({ timeout: 10_000 })
+        if (!box) return failure(`${describeTarget(args)} is not visible on the page.`)
+
+        const scale = session.focusOn(box, describeTarget(args))
+        await session.page.waitForTimeout(800)
+        return scale > 1
+          ? text(`Camera in to ${scale.toFixed(1)}x on ${describeTarget(args)}.`)
+          : text(
+              `${describeTarget(args)} already fills enough of the screen to read; ` +
+                'the camera stayed where it was.',
+            )
+      } catch (err) {
+        return failure(`Could not move the camera: ${(err as Error).message}`)
       }
     },
   )

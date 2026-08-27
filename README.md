@@ -139,11 +139,12 @@ finished video.
 | `tutorial_say` | Speak a line; the recording waits for it |
 | `tutorial_chapter` | Title card over a blurred backdrop |
 | `tutorial_goto` | Navigate |
-| `tutorial_click` | Click, with the pointer gliding to the target |
+| `tutorial_click` | Click, after ringing the target and moving the camera to it |
 | `tutorial_type` | Type into a field; mark `sensitive` for codes and passwords |
 | `tutorial_press` | Press a key |
 | `tutorial_scroll` | Scroll smoothly, or bring an element into view |
-| `tutorial_highlight` | Outline an element to draw the eye |
+| `tutorial_highlight` | Ring an element and move in on it, without clicking |
+| `tutorial_zoom` | Move the camera to a region, or back out to the full page |
 | `tutorial_wait` | Hold, optionally until an element appears |
 | `tutorial_snapshot` | Read the page as an accessibility tree |
 | `tutorial_screenshot` | Look at the page |
@@ -200,5 +201,7 @@ node scripts/e2e.mjs
 ```
 
 Records a short tutorial against a built-in test page and asserts the result:
-frame rate, duration, audio/video alignment, listening level, and that the picture
-is neither black nor frozen.
+frame rate, duration, audio/video alignment, listening level, that the music is
+audible where nobody is speaking and the voice sits clearly above it, that the camera
+measurably magnifies the picture during a move and leaves it untouched before one, and
+that the picture is neither black nor frozen.
