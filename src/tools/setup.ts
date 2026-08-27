@@ -31,9 +31,14 @@ export function registerSetupTools(server: McpServer, config: Config): void {
         'Takes a session exported from a browser that is already signed in and puts it into ' +
         'the recording profile, so recordings need no separate login.\n\n' +
         'Use this when a recording needs an app the user is logged into. If a Playwright MCP ' +
-        'server is available that drives the real browser, export the session there first:\n' +
+        'server is available that drives the real browser, export the session there first.\n\n' +
+        'IMPORTANT - open the site BEFORE exporting:\n' +
+        "  await page.goto('https://the-app.com')\n" +
         "  await page.context().storageState({ path: '<file>' })\n" +
-        'then call this tool with that path and the domains you need.\n\n' +
+        'storageState only collects page storage (localStorage) for origins that are actually ' +
+        'loaded. Exporting without opening the site first yields cookies alone, and any app ' +
+        'that keeps its login token in page storage will then appear signed out.\n\n' +
+        'Then call this tool with that path and the domains you need.\n\n' +
         'Always pass `domains` — an unfiltered export carries every site the user is signed ' +
         'into, and a tutorial needs one. The export file is deleted after it is read. ' +
         'Never print the file contents; it is a credential dump.',
@@ -110,11 +115,18 @@ export function registerSetupTools(server: McpServer, config: Config): void {
           )
         }
 
-        if (result.localStorageOrigins === 0) {
+        if (result.missingPageStorage) {
           lines.push(
             '',
-            'Note: the export carried no localStorage. Apps that keep their login token there ' +
-              'rather than in cookies will still show a sign-in page.',
+            'The export carried no page storage for these domains. That normally means the site ' +
+              'was not open in the exporting browser when the export was taken. If the app turns ' +
+              'out to be signed out, redo the export with the site loaded first: ' +
+              "page.goto('https://<the-app>') and then storageState({ path }).",
+          )
+        } else {
+          lines.push(
+            `Page storage restored for ${result.localStorageOrigins} origin(s), so logins kept ` +
+              'in localStorage carry over too.',
           )
         }
 

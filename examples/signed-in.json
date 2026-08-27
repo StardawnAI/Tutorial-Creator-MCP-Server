@@ -1,0 +1,55 @@
+{
+  "start": {
+    "title": "Signed in recording proof",
+    "url": "https://github.com/settings/profile",
+    "resolution": "1080p",
+    "profile": "proof",
+    "music": true,
+    "showActions": true
+  },
+  "steps": [
+    {
+      "tool": "tutorial_wait",
+      "args": {
+        "ms": 2500
+      }
+    },
+    {
+      "tool": "tutorial_chapter",
+      "args": {
+        "title": "Your profile settings",
+        "description": "Recorded from a signed-in session",
+        "durationMs": 2400
+      }
+    },
+    {
+      "tool": "tutorial_say",
+      "args": {
+        "text": "This page is only reachable when you are signed in, and the recorder opened it without anyone typing a password."
+      }
+    },
+    {
+      "tool": "tutorial_scroll",
+      "args": {
+        "direction": "down",
+        "amount": 500
+      }
+    },
+    {
+      "tool": "tutorial_say",
+      "args": {
+        "text": "The session was copied across from the browser you already use, so the recording browser is simply signed in."
+      }
+    },
+    {
+      "tool": "tutorial_say",
+      "args": {
+        "text": "That is the whole point. Ask for a tutorial, and it records the real application, not a login screen.",
+        "pauseAfterMs": 1200
+      }
+    }
+  ],
+  "finish": {
+    "subtitles": true
+  }
+}

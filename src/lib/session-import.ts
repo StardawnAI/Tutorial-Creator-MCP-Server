@@ -58,6 +58,8 @@ export interface ImportResult {
   /** Domains that contributed cookies, with counts. Never any values. */
   byDomain: Array<{ domain: string; count: number }>
   localStorageOrigins: number
+  /** No page storage for the requested hosts - usually means the site was not open. */
+  missingPageStorage: boolean
   sourceDeleted: boolean
   verification: {
     url: string
@@ -146,30 +148,45 @@ export async function importSession(
     headless: true,
   })
 
+  // Page storage relevant to the hosts we were asked for.
+  const relevantOrigins = (state.origins ?? []).filter(o => {
+    if (!o.localStorage?.length) return false
+    if (hosts.length === 0) return true
+    try {
+      return hosts.some(h => domainMatches(new URL(o.origin).hostname, h))
+    } catch {
+      return false
+    }
+  })
+
+  let importedOrigins = 0
   let verification: ImportResult['verification'] = null
   try {
     await context.addCookies(cookies)
     log.info(`Imported ${cookies.length} cookies into profile "${options.profile}"`)
 
-    // localStorage has to be set on the origin that owns it.
-    for (const origin of state.origins ?? []) {
-      if (!origin.localStorage?.length) continue
-      if (hosts.length > 0 && !hosts.some(h => domainMatches(new URL(origin.origin).hostname, h))) {
-        continue
-      }
+    // localStorage belongs to an origin, so it can only be written while that
+    // origin is loaded. Many apps keep their auth token here rather than in a
+    // cookie, which is why this is not optional.
+    for (const origin of relevantOrigins) {
       try {
-        await page.goto(origin.origin, { waitUntil: 'domcontentloaded', timeout: 20_000 })
-        await page.evaluate(entries => {
+        await page.goto(origin.origin, { waitUntil: 'domcontentloaded', timeout: 25_000 })
+        const written = await page.evaluate(entries => {
+          let n = 0
           for (const { name, value } of entries) {
             try {
               window.localStorage.setItem(name, value)
+              n++
             } catch {
-              /* storage disabled for this origin */
+              /* storage disabled or quota exceeded for this origin */
             }
           }
-        }, origin.localStorage)
+          return n
+        }, origin.localStorage ?? [])
+        importedOrigins++
+        log.info(`Restored ${written} storage entries for ${origin.origin}`)
       } catch (err) {
-        log.warn(`Could not restore localStorage for ${origin.origin}`, err)
+        log.warn(`Could not restore page storage for ${origin.origin}`, err)
       }
     }
 
@@ -220,7 +237,17 @@ export async function importSession(
     byDomain: [...counts.entries()]
       .map(([domain, count]) => ({ domain, count }))
       .sort((a, b) => b.count - a.count),
-    localStorageOrigins: (state.origins ?? []).filter(o => o.localStorage?.length).length,
+    localStorageOrigins: importedOrigins,
+    /**
+     * True when the export contained no page storage for the requested hosts.
+     *
+     * This is almost always because the exporting browser had not actually opened
+     * the site: `storageState()` only collects localStorage for origins that are
+     * loaded in the context. Apps that keep their login token in page storage will
+     * then appear signed out for no obvious reason - so it is called out rather
+     * than left to be discovered during a recording.
+     */
+    missingPageStorage: relevantOrigins.length === 0,
     sourceDeleted,
     verification,
   }

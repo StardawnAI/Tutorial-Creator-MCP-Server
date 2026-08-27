@@ -114,9 +114,22 @@ async function main() {
   process.exit(0)
 }
 
-main().catch(err => {
+main().catch(async err => {
+  // A failed step must not leave a recording running and a browser open. Ask the
+  // server to discard it before shutting down.
+  process.stderr.write(`\nrecording failed: ${err.message.split('\n')[0]}\n`)
+  try {
+    await rpc('tools/call', { name: 'tutorial_cancel', arguments: {} }, 30_000)
+    process.stderr.write('discarded the partial recording and closed the browser\n')
+  } catch {
+    process.stderr.write('could not discard the recording cleanly\n')
+  }
   server.kill()
-  process.stderr.write(`\nrecording failed: ${err.message}\n`)
-  process.stderr.write(`\nserver stderr tail:\n${stderr.slice(-1500)}\n`)
+  const relevant = stderr
+    .split('\n')
+    .filter(l => l.includes('[tutorial-mcp]'))
+    .slice(-6)
+    .join('\n')
+  process.stderr.write(`\nserver log:\n${relevant}\n`)
   process.exit(1)
 })

@@ -34,8 +34,8 @@ async function main(): Promise<void> {
         'verification codes as sensitive when typing so they are not captioned on screen.\n\n' +
         'Recording an app the user is signed into needs that session in the recording ' +
         'profile. Do NOT ask the user to log in by hand if a Playwright MCP server is ' +
-        'available that drives their real browser: export the session there with ' +
-        "`await page.context().storageState({ path: '<file>' })`, then call " +
+        'available that drives their real browser: navigate to the site there FIRST, then ' +
+        "export with `await page.context().storageState({ path: '<file>' })`, then call " +
         'tutorial_import_session with that path and the relevant domains. Only fall back to ' +
         'the one-time `npm run login` command when no such server exists, or when the app ' +
         'keeps its login somewhere that cannot be transferred.',

@@ -46,11 +46,22 @@ public page and therefore proves nothing. It now treats a redirect to a sign-in 
 as the primary signal, and reports explicitly when the verification URL was
 reachable without an account and so settles nothing.
 
-### Limits worth knowing
+### A "limit" that turned out to be a mistake
 
-The export carried **no localStorage** (`origins` was empty). Apps that keep their
-token there rather than in cookies will still show a sign-in page, and those still
-need the one-time `npm run login`. The tool says so when it happens.
+The first export carried no localStorage, and that was written up as a limitation of
+the approach. It was not - it was an error in how the export was taken.
+`storageState()` only collects page storage for origins that are actually loaded,
+and the exporting browser had only the extension's connect page open.
+
+Opening the site first fixes it completely: exporting with github.com loaded
+returned **54 localStorage entries** alongside the cookies, and importing them into
+a brand-new empty profile produced a browser that loads
+`github.com/settings/profile` as the real user.
+
+The order is now stated in the tool description, in the server instructions and in
+the README, and the tool reports `missingPageStorage` with the fix when an export
+arrives without it. Lesson: check whether a "limitation" is actually a mistake in
+how the thing was used before writing it down as one.
 
 ---
 

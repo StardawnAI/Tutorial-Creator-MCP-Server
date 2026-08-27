@@ -70,13 +70,20 @@ does not need you to type them in again either — the session is copied across 
 the browser you already use.
 
 If a Playwright MCP server is available that drives your real browser, the agent
-does this on its own: it exports the session there,
+does this on its own: it opens the site there, exports the session,
 
 ```js
+await page.goto('https://the-app.com')
 await page.context().storageState({ path: '<file>' })
 ```
 
-and calls `tutorial_import_session` with that path and the domains it needs. The
+and calls `tutorial_import_session` with that path and the domains it needs.
+
+**Open the site before exporting.** `storageState()` only collects page storage
+(`localStorage`) for origins that are actually loaded, and many apps keep their
+login token there rather than in a cookie. Exporting without opening the site first
+yields cookies alone, and the app then looks signed out for no visible reason. The
+import tool says so when it happens. The
 export is read once and deleted immediately. Pass `verifyUrl` — ideally a page that
 requires an account — and the tool confirms the session actually carried before you
 spend time recording against it.
@@ -84,8 +91,8 @@ spend time recording against it.
 Filter by domain. An unfiltered export carries every site you are signed into, and
 a tutorial needs one.
 
-**When the transfer cannot work:** some apps keep their login in `localStorage`
-rather than cookies, or tie it to the device. For those, sign in by hand once:
+**When the transfer cannot work:** a few apps tie their login to the device or
+re-check it against a fingerprint. For those, sign in by hand once:
 
 ```bash
 npm run login -- --url https://app.example.com
