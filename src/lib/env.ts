@@ -37,6 +37,8 @@ export interface Config {
   defaultVoiceId: string
   defaultModelId: string
   defaultMusic: string | null
+  /** Where the background-music tracks live, for listing them by name. */
+  musicDir: string
 }
 
 /**
@@ -138,16 +140,40 @@ function loadDotEnv(): void {
   }
 }
 
-/** Pick the first background-music file present in `assets/music`. */
-function findDefaultMusic(assetsDir: string): string | null {
-  const dir = path.join(assetsDir, 'music')
-  if (!fs.existsSync(dir)) return null
-  const audio = fs
-    .readdirSync(dir)
-    .filter(f => /\.(m4a|mp3|aac|wav|flac|ogg|opus)$/i.test(f))
+const AUDIO_FILE = /\.(m4a|mp3|aac|wav|flac|ogg|opus)$/i
+
+/** Every background-music track in `assets/music`, in name order. */
+export function listMusicTracks(musicDir: string): Array<{ name: string; file: string }> {
+  if (!fs.existsSync(musicDir)) return []
+  return fs
+    .readdirSync(musicDir)
+    .filter(f => AUDIO_FILE.test(f))
     .sort()
-  const first = audio[0]
-  return first ? path.join(dir, first) : null
+    .map(f => ({ name: f.replace(AUDIO_FILE, ''), file: path.join(musicDir, f) }))
+}
+
+/**
+ * Find a track by name, or fall back to the first one.
+ *
+ * A whole album sits in `assets/music`, so "the music" is a choice rather than a
+ * single file. The query is matched loosely - part of a title is enough - because the
+ * caller is naming a piece of music, not a path.
+ */
+export function resolveMusicTrack(musicDir: string, query?: string): string | null {
+  const tracks = listMusicTracks(musicDir)
+  if (tracks.length === 0) return null
+  if (!query) return tracks[0]?.file ?? null
+
+  // An explicit path wins outright, so a track from outside the folder still works.
+  if (query.includes(path.sep) || query.includes('/')) {
+    return fs.existsSync(query) ? path.resolve(query) : null
+  }
+
+  const wanted = slugify(query)
+  const exact = tracks.find(t => t.name.toLowerCase() === query.toLowerCase())
+  if (exact) return exact.file
+  const partial = tracks.find(t => slugify(t.name).includes(wanted))
+  return partial?.file ?? null
 }
 
 let cached: Config | null = null
@@ -182,7 +208,9 @@ export function loadConfig(): Config {
     // "Rachel" - a calm, even narrator from the ElevenLabs default library.
     defaultVoiceId: process.env.TUTORIAL_MCP_VOICE_ID ?? '21m00Tcm4TlvDq8ikWAM',
     defaultModelId: process.env.TUTORIAL_MCP_MODEL_ID ?? 'eleven_multilingual_v2',
-    defaultMusic: process.env.TUTORIAL_MCP_MUSIC ?? findDefaultMusic(assets),
+    // TUTORIAL_MCP_MUSIC takes either a path or part of a track title.
+    defaultMusic: resolveMusicTrack(path.join(assets, 'music'), process.env.TUTORIAL_MCP_MUSIC),
+    musicDir: path.join(assets, 'music'),
   }
   return cached
 }

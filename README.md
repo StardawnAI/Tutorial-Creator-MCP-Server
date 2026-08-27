@@ -168,9 +168,9 @@ All optional; sensible defaults apply.
 | Variable | Meaning |
 |---|---|
 | `ELEVENLABS_API_KEY` | Enables spoken narration |
+| `TUTORIAL_MCP_MUSIC` | Default music track - a path, or part of a title |
 | `TUTORIAL_MCP_VOICE_ID` | Default narration voice |
 | `TUTORIAL_MCP_MODEL_ID` | Default TTS model (`eleven_multilingual_v2`) |
-| `TUTORIAL_MCP_MUSIC` | Background music file, overriding the `assets/music` default |
 | `TUTORIAL_MCP_HOME` | Where `recordings/`, `profiles/` and caches live |
 | `TUTORIAL_MCP_CHROMIUM` | Chromium executable, if not auto-detected |
 | `FFMPEG_PATH` / `FFPROBE_PATH` | Explicit binary paths |

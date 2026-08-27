@@ -16,7 +16,7 @@ import { pathToFileURL } from 'node:url'
 import { loadConfig } from '../dist/lib/env.js'
 import { RecordingSession } from '../dist/lib/session.js'
 import { compose, verifyOutput } from '../dist/lib/compose.js'
-import { spotlight, ripple } from '../dist/lib/emphasis.js'
+import { spotlight, ripple, instruct, instructionLayout } from '../dist/lib/emphasis.js'
 import { probeVideo, run } from '../dist/lib/ffmpeg.js'
 
 const OUT_W = 1280
@@ -74,15 +74,24 @@ async function loudnessOf(config, file, startSec, lengthSec) {
   return m ? Number(m[1]) : NaN
 }
 
-/** Move the camera to an element and mark it, the way the click tool does. */
-async function frameAndMark(session, selector, label) {
+/** Drive one target exactly as the click tool does: instruct wide, then move in. */
+async function frameAndMark(session, selector, instruction) {
   const locator = session.page.locator(selector)
   await locator.scrollIntoViewIfNeeded({ timeout: 10_000 })
   const box = await locator.boundingBox({ timeout: 10_000 })
-  const scale = session.focusOn(box, label)
-  await spotlight(session.page, box, { durationMs: 1500, label })
+  if (instruction) {
+    const shown = await instruct(session.page, box, instruction)
+    await session.page.waitForTimeout(shown)
+  }
+  const scale = session.focusOn(box, instruction ?? 'action')
+  await spotlight(session.page, box, { durationMs: 1500 })
   await session.page.waitForTimeout(1000)
   return { box, scale }
+}
+
+/** Do two rectangles share any area? */
+function overlaps(a, b) {
+  return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height
 }
 
 const results = []
@@ -181,7 +190,11 @@ async function main() {
 
   // A field spanning most of the page is already readable; magnifying it would only
   // cut its ends off. Leaving it alone is the correct decision, so assert it.
-  const email = await frameAndMark(session, '#email', 'Email address')
+  const email = await frameAndMark(
+    session,
+    '#email',
+    'Use the address you signed up with - the code is sent there.',
+  )
   check(
     'camera left a full-width field alone',
     email.scale === 1,
@@ -204,7 +217,7 @@ async function main() {
   // The code field sits directly under the email field, so the camera should stay
   // where it is rather than pulling out and pushing straight back in.
   const zoomsBeforeCode = session.zoomEvents.length
-  await frameAndMark(session, '#code', 'Verification code')
+  await frameAndMark(session, '#code', 'Copy the six digits from that email into this field.')
   check(
     'camera held its framing for a neighbouring field',
     session.zoomEvents.length === zoomsBeforeCode,
@@ -222,8 +235,34 @@ async function main() {
     durationMs: 4200,
     voiceId: config.defaultVoiceId,
   })
-  const verify = await frameAndMark(session, '#verify', 'Verify account')
+  const verify = await frameAndMark(
+    session,
+    '#verify',
+    'Confirm to finish - the account is unlocked straight away.',
+  )
   check('camera moved in on a small control', verify.scale > 1, `${verify.scale.toFixed(2)}x`)
+
+  /**
+   * The instruction card must never cover what it refers to.
+   *
+   * A caption pinned over the target was the previous design and it was worthless -
+   * "Verify account" floating above a button reading Verify account, hiding the field
+   * beside it. The card now goes in the opposite half of the frame, and this asserts
+   * it for every target in this run rather than trusting the arithmetic.
+   */
+  const viewport = { width: OUT_W, height: OUT_H }
+  const cardCases = [
+    { name: 'email field', box: email.box },
+    { name: 'verify button', box: verify.box },
+  ]
+  const clashes = cardCases.filter(c =>
+    overlaps(instructionLayout(c.box, viewport, 'A sentence of roughly average length.').card, c.box),
+  )
+  check(
+    'the instruction never covers what it points at',
+    clashes.length === 0,
+    clashes.length ? clashes.map(c => c.name).join(', ') : `${cardCases.length} targets checked`,
+  )
   const zoomHoldAtMs = session.videoTimeMs
   await session.page.locator('#verify').click()
   await ripple(session.page, verify.box.x + verify.box.width / 2, verify.box.y + verify.box.height / 2)
@@ -336,12 +375,15 @@ async function main() {
    * The opening here runs from the first frame to the first narration cue, so it is
    * music and nothing else. If it is quiet, the music is inaudible.
    */
-  const openingSec = Math.max(1.5, cue1At / 1000 - 0.3)
-  const musicAlone = await loudnessOf(config, result.outputFile, 0.2, openingSec)
+  // Measured after the 2 s fade-in: the fade is intended, and averaging over it would
+  // report the music as quieter than anyone actually hears it.
+  const musicStartsAt = 2.4
+  const openingSec = Math.max(1.5, cue1At / 1000 - 0.3 - musicStartsAt)
+  const musicAlone = await loudnessOf(config, result.outputFile, musicStartsAt, openingSec)
   check(
     'music is audible when nobody is speaking',
     Number.isFinite(musicAlone) && musicAlone > -26,
-    `${musicAlone} LUFS over the first ${openingSec.toFixed(1)}s`,
+    `${musicAlone} LUFS over ${openingSec.toFixed(1)}s before the first line`,
   )
 
   /**

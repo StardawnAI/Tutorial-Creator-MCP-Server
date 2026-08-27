@@ -128,6 +128,38 @@ picture was a plain screen capture with nothing guiding the eye.
       -> verified: `node scripts/e2e.mjs` 23/23. The fixture had to be rebuilt twice:
         a stand-in gentler than real speech passed a mix that was actually broken
 
+## M10 - Real instructions, and music worth listening to
+
+Raised after watching the first recording with camera moves: the emphasis captions
+repeated what the button already said, and the music was unusable.
+
+- [x] Replace the caption pinned to the target with an instruction in the margin
+      -> verified: extracted frames show the card opposite the target with a line
+        drawn to it; e2e asserts the card never overlaps what it points at
+- [x] Show the instruction in the wide shot, before the camera moves in
+      -> verified: frame at 23.0s of the GitHub recording, whole page still in frame
+- [x] Replace the background music and cut it into selectable tracks
+      -> verified: 20 tracks in assets/music, chosen per recording by name
+- [x] Strip each track's silent lead-in
+      -> verified: the chosen track went from -55 dB in its first three seconds to
+        level with its own average
+- [x] Level music by measured gain rather than loudnorm
+      -> verified: opening went from -27.0 to -22.8 LUFS on a real recording
+- [x] An example that teaches something instead of describing the recorder
+      -> verified: examples/find-code-on-github.json, 93 s, a real signed-in walk
+        through GitHub's repository-scoped search
+- [x] Clear the recordings folder
+      -> verified: 121 MB freed, 19 old runs removed
+
+---
+
+## Later
+
+- **Take a written guide by URL.** Point the server at a Markdown document - a
+  GitHub URL, say - and have it read the guide and record it as a tutorial, rather
+  than the steps being dictated in the conversation. Assumes the recording profile
+  already carries the necessary sign-in.
+
 ---
 
 ## Deferred / out of scope

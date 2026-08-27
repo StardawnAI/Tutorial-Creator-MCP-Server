@@ -85,6 +85,30 @@ export function buildSrt(cues: NarrationCue[]): string {
 const NARRATION_LUFS = -16
 const NARRATION_PEAK_CEILING = -1.5
 
+/** Resting level for music under speech, and its ceiling. */
+const MUSIC_LUFS = -22
+const MUSIC_PEAK_CEILING = -2
+
+/** Integrated loudness and true peak of a file, in LUFS and dBFS. */
+async function measureLoudness(
+  ffmpeg: string,
+  file: string,
+): Promise<{ integrated: number; truePeak: number } | null> {
+  const { stderr } = await run(ffmpeg, [
+    '-hide_banner', '-nostats', '-i', file, '-af', 'ebur128=peak=true', '-f', 'null', '-',
+  ]).catch(() => ({ stdout: '', stderr: '' }))
+
+  // Only the trailing summary is the measurement; the running values start at -70.
+  const integrated = Number(
+    stderr.match(/Integrated loudness:\s*[\r\n]+\s*I:\s*(-?[\d.]+)\s*LUFS/)?.[1] ?? NaN,
+  )
+  const truePeak = Number(
+    stderr.match(/True peak:\s*[\r\n]+\s*Peak:\s*(-?[\d.]+)\s*dBFS/)?.[1] ?? NaN,
+  )
+  if (!Number.isFinite(integrated)) return null
+  return { integrated, truePeak: Number.isFinite(truePeak) ? truePeak : -3 }
+}
+
 /**
  * The filter that brings one narration clip up to a consistent speaking level.
  *
@@ -152,6 +176,10 @@ async function buildAudio(
   }
 
   const musicIndex = 1 + spoken.length
+  const musicLoudness = hasMusic ? await measureLoudness(ffmpeg, options.music as string) : null
+  if (hasMusic && !musicLoudness) {
+    log.warn('Could not measure the music; it will be laid in at its own level')
+  }
 
   // Narration: level each clip on its own, convert to stereo 44.1k, then delay it
   // into position. Clips never overlap - the recording waits out each line - so the
@@ -184,13 +212,29 @@ async function buildAudio(
    * mix measured at -41.7 LUFS - effectively inaudible. Normalising first makes
    * the result predictable whatever track is supplied.
    */
+  /**
+   * Music is levelled by a measured constant gain, not by `loudnorm`.
+   *
+   * The opposite of the narration, and for the opposite reason. `loudnorm` in one
+   * pass needs a moment to settle, which on continuous programme material is
+   * invisible - but a tutorial's music starts at the first frame and the first
+   * seconds are the ones the viewer hears. Measured: the opening of a finished
+   * recording came out at -27 LUFS against a -22 target, purely from that ramp.
+   *
+   * Music can be levelled this way precisely because it is not speech. This track
+   * measures 3.2 LU of loudness range against speech's 20 dB of crest, so a single
+   * gain hits the target exactly, and it is on target from the first sample.
+   */
   const musicChain = (targetLufs: number): string => {
     const fadeOutStart = Math.max(0, targetSec - 2.5)
-    const trim = options.musicGainDb !== 0 ? `volume=${options.musicGainDb}dB,` : ''
+    const toTarget = musicLoudness ? targetLufs - musicLoudness.integrated : 0
+    const toCeiling = musicLoudness ? MUSIC_PEAK_CEILING - musicLoudness.truePeak : 0
+    const gain = musicLoudness ? Math.min(toTarget, toCeiling) : 0
+    const level = gain + options.musicGainDb
+
     return (
       `[${musicIndex}:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo,` +
-      `loudnorm=I=${targetLufs}:TP=-2:LRA=11,` +
-      trim +
+      (Math.abs(level) > 0.05 ? `volume=${level.toFixed(2)}dB,` : '') +
       `afade=t=in:st=0:d=2,afade=t=out:st=${fadeOutStart.toFixed(2)}:d=2.5`
     )
   }
@@ -212,7 +256,7 @@ async function buildAudio(
      * asserted in scripts/e2e.mjs so this cannot quietly regress again.
      */
     filters.push(`[${voiceLabel}]asplit=2[voiceout][voicekey]`)
-    filters.push(`${musicChain(-22)}[music]`)
+    filters.push(`${musicChain(MUSIC_LUFS)}[music]`)
     filters.push(
       `[music][voicekey]sidechaincompress=threshold=0.03:ratio=12:attack=15:release=450` +
         `:makeup=1[ducked]`,
@@ -224,7 +268,8 @@ async function buildAudio(
   } else {
     // No narration: the music carries the video on its own, so it needs a proper
     // listening level rather than a background one.
-    filters.push(`${musicChain(-20)}[aout]`)
+    // Nothing to make room for, so the music carries the video at listening level.
+    filters.push(`${musicChain(MUSIC_LUFS + 2)}[aout]`)
     finalLabel = 'aout'
   }
 

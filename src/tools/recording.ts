@@ -7,7 +7,7 @@ import path from 'node:path'
 import { z } from 'zod'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { pathToFileURL } from 'node:url'
-import type { Config } from '../lib/env.js'
+import { listMusicTracks, resolveMusicTrack, type Config } from '../lib/env.js'
 import { RecordingSession, getSession, requireSession, setSession } from '../lib/session.js'
 import { synthesise, estimateSpokenMs, listVoices } from '../lib/tts.js'
 import { compose, verifyOutput } from '../lib/compose.js'
@@ -76,9 +76,13 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           .describe('Keep the browser invisible so the machine stays usable. Turn off only if a site blocks headless browsers.'),
         voiceId: z.string().optional().describe('ElevenLabs voice id for narration.'),
         music: z
-          .boolean()
+          .union([z.boolean(), z.string()])
           .default(true)
-          .describe('Lay background music under the narration.'),
+          .describe(
+            'Background music under the narration. true for the default track, false for ' +
+              'none, or part of a track title to pick one - "kyoto", "glass planet". The ' +
+              'available titles are listed if no track matches.',
+          ),
         showActions: z
           .boolean()
           .default(true)
@@ -111,6 +115,24 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
 
       const preset = PRESETS[args.resolution]
       narrationDisabledReason = null
+
+      let music: string | null = null
+      if (args.music !== false) {
+        music =
+          typeof args.music === 'string'
+            ? resolveMusicTrack(config.musicDir, args.music)
+            : config.defaultMusic
+        if (typeof args.music === 'string' && !music) {
+          const available = listMusicTracks(config.musicDir)
+          return failure(
+            `No music track matches "${args.music}".` +
+              (available.length
+                ? `\n\nAvailable:\n${available.map(t => `  ${t.name}`).join('\n')}`
+                : ' There are no tracks in assets/music.'),
+          )
+        }
+      }
+
       try {
         const session = await RecordingSession.start(config, {
           title: args.title,
@@ -121,7 +143,7 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           headless: args.headless,
           voiceId: args.voiceId ?? config.defaultVoiceId,
           modelId: config.defaultModelId,
-          music: args.music ? config.defaultMusic : null,
+          music,
           musicGainDb: 0,
           showActions: args.showActions,
           // The raw capture is an intermediate, and a camera move enlarges whatever
@@ -143,7 +165,7 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
               'pace the recording correctly, and captions will be written.',
           )
         }
-        if (args.music && !config.defaultMusic) {
+        if (args.music !== false && !music) {
           warnings.push('No background music file was found in assets/music.')
         }
 
@@ -152,6 +174,7 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
             `Recording "${args.title}" at ${preset.width}x${preset.height}` +
             `${preset.deviceScaleFactor > 1 ? ` (captured at ${preset.deviceScaleFactor}x)` : ''}.`,
             args.url ? `Opened ${args.url}.` : 'No page opened yet - use tutorial_goto.',
+            music ? `Music: ${path.basename(music).replace(/\.[^.]+$/, '')}` : 'No background music.',
             `Output folder: ${session.outputDir}`,
             ...warnings.map(w => `Note: ${w}`),
           ].join('\n'),

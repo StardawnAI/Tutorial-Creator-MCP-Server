@@ -10,7 +10,7 @@ import { z } from 'zod'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { Locator, Page } from 'playwright-core'
 import { requireSession, type RecordingSession } from '../lib/session.js'
-import { ripple, spotlight, type Box } from '../lib/emphasis.js'
+import { instruct, ripple, spotlight, type Box } from '../lib/emphasis.js'
 import { log } from '../lib/logger.js'
 
 function text(body: string) {
@@ -70,18 +70,20 @@ function describeTarget(target: Target): string {
 }
 
 /**
- * Bring the target on screen, mark it, and move the camera to it.
+ * Bring the target on screen, explain the step, then move the camera to it.
  *
- * This runs before the action itself, never after, and that ordering is the whole
- * point: the viewer is shown where something is about to happen while there is still
- * time to look, rather than being asked to reconstruct it from the aftermath.
+ * The order is the point. An instruction is shown first, while the whole page is
+ * still in frame - the viewer needs to see where the step sits in the page before
+ * being taken close to it. Only then does the camera move in, and only then is the
+ * action performed. Reversed, the viewer is asked to reconstruct what happened from
+ * the aftermath.
  *
  * Returns the element's box, or null when it has no geometry to point at.
  */
 async function prepareTarget(
   session: RecordingSession,
   locator: Locator,
-  label: string | undefined,
+  instruction: string | undefined,
 ): Promise<Box | null> {
   const page = session.page
   await locator.scrollIntoViewIfNeeded({ timeout: 10_000 }).catch(() => {})
@@ -91,18 +93,25 @@ async function prepareTarget(
   const box = await locator.boundingBox({ timeout: 10_000 }).catch(() => null)
   if (!box) return null
 
-  const scale = session.focusOn(box, label ?? 'action')
-  const zoomed = scale > 1
-
-  if (session.options.emphasis) {
-    // Long enough to register, and long enough for the camera to arrive: the push-in
-    // takes 700 ms, so acting sooner would click during the move.
-    const dwell = zoomed ? 1000 : 640
-    await spotlight(page, box, { durationMs: dwell + 500, ...(label ? { label } : {}) })
-    await page.waitForTimeout(dwell)
-  } else if (zoomed) {
-    await page.waitForTimeout(750)
+  if (!session.options.emphasis) {
+    const plainScale = session.focusOn(box, instruction ?? 'action')
+    if (plainScale > 1) await page.waitForTimeout(750)
+    return box
   }
+
+  // The instruction is read in the wide shot. Showing it after the camera moves in
+  // would magnify the card along with everything else and push it off the frame.
+  if (instruction) {
+    const shown = await instruct(page, box, instruction)
+    await page.waitForTimeout(shown)
+  }
+
+  const scale = session.focusOn(box, instruction ?? 'action')
+  // Long enough to register, and long enough for the camera to arrive: the push-in
+  // takes 700 ms, so acting sooner would click in the middle of the move.
+  const dwell = scale > 1 ? 1000 : 640
+  await spotlight(page, box, { durationMs: dwell + 500 })
+  await page.waitForTimeout(dwell)
 
   return box
 }
@@ -146,15 +155,22 @@ export function registerActionTools(server: McpServer): void {
     {
       title: 'Click something',
       description:
-        'Clicks an element. Before the click the target is ringed, the surroundings are ' +
-        'dimmed and the camera moves in on it, so the viewer sees where the click is going ' +
-        'while there is still time to look. A pulse marks the moment of contact.',
+        'Clicks an element, after showing the viewer where the click is going: the target ' +
+        'is ringed, its surroundings dimmed, and the camera moves in on it. A pulse marks ' +
+        'the moment of contact.',
       inputSchema: {
         ...TARGET_SHAPE,
-        label: z
+        instruction: z
           .string()
           .optional()
-          .describe('Short caption shown beside the ring, e.g. "Open the settings menu".'),
+          .describe(
+            'What the viewer should do and why, as a sentence - "Open Settings to reach the ' +
+              'API keys". Shown in the margin with a line drawn to the target, while the ' +
+              'whole page is still in frame, before the camera moves in.\n\n' +
+              'Say what the step is FOR. Repeating the label already on the element - "Save" ' +
+              'beside a button reading Save - tells the viewer nothing they cannot see. ' +
+              'Leave it out entirely when the ring alone is enough.',
+          ),
         waitForMs: z.number().int().min(0).max(30_000).default(BEAT_MS),
       },
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
@@ -163,7 +179,7 @@ export function registerActionTools(server: McpServer): void {
       try {
         const session = requireSession()
         const locator = resolveTarget(session.page, args)
-        const box = await prepareTarget(session, locator, args.label)
+        const box = await prepareTarget(session, locator, args.instruction)
 
         await locator.click({ timeout: 20_000 })
 
@@ -189,10 +205,14 @@ export function registerActionTools(server: McpServer): void {
       inputSchema: {
         ...TARGET_SHAPE,
         value: z.string().describe('What to type.'),
-        label: z
+        instruction: z
           .string()
           .optional()
-          .describe('Short caption shown beside the ring, e.g. "Enter your email address".'),
+          .describe(
+            'What to enter and why, as a sentence - "Use the address you signed up with". ' +
+              'Shown in the margin with a line to the field. Omit it rather than restating ' +
+              'the field label.',
+          ),
         sensitive: z
           .boolean()
           .default(false)
@@ -213,7 +233,7 @@ export function registerActionTools(server: McpServer): void {
         const session = requireSession()
         const page = session.page
         const locator = resolveTarget(page, args)
-        await prepareTarget(session, locator, args.label)
+        await prepareTarget(session, locator, args.instruction)
 
         // The action caption prints the typed value, which would put a verification
         // code or password on screen. Turn decorations off around sensitive input.
@@ -417,7 +437,10 @@ export function registerActionTools(server: McpServer): void {
         'should not interact with yet.',
       inputSchema: {
         ...TARGET_SHAPE,
-        label: z.string().optional().describe('Short caption shown beside the ring.'),
+        instruction: z
+          .string()
+          .optional()
+          .describe('A sentence explaining what this is, shown in the margin with a line to it.'),
         zoom: z
           .boolean()
           .default(true)
@@ -435,11 +458,13 @@ export function registerActionTools(server: McpServer): void {
         const box = await locator.boundingBox({ timeout: 10_000 })
         if (!box) return failure(`${describeTarget(args)} is not visible on the page.`)
 
-        const scale = args.zoom ? session.focusOn(box, args.label ?? 'highlight') : 1
-        await spotlight(page, box, {
-          durationMs: args.durationMs,
-          ...(args.label ? { label: args.label } : {}),
-        })
+        // Same order as an action: read it in the wide shot, then move in.
+        if (args.instruction) {
+          const shown = await instruct(page, box, args.instruction)
+          await page.waitForTimeout(shown)
+        }
+        const scale = args.zoom ? session.focusOn(box, args.instruction ?? 'highlight') : 1
+        await spotlight(page, box, { durationMs: args.durationMs })
         await page.waitForTimeout(args.durationMs)
         return text(
           `Highlighted ${describeTarget(args)}${scale > 1 ? ` at ${scale.toFixed(1)}x` : ''}.`,

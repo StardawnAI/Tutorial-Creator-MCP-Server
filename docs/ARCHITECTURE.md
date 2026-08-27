@@ -155,8 +155,8 @@ something sounds wrong.
 **Pass 1 — audio.** Narration clips are placed on a silent timeline at their cue
 offsets with `adelay` and summed with `amix`. Each clip is normalised **on its own**
 with `loudnorm`, to −16 LUFS with a −1.5 dBFS ceiling. Background music is looped to
-length, normalised to −22 LUFS, faded at both ends, and ducked under the voice with
-`sidechaincompress` keyed off the narration.
+length, brought to −22 LUFS by a measured constant gain, faded at both ends, and
+ducked under the voice with `sidechaincompress` keyed off the narration.
 
 Both of those choices were arrived at by getting them wrong first, and the reasons
 are worth stating because neither is obvious.
@@ -177,7 +177,23 @@ applied whenever narration existed anywhere in the recording — including the o
 before anyone speaks. That opening measured −31.9 LUFS: inaudible. The ducking is what
 makes room for the voice, not the resting level.
 
-Measured on a finished recording: music alone −21.9 LUFS, narration −17.4 LUFS.
+*Why the music is levelled the opposite way.* `loudnorm` needs a moment to settle,
+which on continuous programme material is invisible — but a tutorial's music starts on
+the first frame, and those seconds are the ones the viewer hears. Measured: a −22 LUFS
+target produced an opening at −27 LUFS, purely from that ramp. Music can take a
+constant gain precisely because it is not speech: these tracks measure around 3 LU of
+loudness range against speech's 20 dB of crest, so one gain hits the target exactly and
+is on target from the first sample.
+
+*Why the tracks are cut with their lead-in removed.* Chapter marks fall where a title
+changes, not where sound starts, and several pieces open with seconds of near-silence —
+the one chosen first had five. Under a one-minute tutorial that is most of the opening,
+and an EBU R128 measurement will not show it, because gating gates it out. So
+`scripts/split-music.mjs` measures each piece and strips anything more than 12 dB below
+its own average from the front. A fixed threshold does not work: −45 dB left a piece
+averaging −55 dB in its first three seconds untouched.
+
+Measured on a finished recording: music alone −22.8 LUFS, narration −17.5 LUFS.
 
 **Pass 2 — video and mux.** The stream is made constant-rate with `fps=25`, camera
 moves are applied with `zoompan` (§6), the result is transcoded to H.264, the mixed
@@ -202,11 +218,24 @@ A screen recording of an app is a poor teacher on its own: the pointer arrives
 somewhere, something changes, and the viewer reconstructs afterwards what was
 clicked. Two things fix that, and both run *before* the action.
 
-**Emphasis.** The target is ringed, everything else dimmed by a full-screen scrim,
-and an optional caption placed beside it; a pulse marks the moment of contact. All of
-it is drawn into the screencast's own overlay layer — never into the page. The
-application under demonstration is not modified, which matters: the recording is
-supposed to show how the app really behaves.
+**Emphasis.** The target is ringed, everything else dimmed by a full-screen scrim, and
+a pulse marks the moment of contact. All of it is drawn into the screencast's own
+overlay layer — never into the page. The application under demonstration is not
+modified, which matters: the recording is supposed to show how the app really behaves.
+
+**Instructions.** A step can carry a sentence saying what it is for. It is placed in
+the margin — on whichever side the target is not — with a line drawn from the card to
+the element, and it is shown *before* the camera moves in, while the whole page is
+still visible.
+
+This replaced a caption pinned to the target itself, which was worth nothing: a chip
+reading “Verify account” floating above a button reading Verify account states what the
+viewer can already see, while covering whatever sits next to it. An instruction has to
+say what the step accomplishes — and that neither fits on a chip nor belongs on top of
+the thing it describes.
+
+One implementation note, because it cost a rebuild: SVG markup passed to `showOverlay`
+does not render in the overlay layer. The connector is a rotated `div`.
 
 **Camera moves.** Applied after recording, with `zoompan`, eased in and out. Again
 this keeps the page untouched: scaling the document would risk reflowing the very

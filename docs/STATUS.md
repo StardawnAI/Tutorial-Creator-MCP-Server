@@ -5,7 +5,90 @@ Newest entry on top.
 
 ---
 
-## 2026-08-27 (latest) - Audible sound, and a camera that shows where to look
+## 2026-08-27 (evening) - Instructions that say something, and usable music
+
+Feedback on the first recording with camera moves: the camera work was fine, the
+captions were pointless, and the music was unusable.
+
+### The caption was worse than nothing
+
+A chip reading "Verify account" floating above a button reading Verify account. It
+states what the viewer can already read, and covers whatever sits beside it. The
+user's point was exact: what is the added value?
+
+Replaced with an instruction in the margin - a sentence saying what the step is *for*
+- on whichever side the target is not, with a line drawn from the card to the element.
+Shown **before** the camera moves in, while the whole page is still in frame, because
+that is when the step can be understood in context.
+
+The variation matters too: no instruction means the ring alone, which is right for
+steps that need no explanation.
+
+`instructionLayout()` is a pure function so the one property that matters can be
+asserted rather than eyeballed - the card must never overlap what it points at. The
+e2e checks it for every target in the run.
+
+One implementation note: **SVG markup passed to `showOverlay` does not render** in the
+screencast's overlay layer. The connector was absent from every frame while the ring
+and card, both plain elements, drew fine. It is now a rotated `div`. Found by looking
+at a frame, not by reading a log.
+
+### Music: replaced, cut up, and levelled differently
+
+The user supplied a one-hour mix and its chapter list. `scripts/split-music.mjs` cuts
+it into 20 named tracks; a recording picks one by name, or `TUTORIAL_MCP_MUSIC` sets
+the default.
+
+Two faults surfaced while doing it, both found by measuring the finished file:
+
+**Double fades.** The splitter faded each piece in over 1.5 s and composition faded it
+in again over 2 s. The opening measured 3.8 dB below target. The splitter now fades
+40 ms, just enough to stop the cut clicking.
+
+**A silent lead-in, invisible to the obvious measurement.** The track chosen by
+measurement opened with five seconds of near-silence. EBU R128 gates quiet passages
+out, so an eight-second reading reported -15.2 LUFS and looked perfectly healthy; the
+mix's own momentary loudness showed -60 dB for the whole opening. Chapter marks fall
+where a title changes, not where the sound starts. The splitter now strips anything
+more than 12 dB below the piece's own average from the front - a fixed -45 dB
+threshold left a piece averaging -55 dB untouched, so the threshold has to adapt.
+
+**Music is now levelled by measured constant gain, not `loudnorm`** - the opposite of
+the narration, for the opposite reason. `loudnorm` needs a moment to settle, invisible
+on continuous programme material but not when the music starts on the first frame: a
+-22 LUFS target produced a -27 LUFS opening purely from that ramp. Music tolerates a
+constant gain precisely because it is not speech - around 3 LU of loudness range
+against speech's 20 dB of crest.
+
+Measured on the new recording: music alone -22.8 LUFS, narration -17.5 LUFS.
+
+### The example was describing itself
+
+The narration walked through what the recorder does, which is not a tutorial. Replaced
+with `examples/find-code-on-github.json`: how to keep a GitHub search inside one
+repository. 93 s, real signed-in session, a genuine thing a person might not know.
+
+### Housekeeping
+
+`recordings/` cleared - 121 MB across 19 runs. The long source mix moved to
+`assets/source/` and git-ignored.
+
+### Verified
+
+- `node scripts/e2e.mjs` - **24/24**, including the new check that an instruction card
+  never covers its target.
+- `node scripts/handshake.mjs` - **11/11**, 19 tools.
+- `node scripts/record.mjs examples/find-code-on-github.json` - 93.0 s at 1920x1080.
+
+### Known problems / open items
+
+- On a page with a dense edge, the instruction card can sit over navigation. It is
+  legible as an overlay, but placement only picks a side, not a gap.
+- Recordings are longer now: each instruction adds its reading time before the action.
+
+---
+
+## 2026-08-27 (earlier) - Audible sound, and a camera that shows where to look
 
 Raised after the user watched the first real recording: no sound could be heard, and
 the picture was a plain screen capture with nothing guiding the eye. Both were fair.

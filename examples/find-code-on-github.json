@@ -1,0 +1,75 @@
+{
+  "start": {
+    "title": "Search inside one GitHub repository",
+    "url": "https://github.com/StardawnAI/Tutorial-Creator-MCP-Server",
+    "resolution": "1080p",
+    "profile": "demo",
+    "music": true,
+    "showActions": true,
+    "emphasis": true,
+    "autoZoom": true
+  },
+  "steps": [
+    { "tool": "tutorial_wait", "args": { "ms": 2000 } },
+    {
+      "tool": "tutorial_chapter",
+      "args": {
+        "title": "Searching one repository",
+        "description": "Instead of all of GitHub",
+        "durationMs": 2400
+      }
+    },
+    {
+      "tool": "tutorial_say",
+      "args": {
+        "text": "Typing a file name into GitHub's search usually returns results from every public repository, which is rarely what you want. There is a way to keep the search inside the project you are already looking at."
+      }
+    },
+    {
+      "tool": "tutorial_click",
+      "args": {
+        "role": "button",
+        "name": "Open quick search dialog",
+        "instruction": "Open the search from a repository page, not from the GitHub home page. That is what limits the results.",
+        "waitForMs": 1600
+      }
+    },
+    {
+      "tool": "tutorial_say",
+      "args": {
+        "text": "Opened this way, the search box already contains a filter naming this repository. Everything you type is added to that filter rather than replacing it."
+      }
+    },
+    {
+      "tool": "tutorial_highlight",
+      "args": {
+        "role": "combobox",
+        "name": "Search or jump to",
+        "instruction": "The repo: prefix was filled in for you. Leave it in place and type after it.",
+        "durationMs": 2200
+      }
+    },
+    { "tool": "tutorial_zoom", "args": { "reset": true } },
+    {
+      "tool": "tutorial_type",
+      "args": {
+        "role": "combobox",
+        "name": "Search or jump to",
+        "value": " loudness",
+        "clearFirst": false,
+        "delayMs": 150,
+        "instruction": "Type what you are looking for after the filter - a word from the code, not a file name."
+      }
+    },
+    {
+      "tool": "tutorial_say",
+      "args": {
+        "text": "The results now come only from this project. The same trick works for issues and pull requests, and the shortcut to open it is simply the slash key.",
+        "pauseAfterMs": 1600
+      }
+    }
+  ],
+  "finish": {
+    "subtitles": true
+  }
+}
