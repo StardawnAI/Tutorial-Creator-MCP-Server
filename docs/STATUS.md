@@ -5,6 +5,55 @@ Newest entry on top.
 
 ---
 
+## 2026-08-27 (later) - Sessions are transferred, not typed in again
+
+### The design error
+
+Recording an app the user is signed into required them to sign in *again*, by hand,
+into a second browser. The user rightly pushed back: their real Chrome is already
+signed in everywhere (1031 saved logins), and the whole point is to say "turn what
+we just did into a tutorial" and have it happen. A manual login step breaks that.
+
+### What was built
+
+`tutorial_import_session` copies an existing session into the recording profile.
+The agent exports it from the browser it is already driving -
+`await page.context().storageState({ path })` - and this tool reads it in.
+
+Verified on this machine, end to end:
+
+- The Playwright MCP (extension mode, real Chrome) can reach the context: 1952
+  cookies across 455 domains.
+- `storageState({ path })` writes a file even though `fs` is unavailable inside the
+  snippet sandbox, because it is executed by the Playwright driver.
+- Importing with `domains: ['github.com']` took **14 cookies and left 1926 out**.
+- `github.com/settings/profile` then loaded as the real user - no redirect to a
+  sign-in page. The recording browser is genuinely signed in, with nothing typed.
+
+### Deliberate choices
+
+**The hand-off goes through a file, not the conversation.** A session export is a
+credential dump, and anything a tool returns is written into the transcript. The
+file is consumed once and deleted; the tool reports counts and domain names only,
+never values.
+
+**Domain filtering is pushed hard** in the tool description, because an unfiltered
+export carries every site the user is signed into.
+
+**The sign-in check was tightened after it nearly lied.** The first version
+concluded "signed in" from the absence of a password field, which is true of any
+public page and therefore proves nothing. It now treats a redirect to a sign-in URL
+as the primary signal, and reports explicitly when the verification URL was
+reachable without an account and so settles nothing.
+
+### Limits worth knowing
+
+The export carried **no localStorage** (`origins` was empty). Apps that keep their
+token there rather than in cookies will still show a sign-in page, and those still
+need the one-time `npm run login`. The tool says so when it happens.
+
+---
+
 ## 2026-08-27 - Narration works; first real tutorial recorded
 
 ### Done

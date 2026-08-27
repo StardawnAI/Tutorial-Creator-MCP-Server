@@ -94,9 +94,11 @@ Status legend: `[ ]` open · `[x]` done · `[~]` in progress · `[!]` blocked
 - [x] **Record a real tutorial against a real website**
       → verified: `node scripts/record.mjs examples/overview.json` produced a 70.8 s
         1920x1080 mp4 with 7 spoken lines, music and subtitles
-- [ ] Record against an app that needs a login
-      → needs a one-time `npm run login -- --url <site>`; nothing in the code is
-        outstanding for this
+- [x] **Reach a signed-in app without a manual login**
+      → verified: exported the session from the user's real Chrome via the Playwright
+        MCP, imported 14 github.com cookies (1926 others deliberately left out), and
+        `github.com/settings/profile` then loaded as the real user instead of
+        redirecting to a sign-in page
 - [x] Confirm the tools appear after a full Claude Code restart
       → verified: all 16 tutorial_* tools are exposed in the running session
 

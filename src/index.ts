@@ -15,6 +15,7 @@ import { loadConfig } from './lib/env.js'
 import { getSession, setSession } from './lib/session.js'
 import { registerRecordingTools } from './tools/recording.js'
 import { registerActionTools } from './tools/actions.js'
+import { registerSetupTools } from './tools/setup.js'
 import { log } from './lib/logger.js'
 
 async function main(): Promise<void> {
@@ -31,13 +32,19 @@ async function main(): Promise<void> {
         'tutorial_say waits for the speech to finish, so the pacing takes care of itself.\n\n' +
         'Use tutorial_snapshot to see what is on the page before clicking. Mark passwords and ' +
         'verification codes as sensitive when typing so they are not captioned on screen.\n\n' +
-        'The browser uses a saved profile for logins. If a site shows a sign-in page, the ' +
-        'profile needs a one-time login - run the login command outside this session.',
+        'Recording an app the user is signed into needs that session in the recording ' +
+        'profile. Do NOT ask the user to log in by hand if a Playwright MCP server is ' +
+        'available that drives their real browser: export the session there with ' +
+        "`await page.context().storageState({ path: '<file>' })`, then call " +
+        'tutorial_import_session with that path and the relevant domains. Only fall back to ' +
+        'the one-time `npm run login` command when no such server exists, or when the app ' +
+        'keeps its login somewhere that cannot be transferred.',
     },
   )
 
   registerRecordingTools(server, config)
   registerActionTools(server)
+  registerSetupTools(server, config)
 
   // A crashing recording must not leave an orphaned browser running.
   const cleanup = async (reason: string): Promise<void> => {

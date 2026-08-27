@@ -63,10 +63,29 @@ rotated. The value listed next to a key in the ElevenLabs dashboard is the key
 *ID*, not the key, and requests made with it fail. `npm run doctor` calls the API
 and tells you which one you have.
 
-### Sign in once
+### Recording an app you are signed into
 
-Recording a signed-in app needs a profile that is logged in. This opens a visible
-browser so you can sign in by hand; the session persists for every later recording.
+The recording browser is a separate browser, so it does not have your logins. It
+does not need you to type them in again either — the session is copied across from
+the browser you already use.
+
+If a Playwright MCP server is available that drives your real browser, the agent
+does this on its own: it exports the session there,
+
+```js
+await page.context().storageState({ path: '<file>' })
+```
+
+and calls `tutorial_import_session` with that path and the domains it needs. The
+export is read once and deleted immediately. Pass `verifyUrl` — ideally a page that
+requires an account — and the tool confirms the session actually carried before you
+spend time recording against it.
+
+Filter by domain. An unfiltered export carries every site you are signed into, and
+a tutorial needs one.
+
+**When the transfer cannot work:** some apps keep their login in `localStorage`
+rather than cookies, or tie it to the device. For those, sign in by hand once:
 
 ```bash
 npm run login -- --url https://app.example.com
@@ -125,6 +144,8 @@ finished video.
 | `tutorial_cancel` | Discard the recording |
 | `tutorial_status` | What is being recorded right now |
 | `tutorial_voices` | List available narration voices |
+| `tutorial_import_session` | Copy a signed-in session in from the browser you already use |
+| `tutorial_profiles` | List recording profiles and whether they hold a session |
 
 ### Keeping secrets out of the video
 
