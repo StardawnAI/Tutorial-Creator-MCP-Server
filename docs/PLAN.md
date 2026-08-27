@@ -91,7 +91,8 @@ Status legend: `[ ]` open · `[x]` done · `[~]` in progress · `[!]` blocked
         `.claude.json`) and completed the handshake
 - [ ] **Record a real tutorial against a live logged-in app**
       → needs: an ElevenLabs key, and a one-time `npm run login` for the target site
-- [ ] Confirm the tools appear after a full Claude Code restart
+- [x] Confirm the tools appear after a full Claude Code restart
+      → verified: all 16 tutorial_* tools are exposed in the running session
 
 ---
 
