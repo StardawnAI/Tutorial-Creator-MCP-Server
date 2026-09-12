@@ -5,6 +5,74 @@ Newest entry on top.
 
 ---
 
+## 2026-09-12 - Two people in one video
+
+Asked for by a Meta App Review screencast for InStar: a business signs in and
+connects its Instagram account in one browser, a customer comments and chats in
+another, and the business then sees the conversation and the lead. The bot's replies
+take up to two minutes, and that wait must not be in the video.
+
+### What was built
+
+- **Several named browsers per recording.** `tutorial_start` names the first one and
+  can start it `fresh` - an empty throwaway profile, a private window in effect, deleted
+  when the recording ends. `tutorial_switch` cuts to another browser, opening it on
+  first use; opening and loading happen off camera.
+- **Cuts.** `tutorial_wait` with `cut: true` leaves the wait out of the video.
+  `moreThan` waits for a new match when the same wording is already on the page -
+  an earlier run's replies are still in the chat, so "wait until the text appears"
+  would be satisfied at once and never see the new reply.
+- **`tutorial_click` with `optional`** for prompts that only sometimes appear.
+- **`locale`** so an English tutorial shows an English UI.
+
+### Decision: capture each browser continuously, cut afterwards
+
+The first design stopped the capture at every cut and started a new one. It is
+broken, and the reason is worth keeping: a second `page.screencast` on a page that has
+been recorded before does not start clean - measured, its file opened with four
+seconds of stale frames from before the cut. Trimming by length cannot fix that.
+
+So each browser is captured from the moment it opens until the recording ends, the
+session notes which one is on air and when, and composition cuts exactly those
+stretches out of the captures. It relies only on the property already verified in
+§3 of the architecture notes: a capture's first frame is position 0 of its file, and
+the file tracks the wall clock from there.
+
+The e2e check proves it by colour: light page for one browser, dark for the other,
+grey for what happens during a cut. In the finished video every change lands where
+the session clock says it does. The first version of that check was itself wrong -
+an output `-ss` lets frames through the filters before dropping them, so signalstats
+measured the first frame of the file at every requested time.
+
+### Decision: open the customer's chat from the business's profile
+
+The guide opens the customer's inbox to find the conversation. That list shows every
+other conversation the account has, in a video that goes to Meta. The "Message"
+button on the business's profile opens the same conversation in a small window, and
+no list appears.
+
+### Found: Meta's security check on an automated Instagram login
+
+The recording ran cleanly up to Instagram's login for the business account. After
+"Log in", Meta showed a security check - a reCAPTCHA, "I'm not a robot" - and stayed
+there. It is not bypassed and will not be: the check exists to be answered by a
+person. The recording script now waits for it, off camera, and the person at the
+machine solves it in the visible window.
+
+### Verified
+
+- `node scripts/e2e.mjs` - **33/33**, including the new two-browser checks
+- `node scripts/handshake.mjs` - **11/11**, 20 tools
+- A real run reached the Instagram login with both passwords kept out of the log and
+  the picture; the raw capture shows the security check that stopped it.
+
+### Known problems / open items
+
+- The InStar App Review recording itself is not finished: it needs someone at the
+  machine for the security check.
+
+---
+
 ## 2026-08-27 (evening) - Instructions that say something, and usable music
 
 Feedback on the first recording with camera moves: the camera work was fine, the

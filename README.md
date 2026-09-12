@@ -135,17 +135,18 @@ finished video.
 
 | Tool | Purpose |
 |---|---|
-| `tutorial_start` | Begin recording — title, starting URL, profile, resolution |
+| `tutorial_start` | Begin recording — title, starting URL, profile, resolution; `fresh` for an empty browser, `locale` for the page language |
+| `tutorial_switch` | Cut to another browser with its own logins, opening it on first use |
 | `tutorial_say` | Speak a line; the recording waits for it |
 | `tutorial_chapter` | Title card over a blurred backdrop |
 | `tutorial_goto` | Navigate |
-| `tutorial_click` | Click, after ringing the target and moving the camera to it |
+| `tutorial_click` | Click, after ringing the target and moving the camera to it; `optional` for prompts that only sometimes appear |
 | `tutorial_type` | Type into a field; mark `sensitive` for codes and passwords |
 | `tutorial_press` | Press a key |
 | `tutorial_scroll` | Scroll smoothly, or bring an element into view |
 | `tutorial_highlight` | Ring an element and move in on it, without clicking |
 | `tutorial_zoom` | Move the camera to a region, or back out to the full page |
-| `tutorial_wait` | Hold, optionally until an element appears |
+| `tutorial_wait` | Hold, optionally until an element appears; `cut` leaves the wait out of the video |
 | `tutorial_snapshot` | Read the page as an accessibility tree |
 | `tutorial_screenshot` | Look at the page |
 | `tutorial_finish` | Stop, mix, render, return the mp4 |
@@ -154,6 +155,28 @@ finished video.
 | `tutorial_voices` | List available narration voices |
 | `tutorial_import_session` | Copy a signed-in session in from the browser you already use |
 | `tutorial_profiles` | List recording profiles and whether they hold a session |
+
+### Two people in one video
+
+Some things can only be shown from both sides: a business connects its account in
+one window, a customer writes to it from another, and the business then sees the
+conversation arrive. Each side needs its own logins.
+
+- `tutorial_start` names the first browser (`browser: "business"`). With
+  `fresh: true` it starts from an empty throwaway profile — no cookies, no saved
+  logins, like a private window — so a real sign-in can be shown. The profile is
+  deleted when the recording ends.
+- `tutorial_switch` cuts to another browser (`name: "customer"`,
+  `profile: "instagram-customer"`), opening it on first use. Opening it and loading
+  its first page happen off camera, and switching back later finds it as it was left.
+- `tutorial_wait` with `cut: true` leaves a slow reply out of the video: the viewer
+  sees the moment before and the moment it arrives. When the reply's wording is
+  already further up the conversation from an earlier run, pass `moreThan` with the
+  number of matches that were there before, so the wait ends only on a new one.
+
+Every browser is captured continuously from the moment it opens; the recorder notes
+which one is on air and when, and the finished video is cut together from exactly
+those stretches.
 
 ### Keeping secrets out of the video
 

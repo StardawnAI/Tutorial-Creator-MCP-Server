@@ -9,6 +9,7 @@
  */
 
 import fs from 'node:fs'
+import http from 'node:http'
 import path from 'node:path'
 import os from 'node:os'
 import { pathToFileURL } from 'node:url'
@@ -137,6 +138,154 @@ const TEST_PAGE = `<!doctype html><meta charset="utf-8"><title>Example App - Set
    document.getElementById('done').style.display = 'block';
  };
 </script>`
+
+/**
+ * Two browsers in one recording, and a wait left out of it.
+ *
+ * Each page is one flat colour, so the finished video can be read back to see which
+ * browser is on screen when: light for the "business", dark for the "customer", and
+ * mid grey for what the customer's page turns into while nothing is being recorded.
+ * Joined at the wrong lengths, or with the cut keeping its time, the colour would
+ * change somewhere other than where the session clock says it did.
+ */
+async function twoBrowsers(config) {
+  process.stdout.write('\nTwo browsers and a cut...\n')
+
+  const server = http.createServer((req, res) => {
+    const colour = req.url === '/dark' ? '#0f172a' : '#f8fafc'
+    res.setHeader('content-type', 'text/html')
+    res.end(`<!doctype html><title>${req.url}</title><body style="margin:0;background:${colour}">`)
+  })
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
+  const base = `http://127.0.0.1:${server.address().port}`
+  const throwaways = () =>
+    fs.readdirSync(os.tmpdir()).filter(n => n.startsWith('tutorial-fresh-')).length
+  const throwawaysBefore = throwaways()
+
+  const session = await RecordingSession.start(config, {
+    title: 'E2E Two Browsers',
+    profile: 'e2e-test',
+    browserName: 'business',
+    width: OUT_W,
+    height: OUT_H,
+    headless: true,
+    deviceScaleFactor: 1,
+    voiceId: config.defaultVoiceId,
+    modelId: config.defaultModelId,
+    music: null,
+    musicGainDb: 0,
+    showActions: false,
+    quality: 90,
+    emphasis: false,
+    autoZoom: false,
+  })
+
+  await session.page.goto(`${base}/light`)
+  await session.page.evaluate(() => { document.cookie = 'who=business; path=/' })
+  await session.page.waitForTimeout(1500)
+
+  const switchAt = session.videoTimeMs
+  await session.switchTo('customer', { fresh: true, url: `${base}/dark` })
+  check(
+    'opening a second browser takes no video time',
+    session.videoTimeMs - switchAt < 400,
+    `${session.videoTimeMs - switchAt}ms`,
+  )
+  const customerCookies = await session.page.evaluate(() => document.cookie)
+  check(
+    "a fresh browser does not see the other browser's cookies",
+    customerCookies === '',
+    customerCookies ? `saw "${customerCookies}"` : 'none',
+  )
+  await session.page.waitForTimeout(1500)
+
+  const cutAt = session.videoTimeMs
+  const cutStarted = Date.now()
+  await session.offCamera(async () => {
+    await session.page.evaluate(() => { document.body.style.background = '#808080' })
+    await new Promise(resolve => setTimeout(resolve, 4000))
+  })
+  const waited = Date.now() - cutStarted
+  check(
+    'a cut leaves its time out of the video',
+    waited >= 4000 && session.videoTimeMs - cutAt < 400,
+    `${(waited / 1000).toFixed(1)}s waited, ${session.videoTimeMs - cutAt}ms of video`,
+  )
+  await session.page.waitForTimeout(1500)
+
+  const backAt = session.videoTimeMs
+  await session.switchTo('business')
+  const businessCookies = await session.page.evaluate(() => document.cookie)
+  check(
+    'switching back finds the first browser as it was left',
+    businessCookies.includes('who=business'),
+    businessCookies || 'no cookies',
+  )
+  await session.page.waitForTimeout(1500)
+
+  const { segments, videoMs } = await session.stopRecording()
+  server.close()
+  check(
+    'the throwaway profile is deleted afterwards',
+    throwaways() === throwawaysBefore,
+    `${throwaways() - throwawaysBefore} left behind`,
+  )
+  check(
+    'every cut started a new segment',
+    segments.length === 4,
+    segments.map(s => `${s.browser} ${(s.durationMs / 1000).toFixed(2)}s`).join(', '),
+  )
+
+  const result = await compose(config, {
+    rawVideo: segments,
+    cues: [],
+    outputDir: session.outputDir,
+    outputName: 'two-browsers.mp4',
+    outputWidth: OUT_W,
+    outputHeight: OUT_H,
+    music: null,
+    musicGainDb: 0,
+    subtitles: false,
+  })
+  check(
+    'the joined video is as long as the recorded timeline',
+    Math.abs(result.durationSec - videoMs / 1000) < 0.1,
+    `${result.durationSec.toFixed(2)}s vs ${(videoMs / 1000).toFixed(2)}s recorded`,
+  )
+
+  // Seek with trim inside the filter chain. An output -ss drops frames only after
+  // they have been through the filters, so signalstats reports the first frame of
+  // the file whatever the requested time - which read every moment as the opening.
+  const lumaAt = async seconds => {
+    const { stderr } = await run(config.ffmpegPath, [
+      '-hide_banner', '-v', 'info', '-i', result.outputFile, '-frames:v', '1',
+      '-vf',
+      `trim=start=${seconds.toFixed(3)},scale=64:36,signalstats,` +
+        'metadata=print:key=lavfi.signalstats.YAVG',
+      '-f', 'null', '-',
+    ])
+    return Number(stderr.match(/YAVG=([0-9.]+)/)?.[1] ?? NaN)
+  }
+  const looks = { light: y => y > 200, dark: y => y < 60, grey: y => y > 100 && y < 160 }
+  const moments = [
+    ['business before the first cut', switchAt - 200, 'light'],
+    ['customer right after it', switchAt + 200, 'dark'],
+    ['customer just before the wait', cutAt - 200, 'dark'],
+    ['customer right after the wait', cutAt + 200, 'grey'],
+    ['customer before switching back', backAt - 200, 'grey'],
+    ['business right after', backAt + 200, 'light'],
+  ]
+  const wrong = []
+  for (const [label, ms, want] of moments) {
+    const y = await lumaAt(ms / 1000)
+    if (!looks[want](y)) wrong.push(`${label}: luma ${y.toFixed(0)}, expected ${want}`)
+  }
+  check(
+    'each cut lands where the clock says it does',
+    wrong.length === 0,
+    wrong.length ? wrong.join('; ') : `${moments.length} moments checked, 0.2s either side`,
+  )
+}
 
 async function main() {
   const config = loadConfig()
@@ -269,8 +418,10 @@ async function main() {
   await session.page.waitForTimeout(4200)
 
   const framesBefore = session.frameCount
-  const { rawVideo, videoMs } = await session.stopRecording()
-  session.writeTimeline()
+  const { segments, videoMs } = await session.stopRecording()
+  session.writeTimeline(segments)
+  const rawVideo = segments[0]?.file ?? null
+  check('a recording without cuts is one segment', segments.length === 1, `${segments.length}`)
 
   // Only now: stopping the recording closes the camera move that is still open, and
   // a copy taken before that would carry a release time equal to its start.
@@ -461,6 +612,8 @@ async function main() {
   const srt = path.join(session.outputDir, 'captions.srt')
   check('subtitles were written', fs.existsSync(srt),
     fs.existsSync(srt) ? `${fs.readFileSync(srt, 'utf8').split('\n\n').length} entries` : '')
+
+  await twoBrowsers(config)
 
   const failed = results.filter(r => !r.ok)
   process.stdout.write(`\n${results.length - failed.length}/${results.length} checks passed\n`)

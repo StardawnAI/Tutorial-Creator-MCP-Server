@@ -46,19 +46,20 @@ interface Target {
   nth?: number | undefined
 }
 
-function resolveTarget(page: Page, target: Target): Locator {
-  let locator: Locator
-  if (target.selector) {
-    locator = page.locator(target.selector)
-  } else if (target.role) {
-    locator = page.getByRole(target.role as Parameters<Page['getByRole']>[0], {
+/** Every element the target description matches. */
+function matchAll(page: Page, target: Target): Locator {
+  if (target.selector) return page.locator(target.selector)
+  if (target.role) {
+    return page.getByRole(target.role as Parameters<Page['getByRole']>[0], {
       ...(target.name ? { name: target.name } : {}),
     })
-  } else if (target.text) {
-    locator = page.getByText(target.text)
-  } else {
-    throw new Error('Say what to act on: selector, text, or role plus name.')
   }
+  if (target.text) return page.getByText(target.text)
+  throw new Error('Say what to act on: selector, text, or role plus name.')
+}
+
+function resolveTarget(page: Page, target: Target): Locator {
+  const locator = matchAll(page, target)
   return target.nth === undefined ? locator.first() : locator.nth(target.nth)
 }
 
@@ -151,6 +152,64 @@ export function registerActionTools(server: McpServer): void {
   )
 
   server.registerTool(
+    'tutorial_switch',
+    {
+      title: 'Cut to another browser',
+      description:
+        'Moves the recording to another browser window, opening it on first use. Each ' +
+        'browser has its own cookies and logins, so one recording can show two people - a ' +
+        'business in one window, its customer in the other - and cut between them.\n\n' +
+        'The switch is a cut: opening the browser and loading the page happen off camera, ' +
+        'and the video goes straight to the page already open.\n\n' +
+        'The first browser is the one named in tutorial_start ("main" unless named there).',
+      inputSchema: {
+        name: z
+          .string()
+          .min(1)
+          .describe('Which browser to show, e.g. "customer". Opened if it is not running yet.'),
+        profile: z
+          .string()
+          .optional()
+          .describe(
+            'Profile for a browser opened by this call; "default" if omitted. A profile can ' +
+              'be open in only one browser at a time.',
+          ),
+        fresh: z
+          .boolean()
+          .default(false)
+          .describe(
+            'Open it with an empty throwaway profile - no cookies, no saved logins, like a ' +
+              'private window - instead of `profile`. Deleted when the recording ends.',
+          ),
+        url: z
+          .string()
+          .url()
+          .optional()
+          .describe('Page to load before the cut lands, so the viewer sees it already open.'),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
+    },
+    async args => {
+      try {
+        const session = requireSession()
+        const { opened } = await session.switchTo(args.name, {
+          profile: args.profile,
+          fresh: args.fresh,
+          url: args.url,
+        })
+        const how = !opened
+          ? ''
+          : args.fresh
+            ? ', opened with an empty profile'
+            : `, opened with profile "${args.profile ?? 'default'}"`
+        return text(`Now recording "${args.name}"${how} at ${session.page.url()}.`)
+      } catch (err) {
+        return failure(`Could not switch to "${args.name}": ${(err as Error).message}`)
+      }
+    },
+  )
+
+  server.registerTool(
     'tutorial_click',
     {
       title: 'Click something',
@@ -171,6 +230,13 @@ export function registerActionTools(server: McpServer): void {
               'beside a button reading Save - tells the viewer nothing they cannot see. ' +
               'Leave it out entirely when the ring alone is enough.',
           ),
+        optional: z
+          .boolean()
+          .default(false)
+          .describe(
+            'Skip without an error when the element does not appear within 3 seconds - for ' +
+              'cookie banners and prompts that only sometimes show up.',
+          ),
         waitForMs: z.number().int().min(0).max(30_000).default(BEAT_MS),
       },
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
@@ -179,6 +245,12 @@ export function registerActionTools(server: McpServer): void {
       try {
         const session = requireSession()
         const locator = resolveTarget(session.page, args)
+        if (args.optional) {
+          const present = await locator
+            .waitFor({ state: 'visible', timeout: 3000 })
+            .then(() => true, () => false)
+          if (!present) return text(`${describeTarget(args)} did not appear - skipped.`)
+        }
         const box = await prepareTarget(session, locator, args.instruction)
 
         await locator.click({ timeout: 20_000 })
@@ -339,24 +411,72 @@ export function registerActionTools(server: McpServer): void {
       title: 'Wait',
       description:
         'Holds the recording still, optionally until an element appears. Use it to let a ' +
-        'page finish loading before narrating what is on it.',
+        'page finish loading before narrating what is on it.\n\n' +
+        'With cut: true the wait is left out of the video - for a reply that takes a minute ' +
+        'to arrive. The viewer goes straight from the moment before to the moment it shows up.',
       inputSchema: {
         ...TARGET_SHAPE,
-        ms: z.number().int().min(0).max(60_000).default(1000),
+        ms: z
+          .number()
+          .int()
+          .min(0)
+          .max(300_000)
+          .default(1000)
+          .describe('How long to wait - or, with a target, the longest to wait for it.'),
         state: z.enum(['visible', 'hidden', 'attached']).default('visible'),
+        cut: z
+          .boolean()
+          .default(false)
+          .describe('Leave the wait out of the finished video.'),
+        moreThan: z
+          .number()
+          .int()
+          .min(0)
+          .optional()
+          .describe(
+            'Wait until the target matches more than this many elements. For a chat reply ' +
+              'whose wording is already further up the conversation from an earlier run: ' +
+              'count the matches before the reply is triggered and pass that number, and the ' +
+              'wait ends only when a new one arrives.',
+          ),
       },
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
     },
     async args => {
       try {
         const session = requireSession()
-        if (args.selector || args.text || args.role) {
-          const locator = resolveTarget(session.page, args)
-          await locator.waitFor({ state: args.state, timeout: Math.max(args.ms, 20_000) })
-          return text(`${describeTarget(args)} is ${args.state}.`)
+        const hasTarget = Boolean(args.selector || args.text || args.role)
+        if (args.moreThan !== undefined && !hasTarget) {
+          return failure('moreThan needs a target to count: selector, text, or role plus name.')
         }
-        await session.page.waitForTimeout(args.ms)
-        return text(`Waited ${args.ms}ms.`)
+        const wait = async () => {
+          if (hasTarget && args.moreThan !== undefined) {
+            const all = matchAll(session.page, args)
+            const deadline = Date.now() + Math.max(args.ms, 20_000)
+            while ((await all.count()) <= args.moreThan) {
+              if (Date.now() > deadline) {
+                throw new Error(
+                  `still ${await all.count()} match(es) after ${Math.round(Math.max(args.ms, 20_000) / 1000)}s, ` +
+                    `waiting for more than ${args.moreThan}`,
+                )
+              }
+              await session.page.waitForTimeout(500)
+            }
+          } else if (hasTarget) {
+            const locator = resolveTarget(session.page, args)
+            await locator.waitFor({ state: args.state, timeout: Math.max(args.ms, 20_000) })
+          } else {
+            await session.page.waitForTimeout(args.ms)
+          }
+        }
+
+        const started = Date.now()
+        if (args.cut) await session.offCamera(wait)
+        else await wait()
+
+        const took = `${((Date.now() - started) / 1000).toFixed(1)}s`
+        const what = hasTarget ? `${describeTarget(args)} is ${args.state} after ${took}` : `Waited ${took}`
+        return text(args.cut ? `${what}, left out of the video.` : `${what}.`)
       } catch (err) {
         return failure(`Wait failed: ${(err as Error).message}`)
       }

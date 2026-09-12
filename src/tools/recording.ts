@@ -70,6 +70,28 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           .enum(['720p', '1080p', '1440p'])
           .default('1080p')
           .describe('Recording resolution.'),
+        browser: z
+          .string()
+          .default('main')
+          .describe(
+            'Name for this first browser, to come back to it with tutorial_switch after ' +
+              'cutting to another one - "business", say, when a "customer" follows.',
+          ),
+        fresh: z
+          .boolean()
+          .default(false)
+          .describe(
+            'Start from an empty throwaway profile instead of `profile`: no cookies, no ' +
+              'saved logins, like a private window. For showing a real sign-in. The profile ' +
+              'is deleted when the recording ends.',
+          ),
+        locale: z
+          .string()
+          .optional()
+          .describe(
+            'Page language for every browser in the recording, e.g. "en-US", so sites that ' +
+              'follow the browser language match the narration.',
+          ),
         headless: z
           .boolean()
           .default(true)
@@ -137,6 +159,9 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
         const session = await RecordingSession.start(config, {
           title: args.title,
           profile: args.profile,
+          browserName: args.browser,
+          fresh: args.fresh,
+          locale: args.locale,
           width: preset.width,
           height: preset.height,
           deviceScaleFactor: preset.deviceScaleFactor,
@@ -173,6 +198,8 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           [
             `Recording "${args.title}" at ${preset.width}x${preset.height}` +
             `${preset.deviceScaleFactor > 1 ? ` (captured at ${preset.deviceScaleFactor}x)` : ''}.`,
+            `Browser "${args.browser}": ` +
+              (args.fresh ? 'empty throwaway profile.' : `profile "${args.profile}".`),
             args.url ? `Opened ${args.url}.` : 'No page opened yet - use tutorial_goto.',
             music ? `Music: ${path.basename(music).replace(/\.[^.]+$/, '')}` : 'No background music.',
             `Output folder: ${session.outputDir}`,
@@ -333,10 +360,10 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
       }
 
       try {
-        const { rawVideo, videoMs } = await session.stopRecording()
-        session.writeTimeline()
+        const { segments, videoMs } = await session.stopRecording()
+        session.writeTimeline(segments)
 
-        if (!rawVideo) {
+        if (segments.length === 0) {
           setSession(null)
           return failure(
             'The recording produced no video file. The page may never have painted.',
@@ -344,7 +371,7 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
         }
 
         const result = await compose(config, {
-          rawVideo,
+          rawVideo: segments,
           cues: session.cues,
           zoomEvents: session.zoomEvents,
           outputDir: session.outputDir,
@@ -364,7 +391,8 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           `${result.durationSec.toFixed(1)}s, ${result.width}x${result.height}, ` +
             `${result.cueCount} narration lines, audio ${result.hasAudio ? 'mixed' : 'absent'}` +
             `${result.zoomCount > 0 ? `, ${result.zoomCount} camera moves` : ''}.`,
-          `Recorded ${(videoMs / 1000).toFixed(1)}s across ${session.frameCount} frames.`,
+          `Recorded ${(videoMs / 1000).toFixed(1)}s across ${session.frameCount} frames` +
+            (segments.length > 1 ? `, joined from ${segments.length} segments.` : '.'),
         ]
         if (!check.ok) {
           lines.push('', 'Warning - the finished video looks wrong:')
@@ -425,6 +453,8 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           `Recording "${s.title}"`,
           `  elapsed:   ${(s.videoMs / 1000).toFixed(1)}s (${s.frames} frames)`,
           `  narration: ${s.cueCount} lines totalling ${(s.narratedMs / 1000).toFixed(1)}s`,
+          `  on screen: "${session.activeBrowser}"` +
+            (session.browserNames.length > 1 ? ` (open: ${session.browserNames.join(', ')})` : ''),
           `  folder:    ${s.outputDir}`,
         ].join('\n'),
       )

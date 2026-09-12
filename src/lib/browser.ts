@@ -8,9 +8,13 @@
  *
  * Logins are carried by a persistent profile directory. The user signs in once via
  * the `login` command; every later recording reuses that profile headlessly.
+ *
+ * A fresh browser gets an empty profile in a temporary directory instead - the
+ * equivalent of a private window, for recordings that have to show a real sign-in.
  */
 
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { chromium, type BrowserContext, type Page } from 'playwright-core'
 import type { Config } from './env.js'
@@ -20,6 +24,8 @@ import { log } from './logger.js'
 export interface LaunchOptions {
   /** Profile name under `profiles/`. Each profile is an independent login set. */
   profile: string
+  /** Ignore `profile` and start from an empty throwaway one. */
+  fresh?: boolean
   width: number
   height: number
   headless: boolean
@@ -33,6 +39,8 @@ export interface LaunchedBrowser {
   context: BrowserContext
   page: Page
   profileDir: string
+  /** Set for a throwaway profile: the caller deletes it once the context is closed. */
+  disposableDir: string | null
 }
 
 /**
@@ -73,7 +81,10 @@ export async function launchBrowser(
   config: Config,
   options: LaunchOptions,
 ): Promise<LaunchedBrowser> {
-  const profileDir = path.join(config.paths.profiles, options.profile)
+  const disposableDir = options.fresh
+    ? fs.mkdtempSync(path.join(os.tmpdir(), 'tutorial-fresh-'))
+    : null
+  const profileDir = disposableDir ?? path.join(config.paths.profiles, options.profile)
   assertNotRealChromeProfile(profileDir)
   fs.mkdirSync(profileDir, { recursive: true })
 
@@ -86,7 +97,8 @@ export async function launchBrowser(
 
   log.info(
     `Launching ${options.headless ? 'headless' : 'headed'} Chromium ` +
-      `(profile "${options.profile}", ${options.width}x${options.height})`,
+      `(${disposableDir ? 'empty throwaway profile' : `profile "${options.profile}"`}, ` +
+      `${options.width}x${options.height})`,
   )
 
   const context = await chromium.launchPersistentContext(profileDir, {
@@ -107,5 +119,5 @@ export async function launchBrowser(
     installHeartbeat(newPage).catch(err => log.warn('Heartbeat install failed', err))
   })
 
-  return { context, page, profileDir }
+  return { context, page, profileDir, disposableDir }
 }

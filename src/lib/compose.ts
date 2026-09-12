@@ -20,8 +20,21 @@ import type { NarrationCue } from './session.js'
 import { buildZoomFilter, type ZoomEvent } from './zoom.js'
 import { log } from './logger.js'
 
+/** A stretch of capture, and how long the session clock says it lasted. */
+export interface RawSegment {
+  file: string
+  /** Where the stretch starts within the file. */
+  startMs?: number
+  durationMs: number
+}
+
 export interface ComposeOptions {
-  rawVideo: string
+  /**
+   * The capture: one file, or segments played back to back. Segments are cut to
+   * exactly the length the session clock gave them - that, and not the length of
+   * each file, is what keeps narration on the picture across every cut.
+   */
+  rawVideo: string | RawSegment[]
   cues: NarrationCue[]
   outputDir: string
   /** Background music file, or null. */
@@ -291,23 +304,66 @@ async function buildAudio(
   return mixFile
 }
 
+/**
+ * The filtergraph that plays segments back to back as one stream, labelled `joined`.
+ *
+ * Each segment is cut to the length the session clock gave it, counted in whole
+ * output frames from the start of the recording rather than per segment. Rounding
+ * each segment on its own drifts by up to a frame per cut, and a recording with a
+ * dozen cuts would end with the narration visibly behind the picture; rounding the
+ * running total keeps every boundary within half a frame of the clock.
+ *
+ * The tail is padded with its last frame first, because a segment's file can end a
+ * little before the moment its capture was stopped.
+ *
+ * Several segments can come from the same file - one browser on air, then another,
+ * then the first again - so each is cut out of its file by its own start time.
+ */
+function joinSegments(segments: RawSegment[], fps: number): string {
+  const parts: string[] = []
+  const labels: string[] = []
+  let clockMs = 0
+  segments.forEach((segment, i) => {
+    const firstFrame = Math.round((clockMs * fps) / 1000)
+    clockMs += segment.durationMs
+    const frames = Math.round((clockMs * fps) / 1000) - firstFrame
+    // Shorter than half a frame: none of it would reach the video.
+    if (frames < 1) return
+    parts.push(
+      `[${i}:v]trim=start=${((segment.startMs ?? 0) / 1000).toFixed(3)},setpts=PTS-STARTPTS,` +
+        `fps=${fps},tpad=stop_mode=clone:stop_duration=2,` +
+        `trim=end_frame=${frames},setpts=PTS-STARTPTS,setsar=1[s${i}]`,
+    )
+    labels.push(`[s${i}]`)
+  })
+  return `${parts.join(';\n')};\n${labels.join('')}concat=n=${labels.length}:v=1:a=0[joined]`
+}
+
 /** Pass 2 - transcode the picture and mux the audio. */
 export async function compose(config: Config, options: ComposeOptions): Promise<ComposeResult> {
   const ffmpeg = requireFfmpeg(config)
   const ffprobe = requireFfprobe(config)
 
-  if (!fs.existsSync(options.rawVideo)) {
-    throw new Error(`Raw recording not found: ${options.rawVideo}`)
-  }
+  // Several segments are joined in the graph; a single one is used as it is.
+  const joined =
+    typeof options.rawVideo !== 'string' && options.rawVideo.length > 1 ? options.rawVideo : null
+  const single =
+    typeof options.rawVideo === 'string' ? options.rawVideo : options.rawVideo[0]?.file
+  const files = joined ? joined.map(s => s.file) : single ? [single] : []
+  if (files.length === 0) throw new Error('The recording holds no video.')
+  const missing = files.find(f => !fs.existsSync(f))
+  if (missing) throw new Error(`Raw recording not found: ${missing}`)
 
-  const info = await probeVideo(ffprobe, options.rawVideo)
+  const recordedSec = joined
+    ? joined.reduce((sum, s) => sum + s.durationMs, 0) / 1000
+    : (await probeVideo(ffprobe, files[0] as string)).durationSec
   const lastCueEndMs = options.cues.reduce(
     (max, c) => Math.max(max, c.atMs + c.durationMs),
     0,
   )
   // Give the last sentence room to finish, and a beat of silence after it.
-  const requiredSec = Math.max(info.durationSec, lastCueEndMs / 1000 + 1.2)
-  const needsExtension = requiredSec > info.durationSec + 0.05
+  const requiredSec = Math.max(recordedSec, lastCueEndMs / 1000 + 1.2)
+  const needsExtension = requiredSec > recordedSec + 0.05
 
   const audioFile = await buildAudio(config, options, requiredSec)
 
@@ -319,8 +375,9 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
     // zoompan enlarges pixels; its default scaler makes that look worse than it has
     // to. This applies to every swscale instance in the graph, zoompan's included.
     '-sws_flags', 'lanczos+accurate_rnd',
-    '-i', options.rawVideo,
+    ...files.flatMap(f => ['-i', f]),
   ]
+  const audioIndex = files.length
   if (audioFile) args.push('-i', audioFile)
 
   const OUTPUT_FPS = 25
@@ -329,7 +386,7 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
   if (needsExtension) {
     // Hold the final frame so narration that runs past the last on-screen action
     // is not cut off.
-    const extraSec = requiredSec - info.durationSec
+    const extraSec = requiredSec - recordedSec
     chain.push(`tpad=stop_mode=clone:stop_duration=${extraSec.toFixed(3)}`)
     log.info(`Extending video by ${extraSec.toFixed(2)}s to cover trailing narration`)
   }
@@ -365,12 +422,17 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
   // ffmpeg's automatic stream selection off, so the audio map below would otherwise
   // leave the picture with no route to the file.
   const videoGraphFile = path.join(options.outputDir, 'video-graph.txt')
-  fs.writeFileSync(videoGraphFile, `[0:v]${chain.join(',\n')}[vout]`)
+  fs.writeFileSync(
+    videoGraphFile,
+    joined
+      ? `${joinSegments(joined, OUTPUT_FPS)};\n[joined]${chain.join(',\n')}[vout]`
+      : `[0:v]${chain.join(',\n')}[vout]`,
+  )
   args.push('-filter_complex_script', videoGraphFile)
 
   args.push(
     '-map', '[vout]',
-    ...(audioFile ? ['-map', '1:a:0'] : []),
+    ...(audioFile ? ['-map', `${audioIndex}:a:0`] : []),
     '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20',
     '-pix_fmt', 'yuv420p', '-r', String(OUTPUT_FPS), '-fps_mode', 'cfr',
     ...(audioFile ? ['-c:a', 'aac', '-b:a', '192k'] : []),

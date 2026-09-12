@@ -151,6 +151,30 @@ repeated what the button already said, and the music was unusable.
 - [x] Clear the recordings folder
       -> verified: 121 MB freed, 19 old runs removed
 
+## M11 - Two people in one video
+
+Raised by a Meta App Review screencast: a business signs in and connects its
+Instagram account in one browser, a customer comments and chats in another, and the
+video cuts between them. The replies take up to two minutes to arrive, and that
+wait must not be in the video.
+
+- [x] A recording is cut together from stretches of continuous capture, one per
+      browser, joined at exactly the lengths the session clock gave them
+      -> verified: restarting a capture per cut was tried first and is broken - a
+        second screencast on the same page opened with 4 s of stale frames
+- [x] Several named browsers per recording, each with its own profile or an empty
+      throwaway one (a private window), switched with `tutorial_switch`
+- [x] `tutorial_wait` can leave the wait out of the video (`cut: true`), and wait for
+      a new match when old ones are already on the page (`moreThan`)
+- [x] `tutorial_click` can skip a prompt that only sometimes appears (`optional`)
+- [x] English page language on request, so an English tutorial shows an English UI
+- [x] Regression checks: browsers do not share cookies, a cut removes its time, and
+      the picture changes browser exactly where the timeline says it does
+      -> verified: `node scripts/e2e.mjs` 33/33, handshake 11/11 with 20 tools
+- [!] Record the InStar Instagram App Review screencast with it and look at the frames
+      -> blocked: Meta shows a reCAPTCHA after the automated Instagram login. It needs
+        a person at the machine; the script waits for it and cuts the wait
+
 ---
 
 ## Later

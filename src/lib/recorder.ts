@@ -95,6 +95,11 @@ export class Recorder {
     return Date.now() - this.firstFrameAt
   }
 
+  /** Wall-clock time of the first frame: position 0 in the file. Null until it lands. */
+  get firstFrameWallMs(): number | null {
+    return this.firstFrameAt
+  }
+
   /** Nothing painted for this long - a sign the page is frozen or throttled. */
   msSinceLastFrame(): number | null {
     return this.lastFrameAt === null ? null : Date.now() - this.lastFrameAt
