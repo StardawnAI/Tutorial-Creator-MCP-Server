@@ -147,8 +147,21 @@ async function measureLoudness(
  * trap - a clip under three seconds has no measurable loudness range, and given
  * `measured_LRA=0` the filter falls back to linear scaling and gives up at the peak
  * ceiling, exactly the failure it was brought in to avoid.
+ *
+ * A third lesson came from a real recording: short lines stayed several dB too quiet.
+ * One-pass `loudnorm` looks three seconds ahead and needs that much signal to settle,
+ * so a 1.4-second "I log in to InStar." came out at -22.5 LUFS against a -16 target -
+ * level with the music. Padding the clip with silence to six seconds gives the filter
+ * its window, silence is gated out of the measurement so nothing else changes, and the
+ * padding is trimmed off again afterwards. On the same four clips, -22.5, -21.4 and
+ * -20.7 LUFS became -17.3, -17.1 and -16.6.
  */
-const NARRATION_CHAIN = `loudnorm=I=${NARRATION_LUFS}:TP=${NARRATION_PEAK_CEILING}:LRA=11`
+export function narrationChain(seconds: number): string {
+  return (
+    `apad=whole_dur=6,loudnorm=I=${NARRATION_LUFS}:TP=${NARRATION_PEAK_CEILING}:LRA=11,` +
+    `atrim=0:${seconds.toFixed(3)}`
+  )
+}
 
 /**
  * Pass 1 - build the audio bed.
@@ -201,7 +214,7 @@ async function buildAudio(
   spoken.forEach((cue, i) => {
     const label = `n${i}`
     filters.push(
-      `[${i + 1}:a]${NARRATION_CHAIN},` +
+      `[${i + 1}:a]${narrationChain(cue.durationMs / 1000)},` +
         // After loudnorm, which resamples to 192 kHz internally.
         `aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo,` +
         `adelay=${Math.max(0, Math.round(cue.atMs))}:all=1[${label}]`,

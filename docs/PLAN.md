@@ -180,18 +180,30 @@ wait must not be in the video.
 Raised after four InStar attempts produced nothing but raw captures: no sound, an
 hour long, and nothing after the security check was answered.
 
-- [ ] Delete the failed attempts
-- [ ] A recording that fails is still rendered as a finished video with voice and
+- [x] Delete the failed attempts
+      -> verified: four folders removed, only the two August GitHub videos remain
+- [x] A recording that fails is still rendered as a finished video with voice and
       music - raw captures are never the hand-over
-- [ ] Waiting for a person is capped at minutes, not an hour
+      -> verified: the InStar run stopped before the Instagram login rendered a
+        67.7 s mp4 with 4 narration lines, music and 5 camera moves
+- [x] Waiting for a person is capped at minutes, not an hour (10 min)
 - [ ] After the security check, carry on instead of stopping: start the connection
       again from InStar when Instagram lands on its feed
-- [ ] When a person is needed, the recorder window comes to the front and a
-      notification goes out
-- [ ] Generated background music (Gemini / Lyria) as a second path beside the
+      -> built into the recording script; not yet exercised live
+- [ ] When a person is needed, the recorder window comes to the front
+      -> built (a plain SetForegroundWindow was refused by Windows; a synthetic Alt
+        press first is the documented way round); not yet exercised live
+- [x] Short narration lines reach speaking level
+      -> verified: lines of 1.4 to 2.9 s went from -22.5/-21.4/-20.7 to
+        -17.1/-17.1/-16.5 LUFS; e2e asserts a 1.4 s line
+- [x] `scripts/recompose.mjs` renders an existing recording again from its timeline
+      -> verified: the InStar video re-rendered with the fixed mix in about a minute
+- [~] Generated background music (Gemini / Lyria) as a second path beside the
       track library: sized to the video, serious and gently accompanying, different
       every time
-- [ ] Record the InStar Instagram App Review video
+      -> built and the brief is asserted in e2e; waiting on the one-time Google
+        consent for the Stardawn OAuth client before it can be heard
+- [ ] Record the InStar Instagram App Review video in full
 
 ---
 

@@ -5,6 +5,62 @@ Newest entry on top.
 
 ---
 
+## 2026-09-13 - A finished video every time, and short lines that can be heard
+
+Four attempts at the InStar recording produced nothing but raw captures: no voice, no
+music, and one of them an hour long, because every attempt stopped at Meta's security
+check and was then discarded. The complaint was fair - the product is the finished
+video, and none was ever handed over.
+
+### Decisions
+
+- **A failed run is still rendered.** The recording script now finishes and renders
+  whatever was on air instead of discarding it. A raw capture is an intermediate: it
+  has no sound and contains every wait.
+- **Waiting for a person is capped at 10 minutes**, and the recorder's window is
+  brought to the front first. A plain `SetForegroundWindow` was refused by Windows,
+  which only lets the process that last received input take the foreground.
+- **After the security check, start the connection again from InStar.** Answering the
+  check made Instagram forget where the login was going and land on its feed. Signed
+  in by then, a second "Connect with Instagram" goes straight to the permission page.
+- **The security check itself stays with a person.** It asks whether a human is
+  present; the recorder does not answer that on anyone's behalf.
+
+### Found: short narration lines came out too quiet
+
+Measured on the finished InStar video: the 4.4 s line reached -17.5 LUFS, but lines of
+1.4, 2.6 and 2.9 s only -22.5, -21.4 and -20.7 - the last one level with the music.
+One-pass `loudnorm` looks three seconds ahead and never settles on a shorter clip.
+Padding each clip with silence to six seconds before levelling, and trimming the
+padding off afterwards, brought them to -17.1, -17.1 and -16.5. It affected every
+earlier video with short lines; the e2e fixture never had one, and now does.
+
+### Built
+
+- `music: "generate"` composes a piece per video through Google Lyria 3.5 (the
+  Interactions API), written to the video's length, instrumental, serious and gently
+  accompanying, with the instrumentation varied. Access is an API key or an OAuth
+  client plus a refresh token granted once. The library stays the default and the
+  fallback.
+- `scripts/recompose.mjs` renders an existing recording again from its timeline, with
+  the same or different music - which is how the mixing fix reached the InStar video
+  without recording it again.
+
+### Verified
+
+- `node scripts/e2e.mjs` - **35/35**
+- InStar video up to the Instagram login: 67.7 s, 1920x1080, four lines at -17.5,
+  -17.1, -17.1 and -16.5 LUFS, music alone -21.6 LUFS; frames show both passwords
+  masked and the rings on "Channels" and the Instagram fields.
+
+### Open
+
+- Composed music has not been heard yet: the Stardawn Google account's password is
+  needed once in the consent screen.
+- The full InStar recording still needs someone at the machine for Meta's check.
+
+---
+
 ## 2026-09-12 - Two people in one video
 
 Asked for by a Meta App Review screencast for InStar: a business signs in and

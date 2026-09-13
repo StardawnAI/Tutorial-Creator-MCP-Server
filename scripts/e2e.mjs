@@ -16,7 +16,7 @@ import { pathToFileURL } from 'node:url'
 
 import { loadConfig } from '../dist/lib/env.js'
 import { RecordingSession } from '../dist/lib/session.js'
-import { compose, verifyOutput } from '../dist/lib/compose.js'
+import { compose, narrationChain, verifyOutput } from '../dist/lib/compose.js'
 import { spotlight, ripple, instruct, instructionLayout } from '../dist/lib/emphasis.js'
 import { probeVideo, run } from '../dist/lib/ffmpeg.js'
 import { musicPrompt } from '../dist/lib/music-gen.js'
@@ -613,6 +613,22 @@ async function main() {
   const srt = path.join(session.outputDir, 'captions.srt')
   check('subtitles were written', fs.existsSync(srt),
     fs.existsSync(srt) ? `${fs.readFileSync(srt, 'utf8').split('\n\n').length} entries` : '')
+
+  // A short line has to reach speaking level too. One-pass loudnorm needs three seconds
+  // to settle, and real lines of 1.4 to 2.9 s came out 4 to 6 dB under target.
+  const shortClip = await speechStandIn(config, path.join(tmp, 'short.m4a'), 1.4)
+  const { stderr: shortLevels } = await run(config.ffmpegPath, [
+    '-hide_banner', '-nostats', '-i', shortClip,
+    '-af', `${narrationChain(1.4)},ebur128`, '-f', 'null', '-',
+  ])
+  const shortLufs = Number(
+    shortLevels.match(/Integrated loudness:\s*[\r\n]+\s*I:\s*(-?[\d.]+)\s*LUFS/)?.[1] ?? NaN,
+  )
+  check(
+    'a 1.4-second line still reaches a speaking level',
+    Number.isFinite(shortLufs) && shortLufs > -19.5 && shortLufs < -13,
+    `${shortLufs} LUFS`,
+  )
 
   // The brief for composed music: the video's length, a timed structure, and no voice.
   const brief = musicPrompt(95, 'soft felt piano')
