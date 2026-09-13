@@ -175,6 +175,24 @@ wait must not be in the video.
       -> blocked: Meta shows a reCAPTCHA after the automated Instagram login. It needs
         a person at the machine; the script waits for it and cuts the wait
 
+## M12 - Always a finished video, and generated music
+
+Raised after four InStar attempts produced nothing but raw captures: no sound, an
+hour long, and nothing after the security check was answered.
+
+- [ ] Delete the failed attempts
+- [ ] A recording that fails is still rendered as a finished video with voice and
+      music - raw captures are never the hand-over
+- [ ] Waiting for a person is capped at minutes, not an hour
+- [ ] After the security check, carry on instead of stopping: start the connection
+      again from InStar when Instagram lands on its feed
+- [ ] When a person is needed, the recorder window comes to the front and a
+      notification goes out
+- [ ] Generated background music (Gemini / Lyria) as a second path beside the
+      track library: sized to the video, serious and gently accompanying, different
+      every time
+- [ ] Record the InStar Instagram App Review video
+
 ---
 
 ## Later

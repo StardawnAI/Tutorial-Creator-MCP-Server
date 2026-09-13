@@ -11,6 +11,7 @@ import { listMusicTracks, resolveMusicTrack, type Config } from '../lib/env.js'
 import { RecordingSession, getSession, requireSession, setSession } from '../lib/session.js'
 import { synthesise, estimateSpokenMs, listVoices } from '../lib/tts.js'
 import { compose, verifyOutput } from '../lib/compose.js'
+import { canGenerateMusic, generateMusic } from '../lib/music-gen.js'
 import { log } from '../lib/logger.js'
 
 /**
@@ -103,7 +104,10 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           .describe(
             'Background music under the narration. true for the default track, false for ' +
               'none, or part of a track title to pick one - "kyoto", "glass planet". The ' +
-              'available titles are listed if no track matches.',
+              'available titles are listed if no track matches.\n\n' +
+              '"generate" composes a new piece for this video when it is finished (Google ' +
+              'Lyria): written to its length, serious and gently accompanying, different ' +
+              'every time. The default track is used if composing fails.',
           ),
         showActions: z
           .boolean()
@@ -138,13 +142,22 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
       const preset = PRESETS[args.resolution]
       narrationDisabledReason = null
 
+      const generate = args.music === 'generate'
+      if (generate && !canGenerateMusic(config)) {
+        return failure(
+          'Composing music needs Google access: GEMINI_API_KEY, or GOOGLE_OAUTH_CLIENT_FILE ' +
+            'together with GOOGLE_OAUTH_REFRESH_TOKEN, in the server environment.',
+        )
+      }
+
       let music: string | null = null
       if (args.music !== false) {
+        // Composed music is made at the end; the default track stands in until then.
         music =
-          typeof args.music === 'string'
+          typeof args.music === 'string' && !generate
             ? resolveMusicTrack(config.musicDir, args.music)
             : config.defaultMusic
-        if (typeof args.music === 'string' && !music) {
+        if (typeof args.music === 'string' && !generate && !music) {
           const available = listMusicTracks(config.musicDir)
           return failure(
             `No music track matches "${args.music}".` +
@@ -169,6 +182,7 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           voiceId: args.voiceId ?? config.defaultVoiceId,
           modelId: config.defaultModelId,
           music,
+          generateMusic: generate,
           musicGainDb: 0,
           showActions: args.showActions,
           // The raw capture is an intermediate, and a camera move enlarges whatever
@@ -201,7 +215,11 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
             `Browser "${args.browser}": ` +
               (args.fresh ? 'empty throwaway profile.' : `profile "${args.profile}".`),
             args.url ? `Opened ${args.url}.` : 'No page opened yet - use tutorial_goto.',
-            music ? `Music: ${path.basename(music).replace(/\.[^.]+$/, '')}` : 'No background music.',
+            generate
+              ? 'Music: composed for this video when it is finished.'
+              : music
+                ? `Music: ${path.basename(music).replace(/\.[^.]+$/, '')}`
+                : 'No background music.',
             `Output folder: ${session.outputDir}`,
             ...warnings.map(w => `Note: ${w}`),
           ].join('\n'),
@@ -370,6 +388,23 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           )
         }
 
+        let music = session.options.music
+        let musicNote: string | null = null
+        if (session.options.generateMusic) {
+          const lastCueEnd = session.cues.reduce((max, c) => Math.max(max, c.atMs + c.durationMs), 0)
+          try {
+            const made = await generateMusic(config, {
+              seconds: Math.max(videoMs, lastCueEnd + 1200) / 1000,
+              outFile: path.join(session.outputDir, 'music-composed.mp3'),
+            })
+            music = made.file
+            musicNote = `Music composed for this video: ${made.palette}.`
+          } catch (err) {
+            musicNote = `Composing music failed, so the default track was used: ${(err as Error).message}`
+            log.warn(musicNote)
+          }
+        }
+
         const result = await compose(config, {
           rawVideo: segments,
           cues: session.cues,
@@ -377,7 +412,7 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           outputDir: session.outputDir,
           outputWidth: session.options.width,
           outputHeight: session.options.height,
-          music: session.options.music,
+          music,
           musicGainDb: args.musicGainDb,
           subtitles: args.subtitles,
         })
@@ -393,6 +428,7 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
             `${result.zoomCount > 0 ? `, ${result.zoomCount} camera moves` : ''}.`,
           `Recorded ${(videoMs / 1000).toFixed(1)}s across ${session.frameCount} frames` +
             (segments.length > 1 ? `, joined from ${segments.length} segments.` : '.'),
+          ...(musicNote ? [musicNote] : []),
         ]
         if (!check.ok) {
           lines.push('', 'Warning - the finished video looks wrong:')

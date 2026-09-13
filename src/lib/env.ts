@@ -39,6 +39,10 @@ export interface Config {
   defaultMusic: string | null
   /** Where the background-music tracks live, for listing them by name. */
   musicDir: string
+  /** Google access for generated music: an API key ... */
+  geminiApiKey: string | null
+  /** ... or an OAuth client plus the refresh token granted to it once. */
+  googleOAuth: { clientFile: string; refreshToken: string } | null
 }
 
 /**
@@ -211,6 +215,14 @@ export function loadConfig(): Config {
     // TUTORIAL_MCP_MUSIC takes either a path or part of a track title.
     defaultMusic: resolveMusicTrack(path.join(assets, 'music'), process.env.TUTORIAL_MCP_MUSIC),
     musicDir: path.join(assets, 'music'),
+    geminiApiKey: process.env.GEMINI_API_KEY ?? null,
+    googleOAuth:
+      process.env.GOOGLE_OAUTH_CLIENT_FILE && process.env.GOOGLE_OAUTH_REFRESH_TOKEN
+        ? {
+            clientFile: process.env.GOOGLE_OAUTH_CLIENT_FILE,
+            refreshToken: process.env.GOOGLE_OAUTH_REFRESH_TOKEN,
+          }
+        : null,
   }
   return cached
 }

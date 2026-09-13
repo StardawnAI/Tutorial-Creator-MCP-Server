@@ -19,6 +19,7 @@ import { RecordingSession } from '../dist/lib/session.js'
 import { compose, verifyOutput } from '../dist/lib/compose.js'
 import { spotlight, ripple, instruct, instructionLayout } from '../dist/lib/emphasis.js'
 import { probeVideo, run } from '../dist/lib/ffmpeg.js'
+import { musicPrompt } from '../dist/lib/music-gen.js'
 
 const OUT_W = 1280
 const OUT_H = 720
@@ -612,6 +613,14 @@ async function main() {
   const srt = path.join(session.outputDir, 'captions.srt')
   check('subtitles were written', fs.existsSync(srt),
     fs.existsSync(srt) ? `${fs.readFileSync(srt, 'utf8').split('\n\n').length} entries` : '')
+
+  // The brief for composed music: the video's length, a timed structure, and no voice.
+  const brief = musicPrompt(95, 'soft felt piano')
+  check(
+    'a composed-music brief names the length, the structure and no vocals',
+    brief.includes('1:35') && brief.includes('[0:00 -') && /no vocals/i.test(brief),
+    brief.split('\n')[0],
+  )
 
   await twoBrowsers(config)
 

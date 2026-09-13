@@ -178,6 +178,20 @@ Every browser is captured continuously from the moment it opens; the recorder no
 which one is on air and when, and the finished video is cut together from exactly
 those stretches.
 
+### Composed music
+
+`tutorial_start` with `music: "generate"` has a piece composed for the video when it
+is finished, through Google's Lyria model: written to the video's length so it
+neither loops nor stops mid-phrase, instrumental, serious and gently accompanying,
+with the instrumentation varied from one video to the next. The track library stays
+the default, and is used as a fallback if composing fails.
+
+It needs Google access in `.env`: either `GEMINI_API_KEY`, or
+`GOOGLE_OAUTH_CLIENT_FILE` (a Google OAuth client file) together with
+`GOOGLE_OAUTH_REFRESH_TOKEN`, granted once with the `cloud-platform` and
+`generative-language.retriever` scopes. The project behind the client needs the
+Generative Language API enabled.
+
 ### Keeping secrets out of the video
 
 The recorder captions each action on screen, including typed values — a

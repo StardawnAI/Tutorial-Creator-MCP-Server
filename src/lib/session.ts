@@ -70,6 +70,8 @@ export interface SessionOptions {
   modelId: string
   /** Background music file, or null for none. */
   music: string | null
+  /** Compose music for this video when it is finished; `music` is the fallback. */
+  generateMusic?: boolean
   musicGainDb: number
   showActions: boolean
   quality: number
@@ -144,6 +146,8 @@ export class RecordingSession {
   private readonly onAir: OnAir[] = []
   /** Wall-clock time the current stretch went on air, or null during a cut. */
   private onAirSince: number | null = null
+  /** How many off-camera operations are in progress. */
+  private offAirDepth = 0
   /** Total length of the stretches already closed. */
   private closedMs = 0
   private stoppedFrames = 0
@@ -240,11 +244,13 @@ export class RecordingSession {
   async offCamera<T>(work: () => Promise<T>): Promise<T> {
     // A camera move cannot carry across a cut - the picture under it changes.
     this.releaseZoom()
-    this.goOffAir()
+    // Counted, because tool calls can overlap: something done while a cut wait is
+    // still pending must not put the recording back on air underneath it.
+    if (this.offAirDepth++ === 0) this.goOffAir()
     try {
       return await work()
     } finally {
-      this.onAirSince = Date.now()
+      if (--this.offAirDepth === 0) this.onAirSince = Date.now()
     }
   }
 
