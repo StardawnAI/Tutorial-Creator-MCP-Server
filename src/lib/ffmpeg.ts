@@ -13,10 +13,21 @@ export interface RunResult {
   stderr: string
 }
 
-export function run(binary: string, args: string[], timeoutMs = 15 * 60_000): Promise<RunResult> {
+/**
+ * `cwd` exists for one filter: `subtitles=`. Its file name is read from inside a
+ * filtergraph, where a Windows path needs its drive colon and its backslashes
+ * escaped twice over; running in the file's own directory and naming it plainly
+ * sidesteps the whole business.
+ */
+export function run(
+  binary: string,
+  args: string[],
+  timeoutMs = 15 * 60_000,
+  cwd?: string,
+): Promise<RunResult> {
   return new Promise((resolve, reject) => {
     log.debug(`${binary} ${args.map(a => (a.includes(' ') ? `"${a}"` : a)).join(' ')}`)
-    const child = spawn(binary, args, { windowsHide: true })
+    const child = spawn(binary, args, { windowsHide: true, cwd })
 
     let stdout = ''
     let stderr = ''

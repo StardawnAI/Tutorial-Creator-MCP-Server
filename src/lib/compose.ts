@@ -113,6 +113,94 @@ export function buildSrt(cues: NarrationCue[]): string {
     .join('\n')
 }
 
+/** Seconds -> `H:MM:SS.cc`, the time format an ASS file uses. */
+function assTime(ms: number): string {
+  const total = Math.max(0, Math.round(ms))
+  const h = Math.floor(total / 3_600_000)
+  const m = Math.floor((total % 3_600_000) / 60_000)
+  const s = Math.floor((total % 60_000) / 1000)
+  const cs = Math.round((total % 1000) / 10)
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${h}:${p(m)}:${p(s)}.${p(cs)}`
+}
+
+/**
+ * The captions as an ASS file, written out rather than styled through `force_style`
+ * on the SRT.
+ *
+ * The difference is the coordinate system, and it is not cosmetic. A subtitle file
+ * with no resolution of its own is laid out in ASS's default 384x288 script space,
+ * so a margin given in video pixels is five times too large: asking to keep 442 px
+ * clear of the avatar left a column narrower than one word, and the caption ran up
+ * the left edge of the frame one word per line. Declaring `PlayResX`/`PlayResY` as
+ * the video's own size makes every number here mean what it says.
+ *
+ * `reserve` keeps the box out of the avatar's corner.
+ */
+export function buildAss(
+  cues: NarrationCue[],
+  options: { width: number; height: number; reserve: { left: number; right: number } },
+): string {
+  const fontSize = Math.round(options.height * 0.034)
+  const marginV = Math.round(options.height * 0.05)
+  const side = Math.round(options.width * 0.05)
+
+  const header = [
+    '[Script Info]',
+    'ScriptType: v4.00+',
+    `PlayResX: ${options.width}`,
+    `PlayResY: ${options.height}`,
+    'WrapStyle: 0',
+    'ScaledBorderAndShadow: yes',
+    '',
+    '[V4+ Styles]',
+    'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, ' +
+      'BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, ' +
+      'BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
+    // BorderStyle 3 is the opaque box; libass paints it in the outline colour, so both
+    // colours are the same near-black. The leading byte is transparency, not opacity -
+    // 0x50 leaves the box solid enough to read white text off a pale page.
+    `Style: Tutorial,Segoe UI,${fontSize},&H00FFFFFF,&H00FFFFFF,&H50140D0A,&H50140D0A,` +
+      `0,0,0,0,100,100,0,0,3,${Math.round(fontSize * 0.45)},0,2,` +
+      `${Math.max(side, options.reserve.left)},${Math.max(side, options.reserve.right)},` +
+      `${marginV},1`,
+    '',
+    '[Events]',
+    'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text',
+  ]
+
+  const events = cues
+    .filter(c => c.text.trim().length > 0)
+    .map(cue => {
+      const text = cue.text
+        .trim()
+        .replace(/\s+/g, ' ')
+        // ASS separates lines with \N, and commas would end the field.
+        .replace(/(.{1,46})(\s|$)/g, '$1\\N')
+        .replace(/\\N$/, '')
+      return (
+        `Dialogue: 0,${assTime(cue.atMs)},${assTime(cue.atMs + Math.max(cue.durationMs, 900))},` +
+        `Tutorial,,0,0,0,,${text}`
+      )
+    })
+
+  return `${[...header, ...events].join('\n')}\n`
+}
+
+/**
+ * Can this ffmpeg burn subtitles into the picture?
+ *
+ * The `subtitles` filter exists only in a build with libass, and builds differ: the
+ * one this project started on had none, the current one does. Asked once per run.
+ */
+let subtitleBurner: Promise<boolean> | null = null
+function canBurnSubtitles(ffmpeg: string): Promise<boolean> {
+  subtitleBurner ??= run(ffmpeg, ['-hide_banner', '-filters'], 60_000)
+    .then(({ stdout }) => /\bsubtitles\b/.test(stdout))
+    .catch(() => false)
+  return subtitleBurner
+}
+
 /** Speech level for web video, and the headroom left above it. */
 const NARRATION_LUFS = -16
 const NARRATION_PEAK_CEILING = -1.5
@@ -623,14 +711,55 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
     const srtFile = path.join(options.outputDir, 'captions.srt')
     fs.writeFileSync(srtFile, buildSrt(options.cues), 'utf8')
     const subbed = path.join(options.outputDir, outputName.replace(/\.mp4$/, '.subtitled.mp4'))
-    // Soft subtitles: this ffmpeg build has no libass, so burning in is unavailable.
-    await run(ffmpeg, [
-      '-hide_banner', '-loglevel', 'error', '-y',
-      '-i', outputFile, '-i', srtFile,
-      '-map', '0', '-map', '1',
-      '-c', 'copy', '-c:s', 'mov_text',
-      subbed,
-    ]).catch(err => log.warn('Subtitle muxing failed; the plain mp4 is unaffected', err))
+
+    // A bubble in a bottom corner is exactly where a centred caption box would go.
+    const corner = options.avatarCorner ?? AVATAR_CORNER
+    const bubbleWidth = hasAvatar
+      ? Math.round(options.outputWidth * (options.avatarSize ?? AVATAR_SIZE)) +
+        Math.round(options.outputWidth * 0.05)
+      : 0
+    const reserve = {
+      left: corner === 'bottom-left' ? bubbleWidth : 0,
+      right: corner === 'bottom-right' ? bubbleWidth : 0,
+    }
+
+    if (await canBurnSubtitles(ffmpeg)) {
+      // Burned in, so they are there wherever the video is played - a soft track is
+      // off by default in most players, and on a phone or in a feed there is nobody
+      // to switch it on.
+      const assFile = path.join(options.outputDir, 'captions.ass')
+      fs.writeFileSync(
+        assFile,
+        buildAss(options.cues, {
+          width: options.outputWidth,
+          height: options.outputHeight,
+          reserve,
+        }),
+        'utf8',
+      )
+      await run(
+        ffmpeg,
+        [
+          '-hide_banner', '-loglevel', 'error', '-y',
+          '-i', outputFile,
+          '-vf', `subtitles=${path.basename(assFile)}`,
+          '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-pix_fmt', 'yuv420p',
+          '-c:a', 'copy', '-movflags', '+faststart',
+          subbed,
+        ],
+        15 * 60_000,
+        options.outputDir,
+      ).catch(err => log.warn('Burning the captions failed; the plain mp4 is unaffected', err))
+    } else {
+      // No libass in this build: a soft `mov_text` track is what is left.
+      await run(ffmpeg, [
+        '-hide_banner', '-loglevel', 'error', '-y',
+        '-i', outputFile, '-i', srtFile,
+        '-map', '0', '-map', '1',
+        '-c', 'copy', '-c:s', 'mov_text',
+        subbed,
+      ]).catch(err => log.warn('Subtitle muxing failed; the plain mp4 is unaffected', err))
+    }
   }
 
   const finalDuration = (await probeDuration(ffprobe, outputFile)) ?? requiredSec

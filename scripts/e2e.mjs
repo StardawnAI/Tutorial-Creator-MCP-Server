@@ -19,6 +19,7 @@ import { RecordingSession } from '../dist/lib/session.js'
 import {
   AVATAR_SIZE,
   avatarOverlayFilters,
+  buildAss,
   compose,
   narrationChain,
   verifyOutput,
@@ -27,7 +28,7 @@ import { spotlight, ripple, instruct, instructionLayout } from '../dist/lib/emph
 import { probeVideo, run } from '../dist/lib/ffmpeg.js'
 import { musicPrompt } from '../dist/lib/music-gen.js'
 import { launchBrowser } from '../dist/lib/browser.js'
-import { totp } from '../dist/lib/totp.js'
+import { currentCode, secondsLeft, totp } from '../dist/lib/totp.js'
 
 const OUT_W = 1280
 const OUT_H = 720
@@ -482,6 +483,22 @@ async function botAndTwoFactor(config) {
     check('navigator.webdriver is not set', !seen.webdriver, String(seen.webdriver))
     check('window.chrome is there, as in a browser a person drives', seen.hasChrome)
     check('the page reports real languages', seen.languages.length > 0, seen.languages)
+
+    // The whole two-factor path, not just the arithmetic: read the secret from the
+    // environment under the name a tool call would pass, and type the code into a
+    // real field in a real browser.
+    process.env.E2E_TOTP_SECRET = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ'
+    await launched.page.goto(
+      'data:text/html,<title>Two factor</title><input id="code" autocomplete="off">',
+    )
+    const code = await currentCode('E2E_TOTP_SECRET')
+    await launched.page.locator('#code').pressSequentially(code, { delay: 10 })
+    const inField = await launched.page.inputValue('#code')
+    check(
+      'a two-factor code is computed from the environment and typed into the field',
+      inField === totp(process.env.E2E_TOTP_SECRET) && /^\d{6}$/.test(inField),
+      `${inField.replace(/\d/g, '*')} (${inField.length} digits, ${secondsLeft()}s left on it)`,
+    )
   } finally {
     await launched.context.close().catch(() => {})
     if (launched.disposableDir) fs.rmSync(launched.disposableDir, { recursive: true, force: true })
@@ -835,6 +852,22 @@ async function main() {
   const srt = path.join(session.outputDir, 'captions.srt')
   check('subtitles were written', fs.existsSync(srt),
     fs.existsSync(srt) ? `${fs.readFileSync(srt, 'utf8').split('\n\n').length} entries` : '')
+
+  /**
+   * Burned-in captions are laid out in the video's own pixels, and they keep out of
+   * the avatar's corner. Styling the SRT instead put the margins in ASS's default
+   * 384-wide script space, where "keep 442 px clear" left less than a word of room
+   * and the caption ran up the side of the frame.
+   */
+  const ass = buildAss(
+    [{ atMs: 1000, durationMs: 2000, text: 'On the Channels page I click Connect with Instagram.', audioFile: null, voiceId: '' }],
+    { width: 1920, height: 1080, reserve: { left: 0, right: 442 } },
+  )
+  check(
+    'captions are laid out in the video\'s own pixels, clear of the avatar',
+    ass.includes('PlayResX: 1920') && /MarginR|,96,442,/.test(ass) && ass.includes('Dialogue: 0,0:00:01.00'),
+    ass.split('\n').find(l => l.startsWith('Style:'))?.slice(0, 60) ?? 'no style line',
+  )
 
   // A short line has to reach speaking level too. One-pass loudnorm needs three seconds
   // to settle, and real lines of 1.4 to 2.9 s came out 4 to 6 dB under target.
