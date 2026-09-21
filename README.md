@@ -31,8 +31,14 @@ measured and rejected — are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 - Node.js 20+
 - ffmpeg and ffprobe on `PATH` (needs `adelay`, `amix`, `sidechaincompress`,
-  `loudnorm`, `tpad`)
-- A Chromium build — `npx playwright install chromium` if you have none
+  `loudnorm`, `tpad`), or `FFMPEG_PATH` / `FFPROBE_PATH` pointing at them.
+  **Use the 7.x line.** ffmpeg 9.0.1 passes every check `npm run doctor` makes and
+  then dies in the narration levelling pass with an empty stderr and the exit code
+  2880417800 — a crash, not a filter it does not know. Measured on Windows,
+  2026-09-21; 7.1 renders the same recording without complaint.
+- A Chromium build — `node node_modules/playwright-core/cli.js install chromium`
+  (the project depends on `playwright-core`, so plain `npx playwright install`
+  fetches a second copy and warns instead)
 - An ElevenLabs API key for narration (optional: without it, recordings are still
   paced correctly and subtitles are written, they are just silent)
 
