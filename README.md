@@ -221,10 +221,14 @@ re-render costs nothing at HeyGen.
 **Which voice speaks** is a separate choice, `voiceSource`:
 
 - `elevenlabs` (default) — where the cloned voices are. `tutorial_voices` lists them.
-- `heygen` — HeyGen's own speech endpoint, with `voiceId` from
-  `tutorial_voices` with `source: "heygen"`. Both answer in about a second, which is
-  what matters: the recording waits out every line in real time, so the speech has to
-  be there immediately. The avatar render, which takes minutes, never is.
+- `heygen` — HeyGen's own speech endpoint, including the voice an avatar look is
+  paired with (`default_voice_id`), so the face and the voice can both be the same
+  person's. `tutorial_voices` with `source: "heygen"` lists what it offers; a private
+  voice of your own can be passed by id even when the listing leaves it out.
+
+Both answer in about a second, which is what matters: the recording waits out every
+line in real time, so the speech has to be there immediately. The avatar render,
+which takes minutes, never is — that is why it happens afterwards.
 
 `avatar` accepts three things, all of which a person actually has to hand: a look id,
 the group id out of the HeyGen app URL (`app.heygen.com/avatar/my-avatars/<id>`), or
@@ -266,6 +270,15 @@ in the order to reach for it:
    video. It requires `headless: false`, because otherwise there is no window for
    anyone to act in. This is the tool for "I'm not a robot", for approving a login on
    a phone, and for a code that arrived by SMS.
+
+### Captions
+
+`tutorial_finish` writes `captions.srt` and a second file, `tutorial.subtitled.mp4`.
+Where the ffmpeg build has libass — check with `npm run doctor` — the captions are
+**burned into** that second video, white on a dark box, laid out at the video's own
+resolution and kept clear of the avatar's corner. The plain `tutorial.mp4` never has
+them, so both versions exist. Without libass the same file gets a soft `mov_text`
+track instead, which most players leave switched off.
 
 ### Keeping secrets out of the video
 

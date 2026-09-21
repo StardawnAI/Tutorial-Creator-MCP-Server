@@ -68,9 +68,20 @@ question, and the honest answer turned out to be "for two of three reasons":
   recording waits out each line in real time.
 - It is not free of the credit problem: that endpoint is refused with
   `insufficient_credit` exactly as the video one is, while ElevenLabs works today.
-- The cloned voices are at ElevenLabs. HeyGen's speech endpoint only accepts voices on
-  its "starfish" engine, and none of this account's own voices are among them - 2000
-  were listed and checked, no "JIM", no "KENF".
+- The cloned voices are at ElevenLabs. HeyGen's `engine=starfish` listing, which is
+  what its documentation says the speech endpoint accepts, does not include this
+  account's own voices - 2000 were listed and checked, no "JIM", no "KENF".
+
+**Corrected the same evening.** The listing is not the same thing as the endpoint.
+Asked directly, both of this account's own voices - `Jim Quick Test`
+(`e1f3c80a…`, the voice the avatar look itself is paired with) and `JIM Quick Test`
+(`19992644…`) - are accepted by the speech endpoint *and* by the video endpoint with
+a `script`: both return 402 for credit, not 400 for a bad voice. Whether the engine
+would then actually use them cannot be known until the account has credit, because
+schema validation runs before the credit check and business rules may run after it.
+So the true position is: the avatar does have its own voice, it is German, and it
+looks usable; ElevenLabs is the default because it works today and holds the English
+clones the tutorials are narrated with.
 
 ### Built: bot checks and two-factor (M14)
 

@@ -54,6 +54,14 @@ async function main(): Promise<void> {
         : `[${CROSS}] filters   missing: ${missing.join(', ')}`,
     )
     if (missing.length > 0) problems.push(`ffmpeg build lacks: ${missing.join(', ')}`)
+
+    // Only a build with libass has the `subtitles` filter, and only then can the
+    // captions be burned into the picture rather than muxed as a track nobody turns on.
+    lines.push(
+      /\bsubtitles\b/.test(stdout)
+        ? `[${TICK}] captions  can be burned into the picture (libass present)`
+        : `[${WARN}] captions  soft subtitle track only - this build has no libass`,
+    )
   }
 
   // Chromium

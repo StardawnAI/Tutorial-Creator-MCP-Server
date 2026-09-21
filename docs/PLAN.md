@@ -238,9 +238,9 @@ a person in the corner saying the lines, instead of a disembodied voice.
         and that the spoken clip takes the bubble over while it plays
 - [x] The narration voice is a choice: ElevenLabs, or HeyGen's own speech endpoint
       -> verified against the live API: `POST /v3/voices/speech` accepts the request
-        (an unknown field returns 400, the real one 402 for credit). Its voices are
-        limited to the "starfish" engine, and none of this account's cloned voices
-        are among the 2000 listed - so ElevenLabs remains where Jim's own voice is
+        (an unknown field returns 400, the real one 402 for credit). The account's
+        own voices - including the one the avatar look is paired with - are accepted
+        by it too, although the `engine=starfish` listing does not show them
 - [x] Regression checks in `scripts/e2e.mjs`
       -> verified: 48/48. The first version of the bubble check passed a render with
         no bubble in it - an output `-ss` discards frames only after the filter chain
@@ -277,6 +277,45 @@ defended. Separated by what is actually solvable.
         file - as one `-Command` argument the C# block loses a quote and dies
 - [x] Written down in the README: what this beats, and what it cannot
 - [ ] Record the InStar Instagram App Review video with the handoff tool
+
+## M15 - Looking like a professional tutorial
+
+Asked for as research: what open-source pieces would make the editing and the
+animation look like a produced tutorial rather than a screen capture.
+
+The finding worth stating first: almost nothing new is needed. The ffmpeg on this
+machine (gyan 7.1 full) carries **libass, xfade, drawtext, minterpolate, frei0r,
+libplacebo and libvpx**, and the capture layer already draws rings, instructions,
+pointers and camera moves. The gap is not tooling, it is that some of it is unused.
+
+Ordered by what a viewer would notice, against what it costs:
+
+- [x] **Burned-in captions.** The build has libass after all - the note saying it did
+      not was written on the previous machine. Written as an ASS file at the video's
+      own resolution, kept clear of the avatar's corner.
+      -> verified: frames at 21 s and 40.5 s read cleanly over a dark page and over a
+        white one; e2e asserts the layout
+- [ ] **Word-synchronised captions.** ElevenLabs returns word timings from its
+      `with-timestamps` endpoint, and HeyGen's speech endpoint returns
+      `word_timestamps` too. ASS can highlight a word at a time (`\k`), which is the
+      single most recognisable "produced video" cue. No new dependency at all.
+- [ ] **A transition on every cut between browsers.** `xfade` is in the build; the
+      cuts are currently hard. A 250 ms dissolve where the video changes window.
+- [ ] **An opening and closing card with motion.** Today's chapter card is static
+      HTML in the capture. Either animate it in CSS (free, we already own the layer)
+      or render it separately - see Revideo below.
+- [ ] Decide whether the avatar should be able to appear cut out rather than in a
+      bubble, for an opening where the person is over the whole frame
+
+### Researched, and what they are worth here
+
+| Tool | Licence | Verdict |
+|---|---|---|
+| **Revideo** (fork of Motion Canvas) | MIT | The one to reach for if the intro, lower thirds and callouts should be real motion design. TypeScript scenes rendered headlessly to video, composited over our capture. No licence question. |
+| **Remotion** | free only for individuals and companies of **up to three people**; otherwise $25/seat/month or $0.01/render with a $100/month minimum | More mature than Revideo, but it is a commercial licence for a company of any size, and this is a product Stardawn ships. Not worth the liability unless Revideo proves insufficient. |
+| **editly** | MIT | Declarative ffmpeg editing with gl-transitions and title layers. Solves what `xfade` and `drawtext` already solve for us, and it wants to own the whole render. Skip. |
+| **auto-editor** | Unlicense | Cuts silence automatically. We do not have that problem: the recorder cuts waits by the session clock, deliberately, and knows where every line is. Skip. |
+| **Whisper / faster-whisper** | MIT | Would give word timings from the audio. Unnecessary - both speech services hand them over for free with the audio they render. |
 
 ---
 
