@@ -115,9 +115,10 @@ async function main() {
 
   const expected = [
     'tutorial_start', 'tutorial_say', 'tutorial_chapter', 'tutorial_finish',
-    'tutorial_cancel', 'tutorial_status', 'tutorial_voices',
+    'tutorial_cancel', 'tutorial_status', 'tutorial_voices', 'tutorial_avatars',
     'tutorial_goto', 'tutorial_click', 'tutorial_type', 'tutorial_press',
-    'tutorial_scroll', 'tutorial_wait', 'tutorial_snapshot', 'tutorial_screenshot',
+    'tutorial_scroll', 'tutorial_wait', 'tutorial_handoff',
+    'tutorial_snapshot', 'tutorial_screenshot',
     'tutorial_highlight', 'tutorial_zoom', 'tutorial_switch',
     'tutorial_import_session', 'tutorial_profiles',
   ]

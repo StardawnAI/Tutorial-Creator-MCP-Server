@@ -5,6 +5,93 @@ Newest entry on top.
 
 ---
 
+## 2026-09-21 - A face for the narration, and sign-ins that fight back
+
+Two things were asked for: an avatar that speaks the tutorial, and an answer to bot
+detection and two-factor - the pair that has blocked the InStar recording since the
+start.
+
+### Built: the avatar (M13)
+
+`tutorial_start` takes `avatar`, and a person appears in the corner saying each line,
+as a round bubble that fades in with the line and out after it.
+
+- **The voice does not change.** ElevenLabs renders the narration exactly as before
+  and HeyGen lip-syncs the look *to that audio*. Letting HeyGen speak the text would
+  have meant a second voice to keep consistent and a second loudness problem; this
+  way the mix is untouched, and the same recording sounds identical with or without
+  an avatar.
+- **The clips are rendered after the recording**, three at a time, and cached under a
+  hash of the audio they speak. A render takes a minute or more, and the recording
+  waits out each line in real time - doing it during the recording would put that
+  minute into the video. The cache means a re-render costs nothing at HeyGen.
+- **A bubble, not a cut-out.** HeyGen can return the person on a transparent
+  background, but that depends on the look, the engine and alpha surviving webm; a
+  circular crop of the plain mp4 works whatever comes back. The mask is drawn into
+  the alpha plane with `geq`, with a feathered edge and a thin light ring, and the
+  overlay is applied *after* the camera moves so the avatar is never magnified.
+
+### Found: the HeyGen account cannot render
+
+`GET /v3/users/me` reports a wallet balance of 0 for the account behind the key
+(media@ke.nf), and every `POST /v3/videos` comes back `insufficient_credit`. Since
+validation runs before the credit check - an unknown field returns 400, the real
+request returns 402 - the request schema is confirmed correct; only the render itself
+is untested. The compositing was verified instead with stand-in clips built from the
+look's own preview still: the InStar video re-rendered with four bubbles in 12 s.
+
+`tutorial_start` therefore resolves the look and checks the balance *before* anything
+is recorded, and a failed clip leaves its bubble out rather than losing the video.
+
+### Built: bot checks and two-factor (M14)
+
+Separated by what is actually solvable, because they are four different problems:
+
+- **Not looking like a robot** - `--enable-automation` dropped, the
+  `AutomationControlled` blink feature disabled, `navigator.webdriver` reporting
+  false as a real browser does, and the headless user agent no longer saying
+  "HeadlessChrome". A threshold, not a cloak.
+- **Not signing in at all** - `tutorial_import_session` remains the first thing to
+  reach for whenever the login is not itself the subject.
+- **Two-factor** - `totpFrom` on `tutorial_type` computes the six digits from a
+  shared secret and types them. The tool call carries the *name* of an environment
+  variable, never the secret. All four RFC 6238 vectors reproduce.
+- **A CAPTCHA** - `tutorial_handoff`. It brings the recorder's own window to the
+  front, puts the instruction across the top of the page, waits for the page to
+  change and cuts the wait out. This is the answer to the run where the check was
+  solved in the wrong browser: the window now comes to the person.
+
+### Decisions
+
+- **The handoff banner is put into the page**, the only decoration that is. It is for
+  the person at the machine, not for the viewer, and nothing proves the capture
+  overlay is painted on screen as well as into the file. It is fixed, ignores the
+  mouse, is removed afterwards, and never reaches the video because a handoff is off
+  camera.
+- **A moved recording finds its own files.** `timeline.json` stores absolute paths,
+  and renaming this project's directory left every earlier recording pointing at a
+  path that no longer exists. `recompose.mjs` now looks beside the timeline.
+
+### Verified
+
+- `npm run build` clean; `node scripts/e2e.mjs` 48/48; `node scripts/handshake.mjs`
+  11/11 with 22 tools
+- Frames from the re-rendered InStar video at 7.5 s, 15 s and 41 s: bubble present,
+  absent between lines, and unmagnified while the camera is in
+- `raiseWindow` put a real headed Chromium in the foreground and the banner appeared
+  and was removed
+
+### Known problems
+
+- No avatar can actually be rendered until the HeyGen account has credit.
+- `ffmpeg` was not on this machine's PATH at all; `.env` now names ffmpeg 7.1
+  explicitly. 9.x passes every check the doctor makes and then dies in the narration
+  levelling pass.
+- The connection to both api.heygen.com and api.elevenlabs.io drops often enough here
+  that requests are retried; a single `fetch` failure is not an error worth reporting.
+
+---
+
 ## 2026-09-13 - A finished video every time, and short lines that can be heard
 
 Four attempts at the InStar recording produced nothing but raw captures: no voice, no

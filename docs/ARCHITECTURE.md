@@ -280,6 +280,7 @@ to read than the same text at full-page size.
 | Action captions reveal secrets — `showActions` prints typed values, so a verification code appears on screen | Typing into password fields, and any value marked sensitive, is entered without an action caption; a redaction helper blurs elements before they are shown |
 | Narration cost | On-disk cache keyed by content; re-renders of unchanged lines are free |
 | A site rejects headless Chrome | Headed mode is a per-recording option |
+| A site detects automation and blocks the sign-in | Three separable answers, see §9. A CAPTCHA is deliberately not one of them |
 | stdout corrupts the MCP protocol | All logging goes to stderr; ffmpeg is spawned without inheriting stdout |
 | `page.screencast` is a young API | `playwright-core` is pinned; the older `recordVideo` path remains a documented fallback and was **verified** working (constant 25 fps, time-accurate to one frame) |
 
@@ -293,3 +294,39 @@ profile, because — as established in §2 — it cannot record the other one.
 
 The one-time cost is signing in to the tutorial profile per site. The benefit is
 that recordings are reproducible and run headlessly in the background.
+
+---
+
+## 9. Sign-ins that are defended
+
+"The app is behind a login" is four different problems, and conflating them is why
+the first attempts at a real recording went nowhere. In the order to reach for them:
+
+**Do not sign in on camera.** `tutorial_import_session` copies the session out of the
+browser the user already works in. There is then no password to type, no check to
+pass, and nothing to detect. This is the right answer unless the sign-in itself is
+what the video is about — which, for a Meta app review screencast, it is.
+
+**Look like a browser a person drives.** Chrome's `--enable-automation` is dropped,
+the `AutomationControlled` blink feature is disabled, `navigator.webdriver` reports
+`false` — what a normal browser reports, rather than `undefined`, which is itself a
+tell — and a headless browser's user agent has the word "HeadlessChrome" replaced
+with the version actually running. Typing is character by character with a delay,
+which it already was, for the video's sake.
+
+This raises the threshold. It is not a cloak, and it is not treated as one: a site
+that fingerprints seriously will still know. Headed mode exists for that.
+
+**Two factors, one of which is arithmetic.** A code from an authenticator app is
+HMAC-SHA1 over a shared secret and the clock (RFC 6238), so `tutorial_type` with
+`totpFrom` computes and types it, and two-factor stops being an obstacle at all. The
+tool call names an environment variable rather than carrying the secret, so the
+secret never enters a transcript. A code sent by SMS or e-mail is not arithmetic and
+is not attempted.
+
+**A CAPTCHA is a question for a person, and is left to one.** `tutorial_handoff`
+brings the recorder's own window to the front, states on screen what is needed, waits
+for the page to change, and cuts the wait out of the finished video. The window has
+to come to the person: on the run this was built for, the check was answered — in the
+user's own Chrome, in a different window, while the recorder waited for one nobody
+had looked at.

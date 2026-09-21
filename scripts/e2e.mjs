@@ -16,10 +16,18 @@ import { pathToFileURL } from 'node:url'
 
 import { loadConfig } from '../dist/lib/env.js'
 import { RecordingSession } from '../dist/lib/session.js'
-import { compose, narrationChain, verifyOutput } from '../dist/lib/compose.js'
+import {
+  AVATAR_SIZE,
+  avatarOverlayFilters,
+  compose,
+  narrationChain,
+  verifyOutput,
+} from '../dist/lib/compose.js'
 import { spotlight, ripple, instruct, instructionLayout } from '../dist/lib/emphasis.js'
 import { probeVideo, run } from '../dist/lib/ffmpeg.js'
 import { musicPrompt } from '../dist/lib/music-gen.js'
+import { launchBrowser } from '../dist/lib/browser.js'
+import { totp } from '../dist/lib/totp.js'
 
 const OUT_W = 1280
 const OUT_H = 720
@@ -285,6 +293,164 @@ async function twoBrowsers(config) {
     'each cut lands where the clock says it does',
     wrong.length === 0,
     wrong.length ? wrong.join('; ') : `${moments.length} moments checked, 0.2s either side`,
+  )
+}
+
+/**
+ * The avatar bubble: on screen while the line plays, gone either side of it, and
+ * never over the rest of the picture.
+ *
+ * Rendered from a stand-in clip rather than from HeyGen. What is under test is the
+ * compositing - where the bubble sits, when it appears, what it leaves alone - and
+ * that must not depend on an API key, on credit, or on the network.
+ */
+async function avatarBubble(config) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'e2e-avatar-'))
+  const base = path.join(dir, 'base.mp4')
+  const clip = path.join(dir, 'clip.mp4')
+
+  await run(config.ffmpegPath, [
+    '-hide_banner', '-loglevel', 'error', '-y',
+    '-f', 'lavfi', '-i', `color=c=0x303030:s=${OUT_W}x${OUT_H}:r=25:d=6`,
+    '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p', base,
+  ])
+  await run(config.ffmpegPath, [
+    '-hide_banner', '-loglevel', 'error', '-y',
+    '-f', 'lavfi', '-i', 'color=c=white:s=720x720:r=25:d=2',
+    '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p', clip,
+  ])
+
+  const result = await compose(config, {
+    rawVideo: base,
+    cues: [],
+    outputDir: dir,
+    music: null,
+    musicGainDb: 0,
+    subtitles: false,
+    outputWidth: OUT_W,
+    outputHeight: OUT_H,
+    avatarClips: [{ file: clip, atMs: 2000, durationMs: 2000 }],
+  })
+
+  // Where the default bubble lands: 18% of the width across, 2.5% in from the corner.
+  const diameter = Math.round((OUT_W * AVATAR_SIZE) / 2) * 2
+  const margin = Math.round(OUT_W * 0.025)
+  const corner = `${diameter}:${diameter}:${OUT_W - diameter - margin}:${OUT_H - diameter - margin}`
+  const elsewhere = `${OUT_W / 2}:${OUT_H}:0:0`
+
+  // Sampled with `trim`, not with `-ss`. An output seek discards its frames only
+  // after the filter chain has run, so `signalstats` would report the frame at zero
+  // however late the moment asked for - which it duly did, and passed a render with
+  // no bubble in it at all.
+  const lumaOf = async (seconds, crop) => {
+    const { stderr } = await run(config.ffmpegPath, [
+      '-hide_banner', '-nostats', '-i', result.outputFile,
+      '-vf', `trim=start=${seconds.toFixed(3)},crop=${crop},signalstats,` +
+        'metadata=print:key=lavfi.signalstats.YAVG',
+      '-frames:v', '1', '-f', 'null', '-',
+    ])
+    return Number(stderr.match(/YAVG=([0-9.]+)/)?.[1] ?? NaN)
+  }
+
+  const [before, during, after, besideIt] = await Promise.all([
+    lumaOf(1.0, corner),
+    lumaOf(3.0, corner),
+    lumaOf(5.0, corner),
+    lumaOf(3.0, elsewhere),
+  ])
+
+  check('avatar bubble is absent before the line', before < 60, `corner luma ${before.toFixed(1)}`)
+  check('avatar bubble is on screen while the line plays', during > 100, `corner luma ${during.toFixed(1)}`)
+  check('avatar bubble is gone after the line', after < 60, `corner luma ${after.toFixed(1)}`)
+  check(
+    'the rest of the picture is untouched by the bubble',
+    Math.abs(besideIt - before) < 2,
+    `${besideIt.toFixed(1)} vs ${before.toFixed(1)}`,
+  )
+  check('the render counts its bubbles', result.avatarCount === 1, `${result.avatarCount}`)
+
+  // The corner is a choice, and the maths that places it has no picture to check it by.
+  const [topLeftClip, topLeftOverlay] = avatarOverlayFilters(
+    [{ file: clip, atMs: 4000, durationMs: 1500 }],
+    {
+      firstInput: 2,
+      outputWidth: OUT_W,
+      corner: 'top-left',
+      size: AVATAR_SIZE,
+      fps: 25,
+      inLabel: 'picture',
+      outLabel: 'vout',
+    },
+  )
+  check(
+    'a top-left bubble is placed against the top-left corner',
+    topLeftOverlay.includes(`x=${margin}:y=${margin}`) && topLeftOverlay.endsWith('[vout]'),
+    topLeftOverlay.slice(topLeftOverlay.indexOf('overlay=')),
+  )
+  check(
+    'a bubble starts where its line starts and lasts as long',
+    topLeftClip.includes('setpts=PTS+4.000/TB') && topLeftClip.includes('trim=0:1.500'),
+    '4.0s for 1.5s',
+  )
+
+  fs.rmSync(dir, { recursive: true, force: true })
+}
+
+/**
+ * What a bot check reads, and the two-factor codes typed into one.
+ *
+ * Both are things that silently stop working: a Playwright release that puts the
+ * automation flag back, or an off-by-one in the counter that only shows up as a
+ * rejected code. Neither is visible in a finished video, so they are asserted here.
+ */
+async function botAndTwoFactor(config) {
+  const launched = await launchBrowser(config, {
+    profile: 'e2e-bot-check',
+    fresh: true,
+    width: 800,
+    height: 600,
+    headless: true,
+  })
+  try {
+    const seen = await launched.page.evaluate(() => ({
+      userAgent: navigator.userAgent,
+      webdriver: navigator.webdriver,
+      hasChrome: Boolean(window.chrome),
+      languages: navigator.languages.join(','),
+    }))
+    check(
+      'the browser does not announce itself as headless',
+      !/headless/i.test(seen.userAgent),
+      seen.userAgent.replace(/^Mozilla\/5\.0 /, '').slice(0, 70),
+    )
+    check('navigator.webdriver is not set', !seen.webdriver, String(seen.webdriver))
+    check('window.chrome is there, as in a browser a person drives', seen.hasChrome)
+    check('the page reports real languages', seen.languages.length > 0, seen.languages)
+  } finally {
+    await launched.context.close().catch(() => {})
+    if (launched.disposableDir) fs.rmSync(launched.disposableDir, { recursive: true, force: true })
+  }
+
+  // RFC 6238's own test vectors: SHA-1, the ASCII secret "12345678901234567890".
+  const secret = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ'
+  const vectors = [
+    [59_000, '94287082'],
+    [1_111_111_109_000, '07081804'],
+    [1_234_567_890_000, '89005924'],
+    [2_000_000_000_000, '69279037'],
+  ]
+  const wrong = vectors.filter(
+    ([atMs, expected]) => totp(secret, { atMs, digits: 8 }) !== expected,
+  )
+  check(
+    'two-factor codes match the standard test vectors',
+    wrong.length === 0,
+    wrong.length ? `${wrong.length} of ${vectors.length} wrong` : `${vectors.length} vectors`,
+  )
+  check(
+    'a six-digit code is six digits',
+    /^\d{6}$/.test(totp(secret, { atMs: 1_234_567_890_000 })),
+    totp(secret, { atMs: 1_234_567_890_000 }),
   )
 }
 
@@ -639,6 +805,8 @@ async function main() {
   )
 
   await twoBrowsers(config)
+  await avatarBubble(config)
+  await botAndTwoFactor(config)
 
   const failed = results.filter(r => !r.ok)
   process.stdout.write(`\n${results.length - failed.length}/${results.length} checks passed\n`)

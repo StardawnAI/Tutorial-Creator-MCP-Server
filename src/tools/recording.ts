@@ -10,8 +10,15 @@ import { pathToFileURL } from 'node:url'
 import { listMusicTracks, resolveMusicTrack, type Config } from '../lib/env.js'
 import { RecordingSession, getSession, requireSession, setSession } from '../lib/session.js'
 import { synthesise, estimateSpokenMs, listVoices } from '../lib/tts.js'
-import { compose, verifyOutput } from '../lib/compose.js'
+import { compose, verifyOutput, AVATAR_CORNER, AVATAR_SIZE } from '../lib/compose.js'
 import { canGenerateMusic, generateMusic } from '../lib/music-gen.js'
+import {
+  canRenderAvatar,
+  listLooks,
+  remainingBalance,
+  renderAvatarClips,
+  resolveLook,
+} from '../lib/avatar.js'
 import { log } from '../lib/logger.js'
 
 /**
@@ -109,6 +116,26 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
               'Lyria): written to its length, serious and gently accompanying, different ' +
               'every time. The default track is used if composing fails.',
           ),
+        avatar: z
+          .string()
+          .optional()
+          .describe(
+            'Show a person saying the narration, as a round bubble in the corner (HeyGen). ' +
+              'Takes an avatar look id, the group id out of the HeyGen app URL, or part of a ' +
+              "look's name - list them with tutorial_avatars. The voice stays the same: the " +
+              'avatar is lip-synced to the narration this recording renders. The clips are ' +
+              'made after the recording, so they cost no recording time.',
+          ),
+        avatarCorner: z
+          .enum(['bottom-right', 'bottom-left', 'top-right', 'top-left'])
+          .default(AVATAR_CORNER)
+          .describe('Which corner the avatar bubble sits in.'),
+        avatarSize: z
+          .number()
+          .min(0.08)
+          .max(0.35)
+          .default(AVATAR_SIZE)
+          .describe('Bubble diameter as a fraction of the video width.'),
         showActions: z
           .boolean()
           .default(true)
@@ -168,6 +195,34 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
         }
       }
 
+      /**
+       * The look is resolved before anything is recorded. Finding out that a name
+       * is unknown, or that the account cannot pay for a render, is worth knowing
+       * now rather than after a tutorial has been talked through.
+       */
+      let avatarLook: { id: string; name: string } | null = null
+      const avatarNotes: string[] = []
+      if (args.avatar) {
+        if (!canRenderAvatar(config)) {
+          return failure(
+            'An avatar needs a HeyGen API key. Set HEYGEN_API_KEY in the server environment.',
+          )
+        }
+        try {
+          const look = await resolveLook(config, args.avatar)
+          avatarLook = { id: look.id, name: look.name }
+          const balance = await remainingBalance(config)
+          if (balance !== null && balance <= 0) {
+            avatarNotes.push(
+              'the HeyGen account has no credit left, so the bubbles will be missing from the ' +
+                'finished video unless it is topped up before it is rendered',
+            )
+          }
+        } catch (err) {
+          return failure((err as Error).message)
+        }
+      }
+
       try {
         const session = await RecordingSession.start(config, {
           title: args.title,
@@ -183,6 +238,9 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           modelId: config.defaultModelId,
           music,
           generateMusic: generate,
+          avatarLook,
+          avatarCorner: args.avatarCorner,
+          avatarSize: args.avatarSize,
           musicGainDb: 0,
           showActions: args.showActions,
           // The raw capture is an intermediate, and a camera move enlarges whatever
@@ -207,6 +265,7 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
         if (args.music !== false && !music) {
           warnings.push('No background music file was found in assets/music.')
         }
+        warnings.push(...avatarNotes)
 
         return text(
           [
@@ -220,6 +279,9 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
               : music
                 ? `Music: ${path.basename(music).replace(/\.[^.]+$/, '')}`
                 : 'No background music.',
+            ...(avatarLook
+              ? [`Avatar: "${avatarLook.name}", ${args.avatarCorner}, rendered when finished.`]
+              : []),
             `Output folder: ${session.outputDir}`,
             ...warnings.map(w => `Note: ${w}`),
           ].join('\n'),
@@ -405,6 +467,41 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           }
         }
 
+        /**
+         * The avatar is rendered now, from the narration the recording already
+         * spoke: one clip per line, lip-synced to that exact audio. A line whose
+         * clip fails simply has no bubble - the video is still delivered.
+         */
+        let avatarClips: Awaited<ReturnType<typeof renderAvatarClips>>['clips'] = []
+        let avatarNote: string | null = null
+        if (session.options.avatarLook) {
+          const spoken = session.cues.filter(c => c.audioFile)
+          try {
+            const look = await resolveLook(config, session.options.avatarLook.id)
+            const rendered = await renderAvatarClips(
+              config,
+              spoken.map(c => ({
+                audioFile: c.audioFile as string,
+                atMs: c.atMs,
+                durationMs: c.durationMs,
+                text: c.text,
+              })),
+              { look, outDir: path.join(session.outputDir, 'avatar') },
+            )
+            avatarClips = rendered.clips
+            avatarNote =
+              rendered.clips.length > 0
+                ? `Avatar "${look.name}" speaks ${rendered.clips.length} of ${spoken.length} lines.`
+                : `No avatar clip could be rendered: ${rendered.failures[0] ?? 'unknown reason'}`
+            if (rendered.clips.length > 0 && rendered.failures.length > 0) {
+              avatarNote += ` ${rendered.failures.length} line(s) failed: ${rendered.failures[0]}`
+            }
+          } catch (err) {
+            avatarNote = `The avatar could not be rendered, so the video has none: ${(err as Error).message}`
+            log.warn(avatarNote)
+          }
+        }
+
         const result = await compose(config, {
           rawVideo: segments,
           cues: session.cues,
@@ -415,6 +512,9 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           music,
           musicGainDb: args.musicGainDb,
           subtitles: args.subtitles,
+          avatarClips,
+          avatarCorner: session.options.avatarCorner,
+          avatarSize: session.options.avatarSize,
         })
 
         const check = await verifyOutput(config, result.outputFile)
@@ -425,10 +525,12 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           `File: ${result.outputFile}`,
           `${result.durationSec.toFixed(1)}s, ${result.width}x${result.height}, ` +
             `${result.cueCount} narration lines, audio ${result.hasAudio ? 'mixed' : 'absent'}` +
-            `${result.zoomCount > 0 ? `, ${result.zoomCount} camera moves` : ''}.`,
+            `${result.zoomCount > 0 ? `, ${result.zoomCount} camera moves` : ''}` +
+            `${result.avatarCount > 0 ? `, ${result.avatarCount} avatar bubbles` : ''}.`,
           `Recorded ${(videoMs / 1000).toFixed(1)}s across ${session.frameCount} frames` +
             (segments.length > 1 ? `, joined from ${segments.length} segments.` : '.'),
           ...(musicNote ? [musicNote] : []),
+          ...(avatarNote ? [avatarNote] : []),
         ]
         if (!check.ok) {
           lines.push('', 'Warning - the finished video looks wrong:')
@@ -494,6 +596,50 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           `  folder:    ${s.outputDir}`,
         ].join('\n'),
       )
+    },
+  )
+
+  server.registerTool(
+    'tutorial_avatars',
+    {
+      title: 'List avatar looks',
+      description:
+        'Lists the HeyGen avatar looks this account can use, so one can be named in ' +
+        'tutorial_start. Each look is one outfit and setting of an avatar.',
+      inputSchema: {
+        search: z.string().optional().describe('Part of a name, e.g. "grey blazer".'),
+        group: z
+          .string()
+          .optional()
+          .describe('Only the looks of one avatar group - the id in the HeyGen app URL.'),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    async args => {
+      if (!canRenderAvatar(config)) {
+        return failure('No HEYGEN_API_KEY is set, so no avatar looks can be listed.')
+      }
+      try {
+        const looks = await listLooks(config, { search: args.search, groupId: args.group })
+        if (looks.length === 0) return text('No avatar look matched.')
+
+        const balance = await remainingBalance(config)
+        return text(
+          [
+            ...looks.map(l => `${l.name}  [${l.id}]\n  ${l.type}, group ${l.groupId ?? 'none'}`),
+            '',
+            balance === null
+              ? ''
+              : balance > 0
+                ? `Account balance: ${balance}.`
+                : 'Account balance: 0 - HeyGen will refuse to render until it is topped up.',
+          ]
+            .filter(Boolean)
+            .join('\n'),
+        )
+      } catch (err) {
+        return failure((err as Error).message)
+      }
     },
   )
 

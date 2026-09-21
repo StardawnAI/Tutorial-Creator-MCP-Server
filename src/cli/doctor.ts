@@ -8,6 +8,7 @@ import fs from 'node:fs'
 import { loadConfig } from '../lib/env.js'
 import { probeDuration, run } from '../lib/ffmpeg.js'
 import { listVoices, looksLikeApiKey } from '../lib/tts.js'
+import { remainingBalance } from '../lib/avatar.js'
 
 const TICK = '  ok  '
 const CROSS = ' FAIL '
@@ -98,6 +99,30 @@ async function main(): Promise<void> {
       'Set ELEVENLABS_API_KEY to get spoken narration. Without it, recordings are still ' +
         'paced correctly and subtitles are written, but there is no voice.',
     )
+  }
+
+  // HeyGen, for the avatar that speaks the narration. Optional, but a key with an
+  // empty account renders nothing, and that is worth knowing before a recording.
+  if (config.heygenApiKey) {
+    try {
+      const balance = await remainingBalance(config)
+      if (balance === null) {
+        lines.push(`[${TICK}] avatar    HeyGen key works`)
+      } else if (balance > 0) {
+        lines.push(`[${TICK}] avatar    HeyGen key works, balance ${balance}`)
+      } else {
+        lines.push(`[${WARN}] avatar    HeyGen key works but the account has no credit`)
+        warnings.push(
+          'HeyGen will refuse to render an avatar until the account is topped up. Everything ' +
+            'else about a recording is unaffected - it simply has no bubble.',
+        )
+      }
+    } catch (err) {
+      lines.push(`[${WARN}] avatar    HeyGen key rejected`)
+      warnings.push(`No avatar will be rendered: ${(err as Error).message}`)
+    }
+  } else {
+    lines.push(`[${WARN}] avatar    no HEYGEN_API_KEY - recordings have no avatar`)
   }
 
   // Music

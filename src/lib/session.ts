@@ -30,6 +30,7 @@ import type { BrowserContext, Page } from 'playwright-core'
 import type { Config } from './env.js'
 import { slugify } from './env.js'
 import { launchBrowser } from './browser.js'
+import type { AvatarCorner } from './compose.js'
 import { Recorder } from './recorder.js'
 import { boxContains, zoomForBox, MIN_USEFUL_ZOOM, type ZoomEvent } from './zoom.js'
 import { log } from './logger.js'
@@ -72,6 +73,10 @@ export interface SessionOptions {
   music: string | null
   /** Compose music for this video when it is finished; `music` is the fallback. */
   generateMusic?: boolean
+  /** HeyGen look that speaks the narration, shown as a bubble, or null for none. */
+  avatarLook?: { id: string; name: string } | null
+  avatarCorner?: AvatarCorner
+  avatarSize?: number
   musicGainDb: number
   showActions: boolean
   quality: number

@@ -26,6 +26,8 @@ export interface Paths {
   assets: string
   /** Cache for rendered narration audio. */
   ttsCache: string
+  /** Cache for rendered avatar clips, keyed by the audio they speak. */
+  avatarCache: string
 }
 
 export interface Config {
@@ -43,6 +45,8 @@ export interface Config {
   geminiApiKey: string | null
   /** ... or an OAuth client plus the refresh token granted to it once. */
   googleOAuth: { clientFile: string; refreshToken: string } | null
+  /** HeyGen, for an avatar that speaks the narration. */
+  heygenApiKey: string | null
 }
 
 /**
@@ -197,6 +201,7 @@ export function loadConfig(): Config {
     recordings: path.join(home, 'recordings'),
     assets,
     ttsCache: path.join(home, 'tmp', 'tts-cache'),
+    avatarCache: path.join(home, 'tmp', 'avatar-cache'),
   }
 
   for (const dir of Object.values(paths)) {
@@ -223,6 +228,7 @@ export function loadConfig(): Config {
             refreshToken: process.env.GOOGLE_OAUTH_REFRESH_TOKEN,
           }
         : null,
+    heygenApiKey: process.env.HEYGEN_API_KEY ?? null,
   }
   return cached
 }
@@ -253,6 +259,16 @@ export function requireElevenLabsKey(config: Config): string {
     )
   }
   return config.elevenLabsApiKey
+}
+
+export function requireHeyGenKey(config: Config): string {
+  if (!config.heygenApiKey) {
+    throw new Error(
+      'No HeyGen API key. Set HEYGEN_API_KEY in the MCP server environment to have an avatar ' +
+        'speak the narration.',
+    )
+  }
+  return config.heygenApiKey
 }
 
 /** Turn a title into a filesystem-safe slug used for the output folder name. */

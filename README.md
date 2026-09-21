@@ -147,18 +147,20 @@ finished video.
 | `tutorial_chapter` | Title card over a blurred backdrop |
 | `tutorial_goto` | Navigate |
 | `tutorial_click` | Click, after ringing the target and moving the camera to it; `optional` for prompts that only sometimes appear |
-| `tutorial_type` | Type into a field; mark `sensitive` for codes and passwords |
+| `tutorial_type` | Type into a field; mark `sensitive` for codes and passwords, `totpFrom` for a two-factor code |
 | `tutorial_press` | Press a key |
 | `tutorial_scroll` | Scroll smoothly, or bring an element into view |
 | `tutorial_highlight` | Ring an element and move in on it, without clicking |
 | `tutorial_zoom` | Move the camera to a region, or back out to the full page |
 | `tutorial_wait` | Hold, optionally until an element appears; `cut` leaves the wait out of the video |
+| `tutorial_handoff` | Hand over to a person for one step - window to the front, instruction on screen, wait cut out |
 | `tutorial_snapshot` | Read the page as an accessibility tree |
 | `tutorial_screenshot` | Look at the page |
 | `tutorial_finish` | Stop, mix, render, return the mp4 |
 | `tutorial_cancel` | Discard the recording |
 | `tutorial_status` | What is being recorded right now |
 | `tutorial_voices` | List available narration voices |
+| `tutorial_avatars` | List the HeyGen avatar looks that can speak the narration |
 | `tutorial_import_session` | Copy a signed-in session in from the browser you already use |
 | `tutorial_profiles` | List recording profiles and whether they hold a session |
 
@@ -198,6 +200,59 @@ It needs Google access in `.env`: either `GEMINI_API_KEY`, or
 `generative-language.retriever` scopes. The project behind the client needs the
 Generative Language API enabled.
 
+### An avatar who speaks the narration
+
+`tutorial_start` with `avatar: "Professional in grey blazer"` puts a person in the
+corner of the video saying the lines, as a round bubble that appears while each line
+plays and fades out after it. `avatarCorner` and `avatarSize` place and size it.
+
+The voice does not change. The narration is rendered by ElevenLabs as it always was,
+and HeyGen lip-syncs the chosen look **to that audio** — so the mix, the levels and
+the ducking are untouched, and a recording made without an avatar sounds identical to
+one made with it. The clips are rendered after the recording, never during it, so
+they cost no recording time; each one is cached under the audio it speaks, so a
+re-render costs nothing at HeyGen.
+
+`avatar` accepts three things, all of which a person actually has to hand: a look id,
+the group id out of the HeyGen app URL (`app.heygen.com/avatar/my-avatars/<id>`), or
+part of a look's name. `tutorial_avatars` lists what the account has. An unknown name
+and a missing key both fail at `tutorial_start`, before anything is recorded.
+
+It needs `HEYGEN_API_KEY` in `.env` and credit on that HeyGen account — a wallet at
+zero is refused with `insufficient_credit`, and the video is then delivered with
+voice and music but no bubble.
+
+`scripts/recompose.mjs <folder> --avatar <look>` adds one to a recording that is
+already finished.
+
+### Sign-ins that fight back
+
+Recording a real app usually means getting past a login that is defended. What works,
+in the order to reach for it:
+
+1. **Do not sign in on camera at all.** `tutorial_import_session` copies the session
+   out of the browser you already use, so the recording starts signed in. No password,
+   no security check, nothing to detect. Use this unless the sign-in itself is the
+   thing being demonstrated.
+2. **Do not look like a robot.** The browser is launched without Chrome's automation
+   flag and without the `AutomationControlled` feature, `navigator.webdriver` reports
+   what a normal browser reports, and a headless browser's user agent no longer says
+   "HeadlessChrome". Typing is character by character with a delay. This raises the
+   threshold; it is not a cloak. For a site known to be hostile, record with
+   `headless: false` — a visible browser passes checks a hidden one does not.
+3. **Two-factor by authenticator app is solved.** `tutorial_type` with
+   `totpFrom: "SOME_SECRET_ENV_VAR"` computes the current six digits from the shared
+   secret and types them. Give the **name** of an environment variable, never the
+   secret itself, so it stays out of the conversation and the logs. A code that is
+   about to expire is not used; the next one is waited for. Codes sent by SMS or
+   e-mail cannot be read by anything here.
+4. **A CAPTCHA needs a person, and that is by design.** `tutorial_handoff` brings the
+   recorder's own window to the front, puts the instruction across the top of the
+   page, waits for the page to change, and leaves the whole wait out of the finished
+   video. It requires `headless: false`, because otherwise there is no window for
+   anyone to act in. This is the tool for "I'm not a robot", for approving a login on
+   a phone, and for a code that arrived by SMS.
+
 ### Keeping secrets out of the video
 
 The recorder captions each action on screen, including typed values — a
@@ -211,6 +266,7 @@ All optional; sensible defaults apply.
 | Variable | Meaning |
 |---|---|
 | `ELEVENLABS_API_KEY` | Enables spoken narration |
+| `HEYGEN_API_KEY` | Enables the avatar that speaks the narration |
 | `TUTORIAL_MCP_MUSIC` | Default music track - a path, or part of a title |
 | `TUTORIAL_MCP_VOICE_ID` | Default narration voice |
 | `TUTORIAL_MCP_MODEL_ID` | Default TTS model (`eleven_multilingual_v2`) |

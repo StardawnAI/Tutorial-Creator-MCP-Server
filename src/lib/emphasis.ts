@@ -215,6 +215,58 @@ export async function instruct(
 }
 
 /**
+ * A band across the top of the page saying what the person watching has to do.
+ *
+ * The one thing here that is put into the page rather than into the screencast's
+ * overlay layer, and deliberately. Everything else is decoration for the viewer of
+ * the finished video; this is for the person sitting at the machine, who has to see
+ * it in the window in front of them - and nobody has proved that the capture overlay
+ * is painted on screen as well as into the file.
+ *
+ * It is fixed, it ignores the mouse, and it is taken out again the moment the person
+ * is done, so the app it sits over is not affected. It also never reaches the video:
+ * a handoff happens off camera.
+ */
+const HANDOFF_ID = 'tutorial-handoff-banner'
+
+export async function showHandoffBanner(page: Page, instruction: string): Promise<void> {
+  await page
+    .evaluate(
+      ([id, message]) => {
+        document.getElementById(id as string)?.remove()
+        const banner = document.createElement('div')
+        banner.id = id as string
+        banner.textContent = message as string
+        banner.style.cssText = [
+          'position:fixed',
+          'left:0',
+          'right:0',
+          'top:0',
+          'z-index:2147483647',
+          'pointer-events:none',
+          'padding:14px 20px',
+          'font:600 17px/1.4 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif',
+          'color:#0b1220',
+          'background:#fbbf24',
+          'box-shadow:0 6px 20px rgba(0,0,0,.35)',
+          'text-align:center',
+        ].join(';')
+        document.documentElement.appendChild(banner)
+      },
+      [HANDOFF_ID, instruction],
+    )
+    .catch(err => log.warn('Could not show the handoff banner', err))
+}
+
+export async function clearHandoffBanner(page: Page): Promise<void> {
+  await page
+    .evaluate(id => document.getElementById(id)?.remove(), HANDOFF_ID)
+    .catch(() => {
+      // The page may have navigated away, which removes it anyway.
+    })
+}
+
+/**
  * A pulse at the point of contact, shown as the click lands.
  *
  * Playwright's own cursor decoration moves the pointer to the target but gives no

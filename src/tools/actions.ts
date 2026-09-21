@@ -10,7 +10,16 @@ import { z } from 'zod'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { Locator, Page } from 'playwright-core'
 import { requireSession, type RecordingSession } from '../lib/session.js'
-import { instruct, ripple, spotlight, type Box } from '../lib/emphasis.js'
+import {
+  clearHandoffBanner,
+  instruct,
+  ripple,
+  showHandoffBanner,
+  spotlight,
+  type Box,
+} from '../lib/emphasis.js'
+import { raiseWindow } from '../lib/foreground.js'
+import { currentCode } from '../lib/totp.js'
 import { log } from '../lib/logger.js'
 
 function text(body: string) {
@@ -273,10 +282,19 @@ export function registerActionTools(server: McpServer): void {
       description:
         'Types text into a field, character by character so it reads naturally on video. ' +
         'Set sensitive when entering codes, passwords or personal data: the on-screen action ' +
-        'caption is suppressed so the value is not spelled out in the recording.',
+        'caption is suppressed so the value is not spelled out in the recording. ' +
+        'For a two-factor field, use totpFrom instead of value.',
       inputSchema: {
         ...TARGET_SHAPE,
-        value: z.string().describe('What to type.'),
+        value: z.string().optional().describe('What to type. Omit it when using totpFrom.'),
+        totpFrom: z
+          .string()
+          .optional()
+          .describe(
+            'Type the current six-digit two-factor code instead of `value`. Give the NAME of ' +
+              'the environment variable holding the authenticator secret, e.g. ' +
+              '"INSTAGRAM_TOTP_SECRET" - never the secret itself. Always treated as sensitive.',
+          ),
         instruction: z
           .string()
           .optional()
@@ -304,17 +322,26 @@ export function registerActionTools(server: McpServer): void {
       try {
         const session = requireSession()
         const page = session.page
+
+        // A two-factor code is computed here, from a secret this process reads out of
+        // its own environment - so it never appears in a tool call or a transcript.
+        const value = args.totpFrom ? await currentCode(args.totpFrom) : args.value
+        if (value === undefined) {
+          return failure('tutorial_type needs either a value or totpFrom.')
+        }
+        const sensitive = args.sensitive || Boolean(args.totpFrom)
+
         const locator = resolveTarget(page, args)
         await prepareTarget(session, locator, args.instruction)
 
         // The action caption prints the typed value, which would put a verification
         // code or password on screen. Turn decorations off around sensitive input.
-        const hideDecorations = args.sensitive && session.options.showActions
+        const hideDecorations = sensitive && session.options.showActions
         if (hideDecorations) await page.screencast.hideActions().catch(() => {})
 
         try {
           if (args.clearFirst) await locator.fill('')
-          await locator.pressSequentially(args.value, { delay: args.delayMs, timeout: 30_000 })
+          await locator.pressSequentially(value, { delay: args.delayMs, timeout: 30_000 })
         } finally {
           if (hideDecorations) {
             await page.screencast
@@ -324,7 +351,11 @@ export function registerActionTools(server: McpServer): void {
         }
 
         await page.waitForTimeout(BEAT_MS)
-        const shown = args.sensitive ? `${args.value.length} characters` : `"${args.value}"`
+        const shown = args.totpFrom
+          ? 'the current two-factor code'
+          : sensitive
+            ? `${value.length} characters`
+            : `"${value}"`
         return text(`Typed ${shown} into ${describeTarget(args)}.`)
       } catch (err) {
         return failure(`Could not type into ${describeTarget(args)}: ${(err as Error).message}`)
@@ -479,6 +510,91 @@ export function registerActionTools(server: McpServer): void {
         return text(args.cut ? `${what}, left out of the video.` : `${what}.`)
       } catch (err) {
         return failure(`Wait failed: ${(err as Error).message}`)
+      }
+    },
+  )
+
+  server.registerTool(
+    'tutorial_handoff',
+    {
+      title: 'Hand over to a person',
+      description:
+        'Stops and waits for a person to do one thing in the recorder\'s own browser window - ' +
+        'answer a security check, approve a sign-in on a phone, type a code that arrived by ' +
+        'SMS. The window is brought to the front, the instruction is shown across the top of ' +
+        'the page, and the wait is left out of the finished video.\n\n' +
+        'The recording must have been started with headless: false, otherwise there is no ' +
+        'window for anyone to act in. For a code from an authenticator app use ' +
+        'tutorial_type with totpFrom instead - that needs nobody.',
+      inputSchema: {
+        ...TARGET_SHAPE,
+        instruction: z
+          .string()
+          .min(1)
+          .describe('What the person has to do, in one sentence. Shown in their window.'),
+        urlContains: z
+          .string()
+          .optional()
+          .describe('Instead of a target: carry on once the address contains this.'),
+        timeoutMs: z
+          .number()
+          .int()
+          .min(10_000)
+          .max(900_000)
+          .default(300_000)
+          .describe('How long to wait for the person. Five minutes by default.'),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
+    },
+    async args => {
+      let session
+      try {
+        session = requireSession()
+      } catch (err) {
+        return failure((err as Error).message)
+      }
+
+      if (session.options.headless) {
+        return failure(
+          'This recording is running headless, so there is no window for a person to act in. ' +
+            'Start the recording again with headless: false when a step needs somebody.',
+        )
+      }
+
+      const hasTarget = Boolean(args.selector || args.text || args.role)
+      if (!hasTarget && !args.urlContains) {
+        return failure('tutorial_handoff needs to know when to carry on: a target or urlContains.')
+      }
+
+      const page = session.page
+      const started = Date.now()
+      let raised = 'not attempted'
+      try {
+        await session.offCamera(async () => {
+          const title = await page.title().catch(() => '')
+          raised = await raiseWindow(title.slice(0, 30) || 'Chrome')
+          await showHandoffBanner(page, args.instruction)
+
+          const deadline = Date.now() + args.timeoutMs
+          for (;;) {
+            if (args.urlContains && page.url().includes(args.urlContains)) return
+            if (hasTarget && (await matchAll(page, args).count()) > 0) return
+            if (Date.now() > deadline) {
+              throw new Error(
+                `nobody completed it within ${Math.round(args.timeoutMs / 60_000)} minutes`,
+              )
+            }
+            await page.waitForTimeout(1000)
+          }
+        })
+        return text(
+          `Carried on after ${((Date.now() - started) / 1000).toFixed(0)}s (window ${raised}). ` +
+            'The wait is not in the video.',
+        )
+      } catch (err) {
+        return failure(`Handoff failed: ${(err as Error).message}`)
+      } finally {
+        await clearHandoffBanner(page).catch(() => {})
       }
     },
   )

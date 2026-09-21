@@ -205,6 +205,70 @@ hour long, and nothing after the security check was answered.
         consent for the Stardawn OAuth client before it can be heard
 - [ ] Record the InStar Instagram App Review video in full
 
+## M13 - An avatar speaks the narration (HeyGen)
+
+Asked for after seeing a photo avatar in the HeyGen app: the same tutorial, but with
+a person in the corner saying the lines, instead of a disembodied voice.
+
+- [x] `src/lib/avatar.ts` against the current HeyGen API (v3; v2 is retired
+      2026-10-31): upload the narration clip, render the look speaking it, poll,
+      download
+      -> verified: every endpoint exercised against the live account - upload
+        (`POST /v3/assets`) returns an asset id, looks resolve by id, by group id and
+        by name, and `POST /v3/videos` reaches the credit check, which it can only do
+        after the request schema has been accepted (an unknown field returns 400)
+- [x] The narration stays ElevenLabs. The avatar is lip-synced to the audio the
+      video already carries, so the voice, its level and the ducking are untouched
+- [x] Clips are cached by audio + look, so re-rendering a recording costs no credits
+- [x] `tutorial_start` takes `avatar`, `avatarCorner` and `avatarSize`; an unknown
+      look or a missing key fails at the start, not after the recording
+- [x] `tutorial_avatars` lists the looks on the account
+      -> verified: handshake lists 22 tools; the account's own group returns 9 looks
+- [x] Composition: round presenter bubble over the finished picture, faded in and
+      out per line, never touched by the camera moves
+      -> verified: the InStar recording re-rendered with four bubbles in 12 s; frames
+        at 7.5 s, 15 s and 41 s show the bubble present, absent, and unmagnified
+        while the camera is in
+- [x] `scripts/recompose.mjs --avatar <look>` puts an avatar on a finished recording
+      -> also fixed there: a recording whose folder has moved is found again by its
+        own files, which every recording made before this project was renamed needs
+- [x] Regression checks in `scripts/e2e.mjs`
+      -> verified: 48/48. The first version of the bubble check passed a render with
+        no bubble in it - an output `-ss` discards frames only after the filter chain
+        has run, so it measured the frame at zero every time
+- [!] Verified against the real API end to end
+      -> blocked: the HeyGen account (media@ke.nf) has a wallet balance of 0, so
+        every render is refused with `insufficient_credit`. Everything up to the
+        render is verified against the live API; the compositing is verified with
+        stand-in clips
+
+## M14 - Bot checks and two-factor
+
+The blocker on the InStar recording, and on every app worth filming: the sign-in is
+defended. Separated by what is actually solvable.
+
+- [x] Do not look like a robot: automation flags off, a real user agent, a profile
+      with history, human typing and mouse movement
+      -> verified: e2e asserts the user agent no longer says "HeadlessChrome",
+        `navigator.webdriver` is false as in a browser a person drives, and
+        `window.chrome` exists. Typing was already character by character
+- [x] Sign in once by hand, record forever: `tutorial_import_session` is the answer
+      whenever the login itself does not have to be on camera
+      -> already built (M7); now written down as the first thing to reach for
+- [x] Two-factor by TOTP app: compute the six digits from the shared secret and type
+      them, so an authenticator app is no obstacle
+      -> verified: `src/lib/totp.ts` reproduces all four RFC 6238 test vectors; the
+        secret is read from a named environment variable, never from a tool call
+- [x] A pause for a person: bring the window forward, say on screen what is needed,
+      wait for the page to change, and cut the wait out of the video
+      -> verified: `tutorial_handoff` raised a real headed window (the foreground
+        window afterwards was the recorder's) and showed and removed its banner.
+        A plain SetForegroundWindow is refused by Windows; a synthetic Alt press
+        first is the documented way round, and PowerShell needs the script in a
+        file - as one `-Command` argument the C# block loses a quote and dies
+- [x] Written down in the README: what this beats, and what it cannot
+- [ ] Record the InStar Instagram App Review video with the handoff tool
+
 ---
 
 ## Later

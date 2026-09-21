@@ -57,6 +57,58 @@ const KEEP_PAINTING = [
   '--mute-audio',
 ]
 
+/**
+ * Flags that stop the browser announcing that it is being driven.
+ *
+ * `--enable-automation`, which Playwright passes by default, puts "Chrome is being
+ * controlled by automated test software" in the window and sets the flag a page can
+ * read; `AutomationControlled` is the Blink feature behind `navigator.webdriver`.
+ *
+ * This raises the threshold; it does not make the browser undetectable, and nothing
+ * here defeats a CAPTCHA. Where a sign-in genuinely has to be on camera, expect to
+ * answer a security check by hand - see docs/ARCHITECTURE.md.
+ */
+const LOOK_LIKE_A_PERSON = [
+  '--disable-blink-features=AutomationControlled',
+  '--no-first-run',
+  '--no-default-browser-check',
+  '--disable-infobars',
+]
+
+/**
+ * The last automation traces a page can read from JavaScript.
+ *
+ * Kept to the ones that are true statements about a real browser rather than a pile
+ * of folklore: a Chrome that is not being driven has no `navigator.webdriver`, has a
+ * `window.chrome` object, and reports the languages it is actually running in.
+ */
+function disguiseScript(locale: string): string {
+  const languages = JSON.stringify([locale, locale.split('-')[0]])
+  return `
+    /* A browser a person drives reports false here, not undefined - claiming the
+       property does not exist at all is itself a tell. */
+    Object.defineProperty(navigator, 'webdriver', { get: () => false });
+    if (!window.chrome) window.chrome = { runtime: {} };
+    Object.defineProperty(navigator, 'languages', { get: () => ${languages} });
+  `
+}
+
+/**
+ * A headless browser says so in its user agent, which is the first thing a bot check
+ * looks at. The string is read back from the browser and the word replaced, so the
+ * version always matches the browser actually running.
+ */
+async function hideHeadlessUserAgent(page: Page): Promise<void> {
+  const userAgent = await page.evaluate(() => navigator.userAgent).catch(() => '')
+  if (!userAgent.includes('HeadlessChrome')) return
+  const cdp = await page.context().newCDPSession(page)
+  await cdp
+    .send('Network.setUserAgentOverride', {
+      userAgent: userAgent.replace('HeadlessChrome', 'Chrome'),
+    })
+    .catch(err => log.warn('Could not replace the headless user agent', err))
+}
+
 /** Refuse to touch the user's real Chrome profile - it would be locked and corrupted. */
 function assertNotRealChromeProfile(profileDir: string): void {
   const resolved = path.resolve(profileDir).toLowerCase()
@@ -108,15 +160,20 @@ export async function launchBrowser(
     deviceScaleFactor: options.deviceScaleFactor ?? 1,
     locale: options.locale,
     timezoneId: options.timezoneId,
-    args: KEEP_PAINTING,
+    args: [...KEEP_PAINTING, ...LOOK_LIKE_A_PERSON],
+    // Playwright adds this one itself; it is the banner that says "automated".
+    ignoreDefaultArgs: ['--enable-automation'],
   })
+  await context.addInitScript(disguiseScript(options.locale ?? 'en-US'))
 
   const page = context.pages()[0] ?? (await context.newPage())
   await installHeartbeat(page)
+  await hideHeadlessUserAgent(page)
 
   // Popups and target=_blank pages need the heartbeat too.
   context.on('page', newPage => {
     installHeartbeat(newPage).catch(err => log.warn('Heartbeat install failed', err))
+    hideHeadlessUserAgent(newPage).catch(err => log.warn('User-agent override failed', err))
   })
 
   return { context, page, profileDir, disposableDir }
