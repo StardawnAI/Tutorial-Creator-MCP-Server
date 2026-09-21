@@ -159,7 +159,7 @@ finished video.
 | `tutorial_finish` | Stop, mix, render, return the mp4 |
 | `tutorial_cancel` | Discard the recording |
 | `tutorial_status` | What is being recorded right now |
-| `tutorial_voices` | List available narration voices |
+| `tutorial_voices` | List available narration voices, from ElevenLabs or from HeyGen |
 | `tutorial_avatars` | List the HeyGen avatar looks that can speak the narration |
 | `tutorial_import_session` | Copy a signed-in session in from the browser you already use |
 | `tutorial_profiles` | List recording profiles and whether they hold a session |
@@ -203,15 +203,28 @@ Generative Language API enabled.
 ### An avatar who speaks the narration
 
 `tutorial_start` with `avatar: "Professional in grey blazer"` puts a person in the
-corner of the video saying the lines, as a round bubble that appears while each line
-plays and fades out after it. `avatarCorner` and `avatarSize` place and size it.
+corner of the video, as a round bubble. `avatarCorner` and `avatarSize` place and size
+it.
 
-The voice does not change. The narration is rendered by ElevenLabs as it always was,
-and HeyGen lip-syncs the chosen look **to that audio** — so the mix, the levels and
-the ducking are untouched, and a recording made without an avatar sounds identical to
-one made with it. The clips are rendered after the recording, never during it, so
-they cost no recording time; each one is cached under the audio it speaks, so a
+By default the avatar is **on screen for the whole video**: one short clip of the look
+saying nothing is rendered and looped under everything, and the clips of the spoken
+lines fade in over it at their own moments. `avatarPresence: "speaking"` shows the
+bubble only while a line is being said — which, on a tutorial with four lines in 68
+seconds, looks like a glitch rather than a presenter.
+
+The narration is a file this server holds, and the look is lip-synced **to that file**,
+so the mix, the levels and the ducking are untouched: a recording sounds identical
+with or without an avatar. The clips are rendered after the recording, never during
+it, so they cost no recording time; each one is cached under the audio it speaks, so a
 re-render costs nothing at HeyGen.
+
+**Which voice speaks** is a separate choice, `voiceSource`:
+
+- `elevenlabs` (default) — where the cloned voices are. `tutorial_voices` lists them.
+- `heygen` — HeyGen's own speech endpoint, with `voiceId` from
+  `tutorial_voices` with `source: "heygen"`. Both answer in about a second, which is
+  what matters: the recording waits out every line in real time, so the speech has to
+  be there immediately. The avatar render, which takes minutes, never is.
 
 `avatar` accepts three things, all of which a person actually has to hand: a look id,
 the group id out of the HeyGen app URL (`app.heygen.com/avatar/my-avatars/<id>`), or
@@ -220,7 +233,8 @@ and a missing key both fail at `tutorial_start`, before anything is recorded.
 
 It needs `HEYGEN_API_KEY` in `.env` and credit on that HeyGen account — a wallet at
 zero is refused with `insufficient_credit`, and the video is then delivered with
-voice and music but no bubble.
+voice and music but no bubble. That applies to HeyGen's speech endpoint as well, so
+`voiceSource: "heygen"` needs credit where ElevenLabs needs only its own key.
 
 `scripts/recompose.mjs <folder> --avatar <look>` adds one to a recording that is
 already finished.

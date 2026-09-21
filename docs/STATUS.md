@@ -45,6 +45,33 @@ look's own preview still: the InStar video re-rendered with four bubbles in 12 s
 `tutorial_start` therefore resolves the look and checks the balance *before* anything
 is recorded, and a failed clip leaves its bubble out rather than losing the video.
 
+### Changed the same day: the bubble stays, and the voice is a choice
+
+Two questions after the first preview, both fair.
+
+**"The bubble is only there for a few seconds - was that deliberate?"** It was, and it
+was wrong. Four lines in 68 seconds meant the avatar appeared four times and was
+absent the rest of the video, which reads as a fault rather than as a presenter. Now
+one clip of the look saying nothing is rendered per recording and looped under the
+whole video, with the spoken clips fading in over it - the change from listening to
+speaking is a dissolve. `avatarPresence: "speaking"` keeps the old behaviour.
+
+There is no "idle avatar" endpoint; the clip is rendered from silence, which this
+ffmpeg has to write as WAV because the build has no libmp3lame.
+
+**"The avatar has a voice at HeyGen - what do we need ElevenLabs for?"** A fair
+question, and the honest answer turned out to be "for two of three reasons":
+
+- HeyGen does have an audio-only speech endpoint (`POST /v3/voices/speech`), and it is
+  fast enough for the recording loop, so it is now an option: `voiceSource: "heygen"`.
+  What could never be in that loop is the avatar render, which takes minutes while the
+  recording waits out each line in real time.
+- It is not free of the credit problem: that endpoint is refused with
+  `insufficient_credit` exactly as the video one is, while ElevenLabs works today.
+- The cloned voices are at ElevenLabs. HeyGen's speech endpoint only accepts voices on
+  its "starfish" engine, and none of this account's own voices are among them - 2000
+  were listed and checked, no "JIM", no "KENF".
+
 ### Built: bot checks and two-factor (M14)
 
 Separated by what is actually solvable, because they are four different problems:

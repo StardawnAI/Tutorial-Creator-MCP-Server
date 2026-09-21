@@ -69,12 +69,19 @@ export interface SessionOptions {
   deviceScaleFactor: number
   voiceId: string
   modelId: string
+  /** Who speaks the narration: ElevenLabs, or HeyGen's own speech endpoint. */
+  voiceSource?: 'elevenlabs' | 'heygen'
   /** Background music file, or null for none. */
   music: string | null
   /** Compose music for this video when it is finished; `music` is the fallback. */
   generateMusic?: boolean
   /** HeyGen look that speaks the narration, shown as a bubble, or null for none. */
   avatarLook?: { id: string; name: string } | null
+  /**
+   * `always` keeps the bubble on screen for the whole video, with the avatar idling
+   * between lines; `speaking` shows it only while a line is being said.
+   */
+  avatarPresence?: 'always' | 'speaking'
   avatarCorner?: AvatarCorner
   avatarSize?: number
   musicGainDb: number

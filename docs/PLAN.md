@@ -232,6 +232,15 @@ a person in the corner saying the lines, instead of a disembodied voice.
 - [x] `scripts/recompose.mjs --avatar <look>` puts an avatar on a finished recording
       -> also fixed there: a recording whose folder has moved is found again by its
         own files, which every recording made before this project was renamed needs
+- [x] The avatar stays on screen between the lines, idling, instead of appearing for
+      a few seconds per line
+      -> verified: e2e asserts the corner is occupied before, during and after a line,
+        and that the spoken clip takes the bubble over while it plays
+- [x] The narration voice is a choice: ElevenLabs, or HeyGen's own speech endpoint
+      -> verified against the live API: `POST /v3/voices/speech` accepts the request
+        (an unknown field returns 400, the real one 402 for credit). Its voices are
+        limited to the "starfish" engine, and none of this account's cloned voices
+        are among the 2000 listed - so ElevenLabs remains where Jim's own voice is
 - [x] Regression checks in `scripts/e2e.mjs`
       -> verified: 48/48. The first version of the bubble check passed a render with
         no bubble in it - an output `-ss` discards frames only after the filter chain

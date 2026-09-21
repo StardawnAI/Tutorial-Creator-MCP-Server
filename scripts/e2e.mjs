@@ -393,6 +393,62 @@ async function avatarBubble(config) {
     '4.0s for 1.5s',
   )
 
+  /**
+   * With an idle clip the bubble never goes away: the avatar is on screen between the
+   * lines too, and the spoken clip takes its place while a line plays. The first
+   * version had no idle layer, and on a real video the bubble appeared four times for
+   * a couple of seconds each and was gone the rest of the time.
+   */
+  const idle = path.join(dir, 'idle.mp4')
+  await run(config.ffmpegPath, [
+    '-hide_banner', '-loglevel', 'error', '-y',
+    '-f', 'lavfi', '-i', 'color=c=red:s=720x720:r=25:d=2',
+    '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p', idle,
+  ])
+  const withIdle = await compose(config, {
+    rawVideo: base,
+    cues: [],
+    outputDir: dir,
+    music: null,
+    musicGainDb: 0,
+    subtitles: false,
+    outputName: 'with-idle.mp4',
+    outputWidth: OUT_W,
+    outputHeight: OUT_H,
+    avatarClips: [{ file: clip, atMs: 2000, durationMs: 2000 }],
+    avatarIdle: idle,
+  })
+
+  const lumaIn = async (file, seconds, crop) => {
+    const { stderr } = await run(config.ffmpegPath, [
+      '-hide_banner', '-nostats', '-i', file,
+      '-vf', `trim=start=${seconds.toFixed(3)},crop=${crop},signalstats,` +
+        'metadata=print:key=lavfi.signalstats.YAVG',
+      '-frames:v', '1', '-f', 'null', '-',
+    ])
+    return Number(stderr.match(/YAVG=([0-9.]+)/)?.[1] ?? NaN)
+  }
+  const [idleBefore, speakingNow, idleAfter] = await Promise.all([
+    lumaIn(withIdle.outputFile, 1.0, corner),
+    lumaIn(withIdle.outputFile, 3.0, corner),
+    lumaIn(withIdle.outputFile, 5.0, corner),
+  ])
+  check(
+    'the avatar is on screen before its first line',
+    idleBefore > 60 && idleBefore < 150,
+    `corner luma ${idleBefore.toFixed(1)}, background is 57`,
+  )
+  check(
+    'the spoken clip takes the bubble over while the line plays',
+    speakingNow > 170,
+    `corner luma ${speakingNow.toFixed(1)}`,
+  )
+  check(
+    'the avatar stays on screen after the line',
+    idleAfter > 60 && idleAfter < 150,
+    `corner luma ${idleAfter.toFixed(1)}`,
+  )
+
   fs.rmSync(dir, { recursive: true, force: true })
 }
 

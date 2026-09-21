@@ -56,6 +56,11 @@ export interface ComposeOptions {
   outputHeight: number
   /** An avatar saying each line, shown as a round bubble while the line plays. */
   avatarClips?: AvatarClip[]
+  /**
+   * The same avatar saying nothing, looped under the whole video so the bubble is
+   * there between the lines as well. Without it the bubble comes and goes.
+   */
+  avatarIdle?: string | null
   avatarCorner?: AvatarCorner
   /** Bubble diameter as a fraction of the video width. */
   avatarSize?: number
@@ -367,7 +372,16 @@ function joinSegments(segments: RawSegment[], fps: number): string {
 }
 
 /**
- * The avatar as a round bubble in one corner, on screen only while it is speaking.
+ * The avatar as a round bubble in one corner of the picture.
+ *
+ * Two layers. An idle clip - the person standing there, saying nothing - is looped
+ * under the entire video, so the bubble is simply always there. The clips of the
+ * lines are laid on top of it at their own moments, and fade in and out over it, so
+ * the change from listening to speaking is a dissolve rather than a jump.
+ *
+ * Without an idle clip only the second layer exists, and the bubble appears for each
+ * line and vanishes between them. That was the first version, and on a video with
+ * four lines in 68 seconds it reads as a glitch rather than as a presenter.
  *
  * Deliberately a bubble rather than a cut-out figure. HeyGen can return the person
  * on a transparent background, but that depends on the look, on the engine, and on
@@ -394,6 +408,10 @@ export function avatarOverlayFilters(
     fps: number
     inLabel: string
     outLabel: string
+    /** Input index of the looped idle clip, if there is one. */
+    idleInput?: number
+    /** How long the finished video is, so the idle layer covers all of it. */
+    totalSeconds?: number
   },
 ): string[] {
   const diameter = Math.round((options.outputWidth * options.size) / 2) * 2
@@ -403,8 +421,32 @@ export function avatarOverlayFilters(
   const ringInner = Math.max(0, edge - 6)
   const distance = `hypot(X-${centre},Y-${centre})`
 
+  /** Square, circular, and the same in both layers. */
+  const bubble =
+    `scale=${diameter}:${diameter}:force_original_aspect_ratio=increase,` +
+    `crop=${diameter}:${diameter},format=yuva420p,` +
+    `geq=lum='if(between(${distance},${ringInner},${edge}),240,p(X,Y))'` +
+    `:cb='if(between(${distance},${ringInner},${edge}),128,p(X,Y))'` +
+    `:cr='if(between(${distance},${ringInner},${edge}),128,p(X,Y))'` +
+    `:a='255*clip((${edge}-${distance})/1.5,0,1)'`
+
+  const place =
+    `x=${options.corner.endsWith('right') ? `W-w-${margin}` : String(margin)}:` +
+    `y=${options.corner.startsWith('bottom') ? `H-h-${margin}` : String(margin)}`
+
   const filters: string[] = []
   let previous = options.inLabel
+
+  if (options.idleInput !== undefined && options.totalSeconds) {
+    // The idle clip is fed in looping; it is cut to the video's length here.
+    filters.push(
+      `[${options.idleInput}:v]fps=${options.fps},trim=0:${options.totalSeconds.toFixed(3)},` +
+        `setpts=PTS-STARTPTS,${bubble},fade=t=in:st=0:d=0.6:alpha=1[avidle]`,
+    )
+    const next = clips.length > 0 ? 'avstageidle' : options.outLabel
+    filters.push(`[${previous}][avidle]overlay=${place}:eof_action=pass:repeatlast=0[${next}]`)
+    previous = next
+  }
 
   clips.forEach((clip, i) => {
     const seconds = clip.durationMs / 1000
@@ -417,21 +459,13 @@ export function avatarOverlayFilters(
         // A clip can come back a hair shorter than the line it speaks; hold its last
         // frame rather than letting the bubble blink out before the sentence ends.
         `tpad=stop_mode=clone:stop_duration=1,trim=0:${seconds.toFixed(3)},setpts=PTS-STARTPTS,` +
-        `scale=${diameter}:${diameter}:force_original_aspect_ratio=increase,` +
-        `crop=${diameter}:${diameter},format=yuva420p,` +
-        `geq=lum='if(between(${distance},${ringInner},${edge}),240,p(X,Y))'` +
-        `:cb='if(between(${distance},${ringInner},${edge}),128,p(X,Y))'` +
-        `:cr='if(between(${distance},${ringInner},${edge}),128,p(X,Y))'` +
-        `:a='255*clip((${edge}-${distance})/1.5,0,1)',` +
+        `${bubble},` +
         `fade=t=in:st=0:d=${fade.toFixed(2)}:alpha=1,` +
         `fade=t=out:st=${Math.max(0, seconds - fade).toFixed(3)}:d=${fade.toFixed(2)}:alpha=1,` +
         `setpts=PTS+${(clip.atMs / 1000).toFixed(3)}/TB[${label}]`,
     )
     filters.push(
-      `[${previous}][${label}]overlay=` +
-        `x=${options.corner.endsWith('right') ? `W-w-${margin}` : String(margin)}:` +
-        `y=${options.corner.startsWith('bottom') ? `H-h-${margin}` : String(margin)}:` +
-        `eof_action=pass:repeatlast=0[${next}]`,
+      `[${previous}][${label}]overlay=${place}:eof_action=pass:repeatlast=0[${next}]`,
     )
     previous = next
   })
@@ -484,7 +518,17 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
   const avatarClips = (options.avatarClips ?? []).filter(
     clip => fs.existsSync(clip.file) && clip.atMs / 1000 < requiredSec,
   )
-  const firstAvatarInput = files.length + (audioFile ? 1 : 0)
+  const idleClip =
+    options.avatarIdle && fs.existsSync(options.avatarIdle) ? options.avatarIdle : null
+
+  let nextInput = files.length + (audioFile ? 1 : 0)
+  let idleInput: number | undefined
+  if (idleClip) {
+    // Looped, because one short clip has to cover every gap in a long tutorial.
+    args.push('-stream_loop', '-1', '-i', idleClip)
+    idleInput = nextInput++
+  }
+  const firstAvatarInput = nextInput
   for (const clip of avatarClips) args.push('-i', clip.file)
 
   const OUTPUT_FPS = 25
@@ -530,14 +574,19 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
   // leave the picture with no route to the file.
   // The bubbles go on last, over the finished picture, so a camera move cannot crop
   // or magnify them.
-  const pictureLabel = avatarClips.length > 0 ? 'picture' : 'vout'
+  const hasAvatar = avatarClips.length > 0 || Boolean(idleClip)
+  const pictureLabel = hasAvatar ? 'picture' : 'vout'
   const graph = [
     joined
       ? `${joinSegments(joined, OUTPUT_FPS)};\n[joined]${chain.join(',\n')}[${pictureLabel}]`
       : `[0:v]${chain.join(',\n')}[${pictureLabel}]`,
   ]
-  if (avatarClips.length > 0) {
-    log.info(`Placing ${avatarClips.length} avatar bubble(s) ${options.avatarCorner ?? AVATAR_CORNER}`)
+  if (hasAvatar) {
+    log.info(
+      `Placing ${avatarClips.length} spoken avatar clip(s)` +
+        `${idleClip ? ' over a looped idle bubble' : ''}, ` +
+        `${options.avatarCorner ?? AVATAR_CORNER}`,
+    )
     graph.push(
       ...avatarOverlayFilters(avatarClips, {
         firstInput: firstAvatarInput,
@@ -547,6 +596,8 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
         fps: OUTPUT_FPS,
         inLabel: pictureLabel,
         outLabel: 'vout',
+        idleInput,
+        totalSeconds: requiredSec,
       }),
     )
   }

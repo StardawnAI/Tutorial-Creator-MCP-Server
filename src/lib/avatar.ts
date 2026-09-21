@@ -1,11 +1,13 @@
 /**
- * A person who speaks the narration, through HeyGen's avatar API.
+ * A person who speaks the narration, through HeyGen.
  *
- * The voice stays ElevenLabs. Each narration clip the recording already rendered is
- * uploaded to HeyGen and the chosen look is lip-synced *to that audio*, so the
- * finished video keeps the voice it always had, at the level the mix already sets,
- * and gains a face saying it. Letting HeyGen speak the text instead would mean two
- * voices to keep consistent and a second loudness problem to solve.
+ * The narration is always an audio file this server holds, and the look is lip-synced
+ * *to that file*. Where the file comes from is a choice: ElevenLabs by default, or
+ * HeyGen's own speech endpoint (`speakWithHeyGen`). Either answers in about a second,
+ * which is what the recording needs - it waits out every line in real time.
+ *
+ * What can never be in that loop is the avatar render itself, which takes minutes.
+ * Hence the split: speak now, put a face on it afterwards.
  *
  * Clips are rendered after the recording, not during it. A render takes a minute or
  * more, and the recording waits out every line in real time - asking for the avatar
@@ -19,7 +21,8 @@ import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import type { Config } from './env.js'
-import { requireHeyGenKey } from './env.js'
+import { requireFfmpeg, requireFfprobe, requireHeyGenKey } from './env.js'
+import { probeDuration, run } from './ffmpeg.js'
 import { log } from './logger.js'
 
 const API_ROOT = 'https://api.heygen.com/v3'
@@ -218,7 +221,10 @@ export async function remainingBalance(config: Config): Promise<number | null> {
 async function uploadAudio(config: Config, file: string): Promise<string> {
   const form = new FormData()
   const bytes = fs.readFileSync(file)
-  form.append('file', new Blob([bytes], { type: 'audio/mpeg' }), path.basename(file))
+  // MP3 and WAV are what the asset endpoint takes; the silence for an idle clip is
+  // WAV, because this ffmpeg build cannot write MP3 (no libmp3lame).
+  const type = file.toLowerCase().endsWith('.wav') ? 'audio/wav' : 'audio/mpeg'
+  form.append('file', new Blob([bytes], { type }), path.basename(file))
 
   const { status, body } = await call(config, `${API_ROOT}/assets`, { method: 'POST', body: form })
   const assetId = body?.data?.asset_id ?? body?.asset_id
@@ -309,6 +315,134 @@ export async function renderClip(
   fs.mkdirSync(path.dirname(options.outFile), { recursive: true })
   fs.writeFileSync(options.outFile, video)
   return options.outFile
+}
+
+/**
+ * The avatar standing there saying nothing, to fill the gaps between lines.
+ *
+ * Rendered from silence, which is the only way to get idle footage of a look: there
+ * is no "just stand there" endpoint, but a clip is made from whatever audio it is
+ * given, and silent audio gives a person who breathes and blinks and does not speak.
+ * One of these is rendered per recording and looped under every gap.
+ */
+export async function renderIdleClip(
+  config: Config,
+  options: { look: AvatarLook; outFile: string; seconds?: number },
+): Promise<string> {
+  const seconds = options.seconds ?? 10
+  const silence = path.join(config.paths.avatarCache, `silence-${seconds}s.wav`)
+  if (!fs.existsSync(silence)) {
+    fs.mkdirSync(config.paths.avatarCache, { recursive: true })
+    await run(requireFfmpeg(config), [
+      '-hide_banner', '-loglevel', 'error', '-y',
+      '-f', 'lavfi', '-i', `anullsrc=r=44100:cl=mono`,
+      '-t', String(seconds), '-c:a', 'pcm_s16le', silence,
+    ])
+  }
+
+  const cached = path.join(
+    config.paths.avatarCache,
+    `idle-${options.look.id}-${engineFor(options.look)}-${seconds}s.mp4`,
+  )
+  if (fs.existsSync(cached) && fs.statSync(cached).size > 0) {
+    fs.mkdirSync(path.dirname(options.outFile), { recursive: true })
+    fs.copyFileSync(cached, options.outFile)
+    return options.outFile
+  }
+
+  log.info(`Rendering ${seconds}s of idle avatar for the gaps between lines`)
+  await renderClip(config, {
+    audioFile: silence,
+    look: options.look,
+    outFile: cached,
+    title: 'Idle',
+  })
+  fs.mkdirSync(path.dirname(options.outFile), { recursive: true })
+  fs.copyFileSync(cached, options.outFile)
+  return options.outFile
+}
+
+/**
+ * A line spoken by a HeyGen voice, as an audio file plus its length.
+ *
+ * The same shape ElevenLabs narration has, on purpose: the recording needs the audio
+ * and its exact duration *while it is recording*, because it waits out every line in
+ * real time. Both services answer in about a second, so either can drive the
+ * recording - what could never drive it is the avatar render itself, which takes
+ * minutes.
+ */
+export async function speakWithHeyGen(
+  config: Config,
+  request: { text: string; voiceId: string; speed?: number },
+): Promise<{ file: string; durationMs: number; cached: boolean }> {
+  fs.mkdirSync(config.paths.ttsCache, { recursive: true })
+  const key = crypto
+    .createHash('sha256')
+    .update(['heygen', request.text.trim(), request.voiceId, request.speed ?? 1].join('|'))
+    .digest('hex')
+    .slice(0, 32)
+  const file = path.join(config.paths.ttsCache, `${key}.mp3`)
+
+  if (fs.existsSync(file) && fs.statSync(file).size > 0) {
+    const seconds = await probeDuration(requireFfprobe(config), file)
+    if (seconds) return { file, durationMs: Math.round(seconds * 1000), cached: true }
+  }
+
+  const { status, body } = await call(config, `${API_ROOT}/voices/speech`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      text: request.text,
+      voice_id: request.voiceId,
+      speed: request.speed ?? 1,
+    }),
+  })
+  const url = body?.data?.audio_url
+  if (status !== 200 || !url) throw describeError(status, body, 'speak the line')
+
+  const download = await fetch(url, { signal: AbortSignal.timeout(120_000) })
+  if (!download.ok) throw new Error(`Downloading the spoken line failed (HTTP ${download.status}).`)
+  fs.writeFileSync(file, Buffer.from(await download.arrayBuffer()))
+
+  const reported = Number(body?.data?.duration)
+  const seconds = Number.isFinite(reported) && reported > 0
+    ? reported
+    : ((await probeDuration(requireFfprobe(config), file)) ?? 0)
+  return { file, durationMs: Math.round(seconds * 1000), cached: false }
+}
+
+/** Voices the speech endpoint accepts; it only takes ones on the "starfish" engine. */
+export async function listSpeechVoices(
+  config: Config,
+  options: { search?: string; limit?: number } = {},
+): Promise<Array<{ voiceId: string; name: string; language: string; gender: string }>> {
+  const wanted = options.search?.trim().toLowerCase()
+  const limit = options.limit ?? 40
+  const found: Array<{ voiceId: string; name: string; language: string; gender: string }> = []
+  let token: string | null = null
+
+  for (let page = 0; page < (wanted ? SEARCH_PAGES : 1); page++) {
+    const query = new URLSearchParams({ engine: 'starfish', limit: String(PAGE_SIZE) })
+    if (token) query.set('token', token)
+    const { status, body } = await call(config, `${API_ROOT}/voices?${query}`)
+    if (status !== 200) throw describeError(status, body, 'list the voices')
+
+    for (const entry of body.data ?? []) {
+      const voice = {
+        voiceId: String(entry.voice_id ?? ''),
+        name: String(entry.name ?? 'unnamed'),
+        language: String(entry.language ?? ''),
+        gender: String(entry.gender ?? ''),
+      }
+      if (!wanted || `${voice.name} ${voice.language}`.toLowerCase().includes(wanted)) {
+        found.push(voice)
+      }
+      if (found.length >= limit) return found
+    }
+    if (!body.has_more || !body.next_token) break
+    token = body.next_token as string
+  }
+  return found
 }
 
 /** Cache key: the audio, the look and the engine - everything that shapes the clip. */

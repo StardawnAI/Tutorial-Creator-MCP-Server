@@ -10,8 +10,11 @@
  *   --avatar <look>        have a HeyGen look speak the narration, as a bubble in the
  *                          corner: a look id, a group id, or part of a name
  *   --corner <c>           bottom-right (default), bottom-left, top-right, top-left
+ *   --presence speaking    show the bubble only while a line is spoken; by default the
+ *                          avatar idles on screen between the lines as well
  *   --avatar-clips <dir>   use clips already on disk instead of rendering new ones,
- *                          named 000.mp4, 001.mp4, ... in narration order
+ *                          named 000.mp4, 001.mp4, ... in narration order, with an
+ *                          optional idle.mp4 for the gaps
  *
  * Every recording keeps its captures, narration clips and timeline.json, so a fix to
  * the mix, different music, or an avatar added afterwards reaches an existing video in
@@ -25,7 +28,7 @@ import path from 'node:path'
 import { loadConfig, resolveMusicTrack } from '../dist/lib/env.js'
 import { compose, verifyOutput } from '../dist/lib/compose.js'
 import { generateMusic } from '../dist/lib/music-gen.js'
-import { renderAvatarClips, resolveLook } from '../dist/lib/avatar.js'
+import { renderAvatarClips, renderIdleClip, resolveLook } from '../dist/lib/avatar.js'
 
 /**
  * Find a file the timeline refers to, even though the recording has moved.
@@ -92,6 +95,7 @@ async function main() {
 
   const spoken = timeline.cues.filter(c => c.audioFile && fs.existsSync(c.audioFile))
   let avatarClips = []
+  let avatarIdle = null
   if (flags['avatar-clips']) {
     // Clips rendered elsewhere, or stand-ins: matched to the lines by their order.
     const clipDir = path.resolve(flags['avatar-clips'])
@@ -102,9 +106,24 @@ async function main() {
         durationMs: cue.durationMs,
       }))
       .filter(clip => fs.existsSync(clip.file))
-    process.stdout.write(`Avatar: ${avatarClips.length} clip(s) from ${clipDir}\n`)
+    // An idle.mp4 beside them keeps the bubble on screen between the lines.
+    const idle = path.join(clipDir, 'idle.mp4')
+    if (fs.existsSync(idle)) avatarIdle = idle
+    process.stdout.write(
+      `Avatar: ${avatarClips.length} clip(s) from ${clipDir}${avatarIdle ? ' plus an idle clip' : ''}\n`,
+    )
   } else if (flags.avatar) {
     const look = await resolveLook(config, flags.avatar)
+    if (flags.presence !== 'speaking') {
+      try {
+        avatarIdle = await renderIdleClip(config, {
+          look,
+          outFile: path.join(dir, 'avatar', 'idle.mp4'),
+        })
+      } catch (err) {
+        process.stdout.write(`No idle clip (${err.message}); the bubble will only show while speaking\n`)
+      }
+    }
     const rendered = await renderAvatarClips(
       config,
       spoken.map(c => ({
@@ -134,6 +153,7 @@ async function main() {
     musicGainDb: 0,
     subtitles: true,
     avatarClips,
+    avatarIdle,
     avatarCorner: flags.corner ?? timeline.options.avatarCorner,
     avatarSize: timeline.options.avatarSize,
   })

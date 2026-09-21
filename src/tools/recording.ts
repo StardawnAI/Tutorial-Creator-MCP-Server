@@ -15,9 +15,12 @@ import { canGenerateMusic, generateMusic } from '../lib/music-gen.js'
 import {
   canRenderAvatar,
   listLooks,
+  listSpeechVoices,
   remainingBalance,
   renderAvatarClips,
+  renderIdleClip,
   resolveLook,
+  speakWithHeyGen,
 } from '../lib/avatar.js'
 import { log } from '../lib/logger.js'
 
@@ -104,7 +107,20 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           .boolean()
           .default(true)
           .describe('Keep the browser invisible so the machine stays usable. Turn off only if a site blocks headless browsers.'),
-        voiceId: z.string().optional().describe('ElevenLabs voice id for narration.'),
+        voiceId: z
+          .string()
+          .optional()
+          .describe('Voice id for the narration, in whichever service voiceSource names.'),
+        voiceSource: z
+          .enum(['elevenlabs', 'heygen'])
+          .default('elevenlabs')
+          .describe(
+            'Who speaks the narration. ElevenLabs by default - it is where the cloned ' +
+              'voices are. "heygen" uses HeyGen\'s own speech endpoint instead, which needs ' +
+              'voiceId to be one of its voices (tutorial_voices with source: "heygen"). ' +
+              'Either way the avatar is lip-synced to the result, so the choice is only ' +
+              'about which voice is heard.',
+          ),
         music: z
           .union([z.boolean(), z.string()])
           .default(true)
@@ -127,6 +143,15 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
               'made after the recording, so they cost no recording time.\n\n' +
               'Left out, TUTORIAL_MCP_AVATAR decides; false leaves the avatar out of this one ' +
               'recording even when that is set.',
+          ),
+        avatarPresence: z
+          .enum(['always', 'speaking'])
+          .default('always')
+          .describe(
+            'always: the bubble is there for the whole video, the avatar idling between ' +
+              'lines. speaking: it appears for each line and goes away after it, which on a ' +
+              'video with few lines looks like a glitch. "always" renders one extra short ' +
+              'clip of the avatar saying nothing, which is looped.',
           ),
         avatarCorner: z
           .enum(['bottom-right', 'bottom-left', 'top-right', 'top-left'])
@@ -202,6 +227,21 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
        * is unknown, or that the account cannot pay for a render, is worth knowing
        * now rather than after a tutorial has been talked through.
        */
+      if (args.voiceSource === 'heygen') {
+        if (!canRenderAvatar(config)) {
+          return failure(
+            'A HeyGen voice needs a HeyGen API key. Set HEYGEN_API_KEY, or leave voiceSource ' +
+              'at "elevenlabs".',
+          )
+        }
+        if (!args.voiceId) {
+          return failure(
+            'voiceSource "heygen" needs a voiceId from HeyGen - the default voice is an ' +
+              'ElevenLabs one. List them with tutorial_voices, source: "heygen".',
+          )
+        }
+      }
+
       let avatarLook: { id: string; name: string } | null = null
       const avatarNotes: string[] = []
       const wantedAvatar = args.avatar === false ? null : (args.avatar ?? config.defaultAvatar)
@@ -239,9 +279,11 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           headless: args.headless,
           voiceId: args.voiceId ?? config.defaultVoiceId,
           modelId: config.defaultModelId,
+          voiceSource: args.voiceSource,
           music,
           generateMusic: generate,
           avatarLook,
+          avatarPresence: args.avatarPresence,
           avatarCorner: args.avatarCorner,
           avatarSize: args.avatarSize,
           musicGainDb: 0,
@@ -329,8 +371,11 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
       let durationMs: number
       let silentBecause: string | null = null
 
-      if (!config.elevenLabsApiKey) {
-        silentBecause = 'no ELEVENLABS_API_KEY is set'
+      const fromHeyGen = session.options.voiceSource === 'heygen'
+      const keyMissing = fromHeyGen ? !config.heygenApiKey : !config.elevenLabsApiKey
+
+      if (keyMissing) {
+        silentBecause = fromHeyGen ? 'no HEYGEN_API_KEY is set' : 'no ELEVENLABS_API_KEY is set'
         durationMs = estimateSpokenMs(args.text)
       } else if (narrationDisabledReason) {
         // The key was already rejected once. Retrying on every line would add a
@@ -339,11 +384,16 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
         durationMs = estimateSpokenMs(args.text)
       } else {
         try {
-          const result = await synthesise(config, {
-            text: args.text,
-            voiceId: session.options.voiceId,
-            modelId: session.options.modelId,
-          })
+          const result = fromHeyGen
+            ? await speakWithHeyGen(config, {
+                text: args.text,
+                voiceId: session.options.voiceId,
+              })
+            : await synthesise(config, {
+                text: args.text,
+                voiceId: session.options.voiceId,
+                modelId: session.options.modelId,
+              })
           // Copy into the session so it can be re-composed later on its own.
           const local = path.join(
             session.outputDir,
@@ -357,7 +407,9 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           const reason = (err as Error).message
           log.warn(`Narration failed, continuing silently: ${reason}`)
           // Authentication and quota problems will not fix themselves mid-recording.
-          if (/HTTP (400|401|403|422)/.test(reason)) narrationDisabledReason = reason
+          if (/HTTP (400|401|403|422)|no credit left|rejected the API key/.test(reason)) {
+            narrationDisabledReason = reason
+          }
           silentBecause = reason
           durationMs = estimateSpokenMs(args.text)
         }
@@ -476,11 +528,24 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
          * clip fails simply has no bubble - the video is still delivered.
          */
         let avatarClips: Awaited<ReturnType<typeof renderAvatarClips>>['clips'] = []
+        let avatarIdle: string | null = null
         let avatarNote: string | null = null
         if (session.options.avatarLook) {
           const spoken = session.cues.filter(c => c.audioFile)
           try {
             const look = await resolveLook(config, session.options.avatarLook.id)
+            if (session.options.avatarPresence !== 'speaking') {
+              // One clip of the avatar saying nothing, looped under the whole video, so
+              // the bubble does not come and go between the lines.
+              try {
+                avatarIdle = await renderIdleClip(config, {
+                  look,
+                  outFile: path.join(session.outputDir, 'avatar', 'idle.mp4'),
+                })
+              } catch (err) {
+                log.warn(`No idle avatar clip, so the bubble only shows while speaking: ${(err as Error).message}`)
+              }
+            }
             const rendered = await renderAvatarClips(
               config,
               spoken.map(c => ({
@@ -494,7 +559,8 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
             avatarClips = rendered.clips
             avatarNote =
               rendered.clips.length > 0
-                ? `Avatar "${look.name}" speaks ${rendered.clips.length} of ${spoken.length} lines.`
+                ? `Avatar "${look.name}" speaks ${rendered.clips.length} of ${spoken.length} lines` +
+                  `${avatarIdle ? ', and is on screen between them.' : '; the bubble shows only while speaking.'}`
                 : `No avatar clip could be rendered: ${rendered.failures[0] ?? 'unknown reason'}`
             if (rendered.clips.length > 0 && rendered.failures.length > 0) {
               avatarNote += ` ${rendered.failures.length} line(s) failed: ${rendered.failures[0]}`
@@ -516,6 +582,7 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           musicGainDb: args.musicGainDb,
           subtitles: args.subtitles,
           avatarClips,
+          avatarIdle,
           avatarCorner: session.options.avatarCorner,
           avatarSize: session.options.avatarSize,
         })
@@ -650,13 +717,37 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
     'tutorial_voices',
     {
       title: 'List narration voices',
-      description: 'Lists the ElevenLabs voices available for narration.',
+      description:
+        'Lists the voices available for narration - ElevenLabs by default, or HeyGen\'s ' +
+        'own with source: "heygen". Pass the id to tutorial_start as voiceId, together ' +
+        'with the matching voiceSource.',
       inputSchema: {
         search: z.string().optional().describe('Filter by name or description.'),
+        source: z
+          .enum(['elevenlabs', 'heygen'])
+          .default('elevenlabs')
+          .describe('Which service to list.'),
       },
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
     async args => {
+      if (args.source === 'heygen') {
+        if (!canRenderAvatar(config)) {
+          return failure('No HEYGEN_API_KEY is set, so no HeyGen voices can be listed.')
+        }
+        try {
+          const voices = await listSpeechVoices(config, { search: args.search })
+          if (voices.length === 0) return text('No HeyGen voice matched.')
+          return text(
+            voices
+              .map(v => `${v.name}  [${v.voiceId}]\n  ${v.language}${v.gender ? `, ${v.gender}` : ''}`)
+              .join('\n'),
+          )
+        } catch (err) {
+          return failure((err as Error).message)
+        }
+      }
+
       try {
         const voices = await listVoices(config)
         const needle = args.search?.toLowerCase()
