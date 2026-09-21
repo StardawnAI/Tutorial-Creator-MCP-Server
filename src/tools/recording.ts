@@ -117,14 +117,16 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
               'every time. The default track is used if composing fails.',
           ),
         avatar: z
-          .string()
+          .union([z.string(), z.literal(false)])
           .optional()
           .describe(
             'Show a person saying the narration, as a round bubble in the corner (HeyGen). ' +
               'Takes an avatar look id, the group id out of the HeyGen app URL, or part of a ' +
               "look's name - list them with tutorial_avatars. The voice stays the same: the " +
               'avatar is lip-synced to the narration this recording renders. The clips are ' +
-              'made after the recording, so they cost no recording time.',
+              'made after the recording, so they cost no recording time.\n\n' +
+              'Left out, TUTORIAL_MCP_AVATAR decides; false leaves the avatar out of this one ' +
+              'recording even when that is set.',
           ),
         avatarCorner: z
           .enum(['bottom-right', 'bottom-left', 'top-right', 'top-left'])
@@ -202,14 +204,15 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
        */
       let avatarLook: { id: string; name: string } | null = null
       const avatarNotes: string[] = []
-      if (args.avatar) {
+      const wantedAvatar = args.avatar === false ? null : (args.avatar ?? config.defaultAvatar)
+      if (wantedAvatar) {
         if (!canRenderAvatar(config)) {
           return failure(
             'An avatar needs a HeyGen API key. Set HEYGEN_API_KEY in the server environment.',
           )
         }
         try {
-          const look = await resolveLook(config, args.avatar)
+          const look = await resolveLook(config, wantedAvatar)
           avatarLook = { id: look.id, name: look.name }
           const balance = await remainingBalance(config)
           if (balance !== null && balance <= 0) {

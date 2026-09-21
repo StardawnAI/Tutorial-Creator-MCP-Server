@@ -267,6 +267,7 @@ All optional; sensible defaults apply.
 |---|---|
 | `ELEVENLABS_API_KEY` | Enables spoken narration |
 | `HEYGEN_API_KEY` | Enables the avatar that speaks the narration |
+| `TUTORIAL_MCP_AVATAR` | Default avatar look, so every recording gets one without asking |
 | `TUTORIAL_MCP_MUSIC` | Default music track - a path, or part of a title |
 | `TUTORIAL_MCP_VOICE_ID` | Default narration voice |
 | `TUTORIAL_MCP_MODEL_ID` | Default TTS model (`eleven_multilingual_v2`) |

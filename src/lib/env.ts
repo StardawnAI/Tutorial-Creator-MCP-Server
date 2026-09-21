@@ -47,6 +47,8 @@ export interface Config {
   googleOAuth: { clientFile: string; refreshToken: string } | null
   /** HeyGen, for an avatar that speaks the narration. */
   heygenApiKey: string | null
+  /** The avatar look used when a recording does not name one. */
+  defaultAvatar: string | null
 }
 
 /**
@@ -229,6 +231,8 @@ export function loadConfig(): Config {
           }
         : null,
     heygenApiKey: process.env.HEYGEN_API_KEY ?? null,
+    // A look id, a group id, or part of a name - the same three things the tool takes.
+    defaultAvatar: process.env.TUTORIAL_MCP_AVATAR ?? null,
   }
   return cached
 }

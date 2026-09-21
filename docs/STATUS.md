@@ -25,6 +25,8 @@ as a round bubble that fades in with the line and out after it.
   hash of the audio they speak. A render takes a minute or more, and the recording
   waits out each line in real time - doing it during the recording would put that
   minute into the video. The cache means a re-render costs nothing at HeyGen.
+- **`TUTORIAL_MCP_AVATAR` names a default look**, so every recording gets one
+  without being asked for it; `avatar: false` leaves it out of a single recording.
 - **A bubble, not a cut-out.** HeyGen can return the person on a transparent
   background, but that depends on the look, the engine and alpha surviving webm; a
   circular crop of the plain mp4 works whatever comes back. The mask is drawn into
