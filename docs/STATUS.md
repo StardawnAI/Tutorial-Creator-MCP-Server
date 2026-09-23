@@ -5,6 +5,62 @@ Newest entry on top.
 
 ---
 
+## 2026-09-24 - Captions that follow the voice, and cuts that dissolve
+
+The two quickest wins from the M15 research, both built on what the installed ffmpeg
+already has.
+
+### Built
+
+- **Word-by-word captions.** ElevenLabs' forced alignment (`POST /v1/forced-alignment`,
+  the clip plus its sentence) returns where every word starts and ends. Its answer
+  interleaves the gaps as entries of their own; with those removed, all four InStar
+  lines matched the text word for word. The captions become ASS karaoke: words still
+  to come in grey, turning white as they are spoken. Aligning the finished clip rather
+  than asking the synthesiser for timestamps means one route covers ElevenLabs,
+  HeyGen and recordings made before this existed.
+- **Dissolves at every cut**, 0.32 s, with no effect on timing.
+- **The final check measures picture and sound separately.**
+
+### Found on the way - three ffmpeg traps, one after the other
+
+1. `xfade` needs a declared constant frame rate on both inputs, and `trim` and
+   `tpad` leave it unset: "current rate of 1/0 is invalid". A closing `fps` fixes it.
+2. `xfade` restarts its output clock at zero where the transition begins. The
+   constant-rate filter downstream then dropped every frame that seemed to run
+   backwards: **the picture stopped at the first cut while the sound played on, and
+   the file still reported 67.7 s**, because a container reports its longest stream.
+   Timestamps are now rebuilt from the frame count after every join, and
+   `verifyOutput` measures the two streams on their own - the e2e suite now feeds it a
+   2 s picture on 5 s of sound and expects a complaint.
+3. The hold that makes room for the dissolve was never there. After `trim` the rate
+   is unknown again, so `tpad` stamped every cloned frame with the same time and the
+   next `fps` discarded them as duplicates - xfade saw the clip end on the cut and
+   every "dissolve" came out a hard cut. Found only because the e2e check samples the
+   middle of the dissolve; the finished InStar video looked plausible, because its two
+   cuts join similar pictures.
+
+### Investigated and left alone
+
+A render with dissolves and one with hard cuts differ by about one source pixel of
+framing in some zoomed frames (28 dB luma at frames 500 and 1250 of the InStar video),
+with no difference at all when the camera does not move and none in time. Switching
+the camera expression from `ot` to the frame number changed nothing, so that was not
+the cause and the change was reverted. It is invisible side by side, and left
+unexplained rather than papered over.
+
+The colour description (limited range, BT.601) is now written by the encoder. The
+dissolve route dropped it, and a player given an untagged HD file usually assumes
+BT.709; tagging inside the graph did not survive to the file.
+
+### Verified
+
+- `node scripts/e2e.mjs` 58/58, `node scripts/handshake.mjs` 11/11
+- The InStar proof re-rendered: 1692 frames / 67.68 s of picture, 67.69 s of sound,
+  tagged tv/bt470bg; luma across the first cut falls 236 -> 140 over eight frames
+
+---
+
 ## 2026-09-21 - A face for the narration, and sign-ins that fight back
 
 Two things were asked for: an avatar that speaks the tutorial, and an answer to bot

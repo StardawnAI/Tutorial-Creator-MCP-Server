@@ -12,6 +12,8 @@
  *   --corner <c>           bottom-right (default), bottom-left, top-right, top-left
  *   --presence speaking    show the bubble only while a line is spoken; by default the
  *                          avatar idles on screen between the lines as well
+ *   --transitions off      hard cuts instead of a dissolve at every cut
+ *   --output <name>        file name for the render, instead of tutorial.mp4
  *   --avatar-clips <dir>   use clips already on disk instead of rendering new ones,
  *                          named 000.mp4, 001.mp4, ... in narration order, with an
  *                          optional idle.mp4 for the gaps
@@ -154,6 +156,8 @@ async function main() {
     subtitles: true,
     avatarClips,
     avatarIdle,
+    transitions: flags.transitions !== 'off',
+    outputName: flags.output ?? 'tutorial.mp4',
     avatarCorner: flags.corner ?? timeline.options.avatarCorner,
     avatarSize: timeline.options.avatarSize,
   })

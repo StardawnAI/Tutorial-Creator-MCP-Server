@@ -295,12 +295,25 @@ Ordered by what a viewer would notice, against what it costs:
       own resolution, kept clear of the avatar's corner.
       -> verified: frames at 21 s and 40.5 s read cleanly over a dark page and over a
         white one; e2e asserts the layout
-- [ ] **Word-synchronised captions.** ElevenLabs returns word timings from its
-      `with-timestamps` endpoint, and HeyGen's speech endpoint returns
-      `word_timestamps` too. ASS can highlight a word at a time (`\k`), which is the
-      single most recognisable "produced video" cue. No new dependency at all.
-- [ ] **A transition on every cut between browsers.** `xfade` is in the build; the
-      cuts are currently hard. A 250 ms dissolve where the video changes window.
+- [x] **Word-synchronised captions.** Each word lights up as the voice reaches it,
+      through ASS karaoke timing (`\k`). The timings come from ElevenLabs' forced
+      alignment of the clip that was actually spoken, so they hold for either voice
+      source and for recordings made before this existed; without a key they are
+      estimated from word length.
+      -> verified: all four InStar lines aligned word for word (12, 5, 9 and 10
+        words); frames at 6.75 s and 8.9 s show the highlight exactly where the voice
+        is; e2e asserts the timing arithmetic and the wrapping
+- [x] **A dissolve on every cut.** 0.32 s, and it costs the timeline nothing: the
+      outgoing clip is lengthened by a held last frame and the dissolve is laid over
+      that, so the incoming clip still starts on the frame the clock says.
+      -> verified: the InStar render keeps 1692 frames and 67.68 s with the sound at
+        67.69 s; e2e asserts the cut positions and a half-way blend. Three ffmpeg
+        traps on the way, each written down in `joinSegments`: xfade restarts its
+        clock at the transition, forgets the frame rate, and a hold added after trim
+        never arrives unless the rate is declared first
+- [x] **A final check that the picture and the sound end together.** The first
+      dissolve build froze the picture at the first cut while the file still
+      reported its full length. `verifyOutput` now measures each stream on its own.
 - [ ] **An opening and closing card with motion.** Today's chapter card is static
       HTML in the capture. Either animate it in CSS (free, we already own the layer)
       or render it separately - see Revideo below.

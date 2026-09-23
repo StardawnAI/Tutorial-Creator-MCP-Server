@@ -18,12 +18,15 @@ import { loadConfig } from '../dist/lib/env.js'
 import { RecordingSession } from '../dist/lib/session.js'
 import {
   AVATAR_SIZE,
+  TRANSITION_SECONDS,
   avatarOverlayFilters,
   buildAss,
   compose,
+  karaokeText,
   narrationChain,
   verifyOutput,
 } from '../dist/lib/compose.js'
+import { estimateTimings } from '../dist/lib/words.js'
 import { spotlight, ripple, instruct, instructionLayout } from '../dist/lib/emphasis.js'
 import { probeVideo, run } from '../dist/lib/ffmpeg.js'
 import { musicPrompt } from '../dist/lib/music-gen.js'
@@ -276,14 +279,17 @@ async function twoBrowsers(config) {
     ])
     return Number(stderr.match(/YAVG=([0-9.]+)/)?.[1] ?? NaN)
   }
+  // Every cut is now a dissolve that starts on the cut, so "after" is measured once
+  // it has finished; the middle of it is checked separately below.
+  const fade = TRANSITION_SECONDS * 1000
   const looks = { light: y => y > 200, dark: y => y < 60, grey: y => y > 100 && y < 160 }
   const moments = [
     ['business before the first cut', switchAt - 200, 'light'],
-    ['customer right after it', switchAt + 200, 'dark'],
+    ['customer once the dissolve is over', switchAt + fade + 200, 'dark'],
     ['customer just before the wait', cutAt - 200, 'dark'],
-    ['customer right after the wait', cutAt + 200, 'grey'],
+    ['customer once the dissolve after the wait is over', cutAt + fade + 200, 'grey'],
     ['customer before switching back', backAt - 200, 'grey'],
-    ['business right after', backAt + 200, 'light'],
+    ['business once the dissolve is over', backAt + fade + 200, 'light'],
   ]
   const wrong = []
   for (const [label, ms, want] of moments) {
@@ -293,7 +299,15 @@ async function twoBrowsers(config) {
   check(
     'each cut lands where the clock says it does',
     wrong.length === 0,
-    wrong.length ? wrong.join('; ') : `${moments.length} moments checked, 0.2s either side`,
+    wrong.length ? wrong.join('; ') : `${moments.length} moments checked around ${moments.length / 2} dissolves`,
+  )
+
+  // Halfway through the first dissolve the picture is neither window but both.
+  const midway = await lumaAt((switchAt + fade / 2) / 1000)
+  check(
+    'a cut between browsers is a dissolve, not a jump',
+    midway > 70 && midway < 190,
+    `luma ${midway.toFixed(0)} halfway through, between light (>200) and dark (<60)`,
   )
 }
 
@@ -868,6 +882,62 @@ async function main() {
     ass.includes('PlayResX: 1920') && /MarginR|,96,442,/.test(ass) && ass.includes('Dialogue: 0,0:00:01.00'),
     ass.split('\n').find(l => l.startsWith('Style:'))?.slice(0, 60) ?? 'no style line',
   )
+
+  /**
+   * Word-by-word captions. Timings measured on a real InStar line by ElevenLabs'
+   * forced alignment: the highlight has to start with the voice (120 ms in), move
+   * from word to word, last exactly as long as the speech, and wrap like a plain
+   * caption.
+   */
+  const aligned = [
+    { text: 'This', startMs: 120, endMs: 220 },
+    { text: 'is', startMs: 280, endMs: 400 },
+    { text: 'InStar', startMs: 480, endMs: 840 },
+    { text: 'by', startMs: 900, endMs: 1060 },
+    { text: 'Stardawn', startMs: 1100, endMs: 1460 },
+    { text: 'AI.', startMs: 1520, endMs: 1860 },
+  ]
+  const karaoke = karaokeText(aligned)
+  const totalCs = [...karaoke.matchAll(/\\k(\d+)/g)].reduce((sum, m) => sum + Number(m[1]), 0)
+  check(
+    'word captions light up with the voice, word by word, for as long as it speaks',
+    karaoke.startsWith('{\\k12}{\\k16}This') && totalCs === 186 && !karaoke.includes('\\N'),
+    karaoke,
+  )
+  const long = karaokeText(
+    estimateTimings('Instagram asks me to log in to the business account before anything else', 4000),
+  )
+  check('a long captioned line breaks in two', (long.match(/\\N/g) ?? []).length === 1, long.slice(0, 70))
+
+  const guessed = estimateTimings('On the Channels page I click Connect with Instagram.', 2638)
+  check(
+    'without an alignment, word timings are estimated in order and inside the line',
+    guessed.length === 9 &&
+      guessed.every((w, i) => i === 0 || w.startMs >= (guessed[i - 1]?.endMs ?? 0) - 1) &&
+      (guessed.at(-1)?.endMs ?? 0) <= 2638,
+    `${guessed.length} words, last ends at ${guessed.at(-1)?.endMs}ms of 2638`,
+  )
+
+  /**
+   * The final check must notice a picture that stops while the sound goes on. That
+   * is how the first dissolve build failed: the video froze at the first cut, the
+   * file still reported its full length, and nothing downstream objected.
+   */
+  const brokenDir = fs.mkdtempSync(path.join(os.tmpdir(), 'e2e-broken-'))
+  const broken = path.join(brokenDir, 'broken.mp4')
+  await run(config.ffmpegPath, [
+    '-hide_banner', '-loglevel', 'error', '-y',
+    '-f', 'lavfi', '-i', 'testsrc2=s=320x180:r=25:d=2',
+    '-f', 'lavfi', '-i', 'sine=f=440:d=5',
+    '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', broken,
+  ])
+  const brokenCheck = await verifyOutput(config, broken)
+  check(
+    'a video whose picture stops before its sound is reported, not delivered as fine',
+    !brokenCheck.ok && brokenCheck.problems.some(p => p.includes('picture stops')),
+    brokenCheck.problems.join('; ') || 'reported nothing',
+  )
+  fs.rmSync(brokenDir, { recursive: true, force: true })
 
   // A short line has to reach speaking level too. One-pass loudnorm needs three seconds
   // to settle, and real lines of 1.4 to 2.9 s came out 4 to 6 dB under target.

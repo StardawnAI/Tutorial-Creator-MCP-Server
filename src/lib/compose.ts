@@ -18,6 +18,7 @@ import { requireFfmpeg, requireFfprobe } from './env.js'
 import { probeDuration, probeVideo, run } from './ffmpeg.js'
 import type { AvatarClip } from './avatar.js'
 import type { NarrationCue } from './session.js'
+import { wordTimings, type WordTiming } from './words.js'
 import { buildZoomFilter, type ZoomEvent } from './zoom.js'
 import { log } from './logger.js'
 
@@ -64,6 +65,8 @@ export interface ComposeOptions {
   avatarCorner?: AvatarCorner
   /** Bubble diameter as a fraction of the video width. */
   avatarSize?: number
+  /** Dissolve at every cut instead of jumping. On unless switched off. */
+  transitions?: boolean
 }
 
 export type AvatarCorner = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
@@ -136,10 +139,20 @@ function assTime(ms: number): string {
  * the video's own size makes every number here mean what it says.
  *
  * `reserve` keeps the box out of the avatar's corner.
+ *
+ * With `words`, each line lights up word by word as it is spoken: the words still to
+ * come are drawn dimmed and turn white the moment the voice reaches them, through
+ * ASS's own karaoke timing (`\k`). A line without timings is shown whole, in white.
  */
 export function buildAss(
   cues: NarrationCue[],
-  options: { width: number; height: number; reserve: { left: number; right: number } },
+  options: {
+    width: number
+    height: number
+    reserve: { left: number; right: number }
+    /** Word timings per cue, in the same order as `cues`; missing ones show whole. */
+    words?: Array<WordTiming[] | null | undefined>
+  },
 ): string {
   const fontSize = Math.round(options.height * 0.034)
   const marginV = Math.round(options.height * 0.05)
@@ -157,10 +170,11 @@ export function buildAss(
     'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, ' +
       'BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, ' +
       'BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
-    // BorderStyle 3 is the opaque box; libass paints it in the outline colour, so both
-    // colours are the same near-black. The leading byte is transparency, not opacity -
+    // Primary is a word once spoken, secondary a word still to come. BorderStyle 3 is
+    // the opaque box, which libass paints in the outline colour, so both of those are
+    // the same near-black. The leading byte of a colour is transparency, not opacity -
     // 0x50 leaves the box solid enough to read white text off a pale page.
-    `Style: Tutorial,Segoe UI,${fontSize},&H00FFFFFF,&H00FFFFFF,&H50140D0A,&H50140D0A,` +
+    `Style: Tutorial,Segoe UI,${fontSize},&H00FFFFFF,${CAPTION_UPCOMING},&H50140D0A,&H50140D0A,` +
       `0,0,0,0,100,100,0,0,3,${Math.round(fontSize * 0.45)},0,2,` +
       `${Math.max(side, options.reserve.left)},${Math.max(side, options.reserve.right)},` +
       `${marginV},1`,
@@ -169,22 +183,63 @@ export function buildAss(
     'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text',
   ]
 
-  const events = cues
-    .filter(c => c.text.trim().length > 0)
-    .map(cue => {
-      const text = cue.text
-        .trim()
-        .replace(/\s+/g, ' ')
-        // ASS separates lines with \N, and commas would end the field.
-        .replace(/(.{1,46})(\s|$)/g, '$1\\N')
-        .replace(/\\N$/, '')
-      return (
-        `Dialogue: 0,${assTime(cue.atMs)},${assTime(cue.atMs + Math.max(cue.durationMs, 900))},` +
-        `Tutorial,,0,0,0,,${text}`
-      )
-    })
+  const events = cues.flatMap((cue, i) => {
+    if (cue.text.trim().length === 0) return []
+    const timings = options.words?.[i]
+    const text =
+      timings && timings.length > 0
+        ? karaokeText(timings)
+        : cue.text
+            .trim()
+            .replace(/\s+/g, ' ')
+            .split(' ')
+            .map(assEscape)
+            .join(' ')
+            // ASS breaks a line with \N; it does not wrap a long one on its own.
+            .replace(/(.{1,46})(\s|$)/g, '$1\\N')
+            .replace(/\\N$/, '')
+    return [
+      `Dialogue: 0,${assTime(cue.atMs)},${assTime(cue.atMs + Math.max(cue.durationMs, 900))},` +
+        `Tutorial,,0,0,0,,${text}`,
+    ]
+  })
 
   return `${[...header, ...events].join('\n')}\n`
+}
+
+/** A word still to be spoken: a light grey that reads clearly as "not yet". */
+const CAPTION_UPCOMING = '&H00A0A0A0'
+
+/** Braces open an override block and a backslash starts a tag; neither may leak in. */
+function assEscape(word: string): string {
+  return word.replace(/\\/g, '/').replace(/\{/g, '(').replace(/\}/g, ')')
+}
+
+/**
+ * A line as karaoke: `{\k<centiseconds>}word` for every word, in order.
+ *
+ * Each word stays lit until the next begins, so a pause holds the last word rather
+ * than leaving the line half-dark. The silence before the first word becomes an
+ * empty syllable, so the highlight starts with the voice and not with the caption.
+ * Lines are broken at the same width as a plain caption.
+ */
+export function karaokeText(words: WordTiming[], wrapAt = 46): string {
+  const cs = (ms: number) => Math.max(1, Math.round(ms / 10))
+  const parts: string[] = []
+  const lead = words[0]?.startMs ?? 0
+  if (lead >= 10) parts.push(`{\\k${cs(lead)}}`)
+
+  let lineLength = 0
+  words.forEach((word, i) => {
+    const next = words[i + 1]
+    const end = next ? Math.max(next.startMs, word.startMs + 10) : Math.max(word.endMs, word.startMs + 10)
+    const text = assEscape(word.text)
+    const wrap = lineLength > 0 && lineLength + 1 + text.length > wrapAt
+    const separator = lineLength === 0 ? '' : wrap ? '\\N' : ' '
+    lineLength = wrap ? text.length : lineLength + (lineLength > 0 ? 1 : 0) + text.length
+    parts.push(`{\\k${cs(end - word.startMs)}}${separator}${text}`)
+  })
+  return parts.join('')
 }
 
 /**
@@ -438,10 +493,20 @@ async function buildAudio(
  *
  * Several segments can come from the same file - one browser on air, then another,
  * then the first again - so each is cut out of its file by its own start time.
+ *
+ * Every cut is a short dissolve rather than a jump, and the dissolve costs the
+ * timeline nothing. A plain crossfade overlaps the two clips and makes the video
+ * shorter by its length at every cut, which would pull each later line of narration
+ * ahead of its picture. So the outgoing segment is first lengthened by exactly the
+ * dissolve, holding its last frame, and the dissolve is laid over that held frame:
+ * the incoming segment still starts on the very frame the clock says it does, it
+ * merely fades in over the last picture instead of replacing it.
+ *
+ * A segment shorter than two dissolves is joined with a hard cut - there is not
+ * enough of it to fade in and still be seen.
  */
-function joinSegments(segments: RawSegment[], fps: number): string {
-  const parts: string[] = []
-  const labels: string[] = []
+function joinSegments(segments: RawSegment[], fps: number, transitionSec: number): string {
+  const kept: Array<{ index: number; frames: number; startMs: number }> = []
   let clockMs = 0
   segments.forEach((segment, i) => {
     const firstFrame = Math.round((clockMs * fps) / 1000)
@@ -449,15 +514,72 @@ function joinSegments(segments: RawSegment[], fps: number): string {
     const frames = Math.round((clockMs * fps) / 1000) - firstFrame
     // Shorter than half a frame: none of it would reach the video.
     if (frames < 1) return
-    parts.push(
-      `[${i}:v]trim=start=${((segment.startMs ?? 0) / 1000).toFixed(3)},setpts=PTS-STARTPTS,` +
-        `fps=${fps},tpad=stop_mode=clone:stop_duration=2,` +
-        `trim=end_frame=${frames},setpts=PTS-STARTPTS,setsar=1[s${i}]`,
-    )
-    labels.push(`[s${i}]`)
+    kept.push({ index: i, frames, startMs: segment.startMs ?? 0 })
   })
-  return `${parts.join(';\n')};\n${labels.join('')}concat=n=${labels.length}:v=1:a=0[joined]`
+
+  const fadeFrames = Math.round(transitionSec * fps)
+  // Whether the join *into* segment k (k >= 1) dissolves.
+  const dissolves = kept.map((segment, k) => k > 0 && fadeFrames > 0 && segment.frames >= 2 * fadeFrames)
+
+  const parts = kept.map((segment, k) => {
+    // The frame rate is declared again before the hold. After trim it is unknown, and
+    // tpad then gives every cloned frame the same timestamp - which the next fps
+    // filter throws away as duplicates. Measured: the hold never arrived, xfade saw
+    // the first clip end on the cut, and every "dissolve" came out a hard cut.
+    const holdForNext = dissolves[k + 1] ? `,fps=${fps},tpad=stop_mode=clone:stop=${fadeFrames}` : ''
+    return (
+      `[${segment.index}:v]trim=start=${(segment.startMs / 1000).toFixed(3)},setpts=PTS-STARTPTS,` +
+      `fps=${fps},tpad=stop_mode=clone:stop_duration=2,` +
+      `trim=end_frame=${segment.frames},setpts=PTS-STARTPTS${holdForNext},` +
+      // xfade insists both inputs agree on format, time base and a declared constant
+      // frame rate - which trim and tpad leave unset ("current rate of 1/0 is
+      // invalid"). A closing fps filter declares it and fixes the time base in one go.
+      `setsar=1,format=yuv420p,fps=${fps}[s${segment.index}]`
+    )
+  })
+
+  let current = `s${kept[0]?.index}`
+  let framesSoFar = kept[0]?.frames ?? 0
+  kept.slice(1).forEach((segment, j) => {
+    const k = j + 1
+    const label = k === kept.length - 1 ? 'joined' : `j${k}`
+    // Timestamps are rebuilt from the frame count after every join. Measured on this
+    // ffmpeg (7.1): xfade restarts its output clock at zero where the transition
+    // begins, and the constant-rate filter further down then drops every frame that
+    // appears to run backwards - the finished video stopped dead at the first cut
+    // while its sound played on. The frame count is exact, so it is the clock.
+    // setpts forgets the declared frame rate, which the next xfade needs again; the
+    // fps filter restores it and, with the frames already on the grid, changes none.
+    const restamp = `setpts=N/(${fps}*TB),fps=${fps}`
+    parts.push(
+      dissolves[k]
+        ? `[${current}][s${segment.index}]xfade=transition=fade:` +
+            `duration=${(fadeFrames / fps).toFixed(3)}:offset=${(framesSoFar / fps).toFixed(3)},` +
+            `${restamp}[${label}]`
+        : `[${current}][s${segment.index}]concat=n=2:v=1:a=0,${restamp}[${label}]`,
+    )
+    current = label
+    framesSoFar += segment.frames
+  })
+  if (kept.length === 1) parts.push(`[${current}]null[joined]`)
+
+  return parts.join(';\n')
 }
+
+/** Length of the dissolve at every cut. Long enough to read as a cut, not a flash. */
+export const TRANSITION_SECONDS = 0.32
+
+/**
+ * What the captured pixels are: limited range, BT.601 - what Chromium's VP8
+ * screencast delivers, though the file does not say so.
+ *
+ * Written onto the finished file by the encoder, because otherwise the route
+ * through the graph decides it. A render with hard cuts came out tagged tv/bt470bg,
+ * one with dissolves untagged, and a player handed an untagged HD file usually
+ * assumes BT.709, which shifts the colours a little. Tagging inside the graph was
+ * tried and did not survive to the file; at the encoder it cannot be lost.
+ */
+const COLOUR_TAGS = ['-color_range', 'tv', '-colorspace', 'bt470bg']
 
 /**
  * The avatar as a round bubble in one corner of the picture.
@@ -666,7 +788,8 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
   const pictureLabel = hasAvatar ? 'picture' : 'vout'
   const graph = [
     joined
-      ? `${joinSegments(joined, OUTPUT_FPS)};\n[joined]${chain.join(',\n')}[${pictureLabel}]`
+      ? `${joinSegments(joined, OUTPUT_FPS, options.transitions === false ? 0 : TRANSITION_SECONDS)};` +
+        `\n[joined]${chain.join(',\n')}[${pictureLabel}]`
       : `[0:v]${chain.join(',\n')}[${pictureLabel}]`,
   ]
   if (hasAvatar) {
@@ -699,6 +822,7 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
     ...(audioFile ? ['-map', `${audioIndex}:a:0`] : []),
     '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20',
     '-pix_fmt', 'yuv420p', '-r', String(OUTPUT_FPS), '-fps_mode', 'cfr',
+    ...COLOUR_TAGS,
     ...(audioFile ? ['-c:a', 'aac', '-b:a', '192k'] : []),
     '-movflags', '+faststart',
     '-t', requiredSec.toFixed(3),
@@ -727,6 +851,26 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
       // Burned in, so they are there wherever the video is played - a soft track is
       // off by default in most players, and on a phone or in a feed there is nobody
       // to switch it on.
+      // Where each word falls, so the caption can follow the voice. Taken from the
+      // clips themselves, so it holds for any voice and any recording.
+      const words = await Promise.all(
+        options.cues.map(cue =>
+          cue.audioFile && fs.existsSync(cue.audioFile)
+            ? wordTimings(config, {
+                audioFile: cue.audioFile,
+                text: cue.text,
+                durationMs: cue.durationMs,
+              }).catch(err => {
+                log.warn('Word timings failed; that line is captioned whole', err)
+                return null
+              })
+            : Promise.resolve(null),
+        ),
+      )
+      const aligned = words.filter(w => w?.source === 'aligned').length
+      const estimated = words.filter(w => w?.source === 'estimated').length
+      log.info(`Caption timing: ${aligned} line(s) aligned to the audio, ${estimated} estimated`)
+
       const assFile = path.join(options.outputDir, 'captions.ass')
       fs.writeFileSync(
         assFile,
@@ -734,6 +878,7 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
           width: options.outputWidth,
           height: options.outputHeight,
           reserve,
+          words: words.map(w => w?.words ?? null),
         }),
         'utf8',
       )
@@ -744,6 +889,7 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
           '-i', outputFile,
           '-vf', `subtitles=${path.basename(assFile)}`,
           '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-pix_fmt', 'yuv420p',
+          ...COLOUR_TAGS,
           '-c:a', 'copy', '-movflags', '+faststart',
           subbed,
         ],
@@ -793,6 +939,28 @@ export async function verifyOutput(
     '-vf', 'scale=320:-2,signalstats,metadata=print:key=lavfi.signalstats.YAVG',
     '-f', 'null', '-',
   ]).catch(() => ({ stdout: '', stderr: '' }))
+
+  /**
+   * The picture and the sound must end together. A file's own duration is the longer
+   * of its streams, so a video whose picture stopped halfway still reports its full
+   * length - that is exactly how a render that froze at the first cut reported
+   * "67.7 s" and looked finished. Each stream is measured on its own.
+   */
+  const ffprobe = requireFfprobe(config)
+  const streamLength = async (stream: 'v:0' | 'a:0'): Promise<number | null> => {
+    const { stdout } = await run(ffprobe, [
+      '-v', 'error', '-select_streams', stream,
+      '-show_entries', 'stream=duration', '-of', 'csv=p=0', file,
+    ], 60_000).catch(() => ({ stdout: '', stderr: '' }))
+    const seconds = Number.parseFloat(stdout.trim())
+    return Number.isFinite(seconds) ? seconds : null
+  }
+  const [pictureSec, soundSec] = await Promise.all([streamLength('v:0'), streamLength('a:0')])
+  if (pictureSec !== null && soundSec !== null && pictureSec < soundSec - 0.5) {
+    problems.push(
+      `The picture stops at ${pictureSec.toFixed(1)}s while the sound runs to ${soundSec.toFixed(1)}s.`,
+    )
+  }
 
   const values = [...stderr.matchAll(/YAVG=([0-9.]+)/g)].map(m => Number(m[1]))
   if (values.length === 0) {

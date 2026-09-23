@@ -280,6 +280,21 @@ resolution and kept clear of the avatar's corner. The plain `tutorial.mp4` never
 them, so both versions exist. Without libass the same file gets a soft `mov_text`
 track instead, which most players leave switched off.
 
+The burned-in captions **follow the voice word by word**: the words still to come are
+grey and turn white as they are spoken. The timing is taken from the spoken clip
+itself by ElevenLabs' forced alignment, so it is exact for either voice source and for
+older recordings too, and cached so a re-render costs nothing. Without an ElevenLabs
+key it is estimated from the length of each word.
+
+### Cuts
+
+Every cut — to another browser, or across a wait that was left out — is a 0.32 s
+dissolve rather than a jump. It costs the timeline nothing: the outgoing clip is held
+on its last frame for the length of the dissolve, so the incoming one still starts on
+exactly the frame the session clock gives it and the narration stays on its picture.
+`tutorial_finish` with `transitions: false`, or `recompose.mjs --transitions off`,
+gives hard cuts.
+
 ### Keeping secrets out of the video
 
 The recorder captions each action on screen, including typed values — a
