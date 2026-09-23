@@ -473,7 +473,17 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
         subtitles: z
           .boolean()
           .default(true)
-          .describe('Also write a subtitle track from the narration.'),
+          .describe(
+            'Also write tutorial.subtitled.mp4 with the narration as captions - burned in ' +
+              'and lighting up word by word as they are spoken, where ffmpeg has libass.',
+          ),
+        transitions: z
+          .boolean()
+          .default(true)
+          .describe(
+            'A short dissolve at every cut - between browsers, and where a wait was left ' +
+              'out - instead of a jump. It costs the timeline nothing.',
+          ),
         musicGainDb: z
           .number()
           .min(-20)
@@ -583,6 +593,7 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           subtitles: args.subtitles,
           avatarClips,
           avatarIdle,
+          transitions: args.transitions,
           avatarCorner: session.options.avatarCorner,
           avatarSize: session.options.avatarSize,
         })
