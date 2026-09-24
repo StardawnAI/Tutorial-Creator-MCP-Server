@@ -27,6 +27,7 @@ import {
   verifyOutput,
 } from '../dist/lib/compose.js'
 import { estimateTimings } from '../dist/lib/words.js'
+import { fillTemplate, motionAvailability, renderMotion } from '../dist/lib/motion.js'
 import { spotlight, ripple, instruct, instructionLayout } from '../dist/lib/emphasis.js'
 import { probeVideo, run } from '../dist/lib/ffmpeg.js'
 import { musicPrompt } from '../dist/lib/music-gen.js'
@@ -463,6 +464,177 @@ async function avatarBubble(config) {
     idleAfter > 60 && idleAfter < 150,
     `corner luma ${idleAfter.toFixed(1)}`,
   )
+
+  fs.rmSync(dir, { recursive: true, force: true })
+}
+
+/**
+ * The opening, closing and chapter cards.
+ *
+ * The cards themselves come from HyperFrames, but what can go wrong is here: a card
+ * joined so that it shortens the timeline and pulls every line of narration ahead of
+ * its picture, a caption left at the recording's own time, a transparent card that
+ * arrives opaque. So the composition is checked with plain coloured stand-ins - red
+ * opening, blue closing, a half-transparent white chapter card - whose colours say
+ * exactly which one is on screen. A real HyperFrames card is rendered as well where
+ * the package is installed.
+ */
+async function motionCards(config) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'e2e-cards-'))
+  const make = (file, args) =>
+    run(config.ffmpegPath, ['-hide_banner', '-loglevel', 'error', '-y', ...args, file]).then(() => file)
+
+  const base = await make(path.join(dir, 'base.mp4'), [
+    '-f', 'lavfi', '-i', `color=c=0x303030:s=${OUT_W}x${OUT_H}:r=25:d=5`,
+    '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p',
+  ])
+  // Tagged BT.709, as HyperFrames writes its mp4s.
+  const card = colour => [
+    '-f', 'lavfi', '-i', `color=c=${colour}:s=1920x1080:r=25:d=2`,
+    '-vf', 'scale=out_color_matrix=bt709:out_range=tv,format=yuv420p',
+    '-c:v', 'libx264', '-preset', 'ultrafast',
+    '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709',
+  ]
+  const opening = await make(path.join(dir, 'opening.mp4'), card('red'))
+  const closing = await make(path.join(dir, 'closing.mp4'), card('blue'))
+  // VP9 with alpha, as the chapter cards are.
+  const chapter = await make(path.join(dir, 'chapter.webm'), [
+    '-f', 'lavfi', '-i', `color=c=white@0.5:s=1920x1080:r=25:d=1`,
+    '-vf', 'format=yuva420p', '-c:v', 'libvpx-vp9', '-pix_fmt', 'yuva420p', '-auto-alt-ref', '0',
+  ])
+  const speech = await speechStandIn(config, path.join(dir, 'line.m4a'), 1.5)
+
+  const options = {
+    rawVideo: base,
+    cues: [{ atMs: 1000, text: 'One line of narration', audioFile: speech, durationMs: 1500, voiceId: 'e2e' }],
+    outputDir: dir,
+    music: null,
+    musicGainDb: 0,
+    subtitles: true,
+    outputWidth: OUT_W,
+    outputHeight: OUT_H,
+    opening,
+    closing,
+    overlays: [{ file: chapter, atMs: 3000, durationMs: 1000 }],
+  }
+  const result = await compose(config, options)
+
+  // Mean Y, U and V of the frame at a moment: red has V high, blue U high, grey both
+  // at 128. Sampled with trim, for the reason given in avatarBubble.
+  const colourAt = async (file, seconds) => {
+    const { stderr } = await run(config.ffmpegPath, [
+      '-hide_banner', '-nostats', '-i', file,
+      '-vf', `trim=start=${seconds.toFixed(3)},signalstats,metadata=print`,
+      '-frames:v', '1', '-f', 'null', '-',
+    ])
+    const read = key => Number(stderr.match(new RegExp(`signalstats\\.${key}=([0-9.]+)`))?.[1] ?? NaN)
+    return { y: read('YAVG'), u: read('UAVG'), v: read('VAVG') }
+  }
+  const isGrey = c => Math.abs(c.u - 128) < 6 && Math.abs(c.v - 128) < 6
+  const show = c => `Y${c.y.toFixed(0)} U${c.u.toFixed(0)} V${c.v.toFixed(0)}`
+
+  check(
+    'opening + recording + closing, and not a frame less',
+    Math.abs(result.durationSec - 9.0) < 0.05 && result.openingSec === 2 && result.closingSec === 2,
+    `${result.durationSec.toFixed(2)}s = ${result.openingSec} + 5 + ${result.closingSec}`,
+  )
+
+  const [inOpening, midDissolve, inRecording, underCard, afterCard, inClosing] = await Promise.all([
+    colourAt(result.outputFile, 1.0),
+    colourAt(result.outputFile, 2.3),
+    colourAt(result.outputFile, 2.9),
+    colourAt(result.outputFile, 5.5),
+    colourAt(result.outputFile, 6.5),
+    colourAt(result.outputFile, 8.0),
+  ])
+  check('the video opens on the opening card', inOpening.v > 200, show(inOpening))
+  check(
+    'the opening dissolves into the recording',
+    midDissolve.v > 140 && midDissolve.v < 215,
+    show(midDissolve),
+  )
+  check('the recording follows the opening', isGrey(inRecording) && Math.abs(inRecording.y - 57) < 5, show(inRecording))
+  check(
+    'a chapter card lies over the picture at its moment, and lets it show through',
+    isGrey(underCard) && underCard.y > 120 && underCard.y < 180,
+    `${show(underCard)} - half white over grey`,
+  )
+  check('the chapter card is gone after its length', Math.abs(afterCard.y - 57) < 5, show(afterCard))
+  check('the video ends on the closing card', inClosing.u > 200, show(inClosing))
+
+  // Sound and captions move with the opening; the recording's own clock does not.
+  const ass = fs.readFileSync(path.join(dir, 'captions.ass'), 'utf8')
+  check(
+    'a caption lands at its line plus the opening',
+    /Dialogue: 0,0:00:03\.00,/.test(ass),
+    ass.match(/Dialogue: 0,([^,]+),/)?.[1] ?? 'no caption',
+  )
+  const [openingSound, lineSound] = await Promise.all([
+    loudnessOf(config, result.outputFile, 0.2, 1.6),
+    loudnessOf(config, result.outputFile, 3.0, 1.5),
+  ])
+  check(
+    'the narration is heard after the opening, not under it',
+    lineSound > -20 && !(openingSound > -50),
+    `line ${lineSound.toFixed(1)} LUFS, opening ${Number.isFinite(openingSound) ? openingSound.toFixed(1) : 'silent'}`,
+  )
+  const ended = await verifyOutput(config, result.outputFile)
+  check('picture and sound end together with the cards', ended.ok, ended.problems.join('; '))
+
+  // Without transitions the joins are cuts, on the exact frame.
+  const cut = await compose(config, { ...options, transitions: false, outputName: 'cut.mp4', subtitles: false })
+  const [lastOpening, firstRecording] = await Promise.all([
+    colourAt(cut.outputFile, 1.95),
+    colourAt(cut.outputFile, 2.0),
+  ])
+  check(
+    'with transitions off the opening cuts to the recording on frame 50',
+    lastOpening.v > 200 && isGrey(firstRecording),
+    `${show(lastOpening)} then ${show(firstRecording)}`,
+  )
+
+  check(
+    'card text is escaped and an empty slot vanishes',
+    fillTemplate('<b>{{title}}</b>{{missing}}', { title: ' A & <B> ' }) === '<b>A &amp; &lt;B&gt;</b>',
+    fillTemplate('<b>{{title}}</b>{{missing}}', { title: ' A & <B> ' }),
+  )
+
+  const availability = motionAvailability()
+  if (availability.ok) {
+    const rendered = await renderMotion(config, {
+      template: 'chapter',
+      durationSec: 1.6,
+      transparent: true,
+      values: { counter: '01 / 02', title: 'An e2e chapter', description: 'Rendered by HyperFrames.' },
+      outFile: path.join(dir, 'hf-chapter'),
+    })
+    const info = await probeVideo(config.ffprobePath, rendered)
+    // The alpha plane, read as a picture: clear at the start, the veil at full cover.
+    const alphaAt = async seconds => {
+      const { stderr } = await run(config.ffmpegPath, [
+        '-hide_banner', '-nostats',
+        ...(rendered.endsWith('.webm') ? ['-c:v', 'libvpx-vp9'] : []),
+        '-i', rendered,
+        '-vf', `trim=start=${seconds.toFixed(3)},format=yuva420p,alphaextract,signalstats,` +
+          'metadata=print:key=lavfi.signalstats.YAVG',
+        '-frames:v', '1', '-f', 'null', '-',
+      ])
+      return Number(stderr.match(/YAVG=([0-9.]+)/)?.[1] ?? NaN)
+    }
+    const [clear, covered] = await Promise.all([alphaAt(0), alphaAt(0.8)])
+    check(
+      'HyperFrames renders a chapter card of the asked length',
+      info.width === 1920 && Math.abs(info.durationSec - 1.6) < 0.1,
+      `${path.basename(rendered)}, ${info.width}x${info.height}, ${info.durationSec.toFixed(2)}s`,
+    )
+    check(
+      'the rendered card is transparent until its veil comes in',
+      clear < 30 && covered > 190,
+      `alpha ${clear.toFixed(0)} at the start, ${covered.toFixed(0)} at 0.8s`,
+    )
+  } else {
+    process.stdout.write(`  (no HyperFrames render checked: ${availability.reason})\n`)
+  }
 
   fs.rmSync(dir, { recursive: true, force: true })
 }
@@ -965,6 +1137,7 @@ async function main() {
 
   await twoBrowsers(config)
   await avatarBubble(config)
+  await motionCards(config)
   await botAndTwoFactor(config)
 
   const failed = results.filter(r => !r.ok)

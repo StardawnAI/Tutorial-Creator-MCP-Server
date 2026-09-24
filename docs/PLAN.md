@@ -314,9 +314,8 @@ Ordered by what a viewer would notice, against what it costs:
 - [x] **A final check that the picture and the sound end together.** The first
       dissolve build froze the picture at the first cut while the file still
       reported its full length. `verifyOutput` now measures each stream on its own.
-- [ ] **An opening and closing card with motion.** Today's chapter card is static
-      HTML in the capture. Either animate it in CSS (free, we already own the layer)
-      or render it separately - see Revideo below.
+- [~] **An opening and closing card with motion.** Today's chapter card is static
+      HTML in the capture. Done with HyperFrames rather than Revideo - see M16.
 - [ ] Decide whether the avatar should be able to appear cut out rather than in a
       bubble, for an opening where the person is over the whole frame
 
@@ -329,6 +328,36 @@ Ordered by what a viewer would notice, against what it costs:
 | **editly** | MIT | Declarative ffmpeg editing with gl-transitions and title layers. Solves what `xfade` and `drawtext` already solve for us, and it wants to own the whole render. Skip. |
 | **auto-editor** | Unlicense | Cuts silence automatically. We do not have that problem: the recorder cuts waits by the session clock, deliberately, and knows where every line is. Skip. |
 | **Whisper / faster-whisper** | MIT | Would give word timings from the audio. Unnecessary - both speech services hand them over for free with the audio they render. |
+
+## M16 - Motion design with HyperFrames
+
+Asked for by name: HeyGen's open-source HTML-to-video renderer (Apache-2.0), to
+make the tutorials look produced. Spiked first, on this machine: a templated 4.5 s
+intro rendered in 22 s, a transparent lower third came out as ProRes 4444 with
+alpha, and a whole 68 s recording pushed through it took 116 s but stayed exact
+(PSNR 53 dB against the source, loudness unchanged). So HyperFrames draws the
+motion pieces from templates, and the ffmpeg composition stays the backbone - it is
+measured, and rebuilding it in HTML would cost render time for nothing.
+
+- [ ] Brand the templates after stardawnai.com: colours, typeface, logo
+- [ ] `src/lib/motion.ts`: find the HyperFrames CLI, render a template with
+      variables, cache by content, telemetry off, fail soft
+      -> verify: a template renders to a file of the requested length
+- [ ] Templates in `assets/motion/`: opening, closing, chapter card. GSAP is taken
+      from `node_modules` at render time, not fetched from a CDN
+- [ ] Composition: the opening before the recording and the closing after it, both
+      dissolving, with the narration, captions and music moved along so they stay on
+      their pictures
+      -> verify: e2e asserts a line lands at intro length + its own offset
+- [ ] Chapter cards: `tutorial_chapter` records the moment instead of drawing the
+      static Playwright card, and the composition lays the animated card over it
+      -> verify: frames show the card at its moment and not outside it
+- [ ] Tool surface: `tutorial_finish` options, `recompose.mjs` flags, doctor line
+- [ ] Optional dependency: a machine without HyperFrames still renders, as today
+      -> verify: e2e with motion switched off still passes
+- [ ] Real run: the InStar recording re-rendered with opening, chapters and closing,
+      and the frames looked at
+- [ ] README, ARCHITECTURE, STATUS; commit and push
 
 ---
 

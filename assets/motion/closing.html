@@ -1,0 +1,139 @@
+<!doctype html>
+<!--
+  Closing card, played after the recording.
+
+  Filled in by src/lib/motion.ts: {{title}}, {{subtitle}}, {{eyebrow}} and
+  {{duration}} (seconds). It opens on a still frame, because the composition
+  dissolves into it from the last frame of the recording, and it ends in black.
+-->
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" />
+    <link rel="stylesheet" href="brand.css" />
+    <script src="gsap.min.js"></script>
+    <style>
+      #centre {
+        position: absolute;
+        inset: 0 0 60px 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+      #tick {
+        width: 132px;
+        height: 132px;
+        margin-bottom: 44px;
+      }
+      #tick circle,
+      #tick path {
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      #eyebrow {
+        margin-bottom: 22px;
+      }
+      #title {
+        font-size: 104px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        line-height: 1.04;
+        max-width: 1600px;
+      }
+      #subtitle {
+        margin-top: 30px;
+        font-size: 40px;
+        font-weight: 500;
+        color: var(--muted);
+        max-width: 1400px;
+        line-height: 1.3;
+      }
+      #footer {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 88px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 18px;
+      }
+      #site {
+        font-size: 26px;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+      #black {
+        position: absolute;
+        inset: 0;
+        background: #000;
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="closing" data-start="0" data-duration="{{duration}}" data-width="1920" data-height="1080">
+      <div class="clip" data-start="0" data-duration="{{duration}}" data-track-index="0">
+        <div class="ground"></div>
+        <div id="glowCyan" class="glow cyan"></div>
+        <div id="glowMagenta" class="glow magenta"></div>
+        <div class="grain"></div>
+      </div>
+
+      <div class="clip" data-start="0" data-duration="{{duration}}" data-track-index="1">
+        <div id="centre">
+          <svg id="tick" viewBox="0 0 132 132">
+            <circle id="ring" cx="66" cy="66" r="60" stroke="url(#accent)" stroke-width="6" />
+            <path id="check" d="M40 68 L58 86 L94 48" stroke="#01fff4" stroke-width="8" />
+            <defs>
+              <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#01fff4" />
+                <stop offset="1" stop-color="#ff1178" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <div id="eyebrow" class="eyebrow optional">{{eyebrow}}</div>
+          <div class="mask"><h1 id="title">{{title}}</h1></div>
+          <div id="subtitle" class="optional">{{subtitle}}</div>
+        </div>
+        <div id="footer">
+          <img id="brand" class="logo" src="stardawn-logo.png" alt="Stardawn" />
+          <div id="site">stardawnai.com</div>
+        </div>
+        <div id="black"></div>
+      </div>
+    </div>
+
+    <script>
+      const duration = Number(document.getElementById('root').dataset.duration)
+
+      for (const id of ['ring', 'check']) {
+        const shape = document.getElementById(id)
+        const length = shape.getTotalLength()
+        shape.style.strokeDasharray = `${length}`
+        shape.style.strokeDashoffset = `${length}`
+      }
+
+      const tl = gsap.timeline({ paused: true })
+      tl.fromTo('#glowCyan', { opacity: 0.4 }, { opacity: 1, x: 80, y: 40, duration, ease: 'none' }, 0)
+        .fromTo('#glowMagenta', { opacity: 0.4 }, { opacity: 1, x: -60, y: -30, duration, ease: 'none' }, 0)
+        .to('#ring', { strokeDashoffset: 0, duration: 0.9, ease: 'power2.inOut' }, 0.35)
+        .to('#check', { strokeDashoffset: 0, duration: 0.5, ease: 'power3.out' }, 0.95)
+        .fromTo('#tick', { scale: 0.85, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.6, ease: 'back.out(1.7)' }, 0.3)
+        .fromTo('#eyebrow', { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }, 0.7)
+        .fromTo('#title', { yPercent: 105 }, { yPercent: 0, duration: 0.9, ease: 'expo.out' }, 0.8)
+        .fromTo('#subtitle', { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }, 1.2)
+        .fromTo('#footer', { opacity: 0 }, { opacity: 1, duration: 0.8, ease: 'power2.out' }, 1.5)
+        .to('#black', { opacity: 1, duration: 0.7, ease: 'power1.in' }, Math.max(2, duration - 0.7))
+
+      window.__timelines = window.__timelines || {}
+      window.__timelines['closing'] = tl
+      tl.seek(0)
+    </script>
+  </body>
+</html>

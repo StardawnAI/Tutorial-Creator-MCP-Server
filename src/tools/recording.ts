@@ -12,6 +12,7 @@ import { RecordingSession, getSession, requireSession, setSession } from '../lib
 import { synthesise, estimateSpokenMs, listVoices } from '../lib/tts.js'
 import { compose, verifyOutput, AVATAR_CORNER, AVATAR_SIZE } from '../lib/compose.js'
 import { canGenerateMusic, generateMusic } from '../lib/music-gen.js'
+import { motionAvailability, renderCards } from '../lib/motion.js'
 import {
   canRenderAvatar,
   listLooks,
@@ -181,6 +182,15 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
             'Move the camera in on whatever is being acted on, so small controls are legible. ' +
               'The move is applied after recording, so the app itself is never scaled.',
           ),
+        motion: z
+          .boolean()
+          .default(true)
+          .describe(
+            'Animated cards in the Stardawn look, rendered with HyperFrames when the video is ' +
+              'finished: an opening with the title, a closing, and tutorial_chapter as an ' +
+              'animated card over the picture. Without HyperFrames installed the video is ' +
+              'made as before, and the start message says so.',
+          ),
       },
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
     },
@@ -266,6 +276,9 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
         }
       }
 
+      const motion = motionAvailability()
+      const motionOn = args.motion && motion.ok
+
       try {
         const session = await RecordingSession.start(config, {
           title: args.title,
@@ -293,6 +306,7 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           quality: 96,
           emphasis: args.emphasis,
           autoZoom: args.autoZoom,
+          motion: motionOn,
         })
         setSession(session)
 
@@ -309,6 +323,9 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
         }
         if (args.music !== false && !music) {
           warnings.push('No background music file was found in assets/music.')
+        }
+        if (args.motion && !motion.ok) {
+          warnings.push(`No animated cards in this video - ${motion.reason}`)
         }
         warnings.push(...avatarNotes)
 
@@ -327,6 +344,7 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
             ...(avatarLook
               ? [`Avatar: "${avatarLook.name}", ${args.avatarCorner}, rendered when finished.`]
               : []),
+            ...(motionOn ? ['Cards: animated opening, chapters and closing, rendered when finished.'] : []),
             `Output folder: ${session.outputDir}`,
             ...warnings.map(w => `Note: ${w}`),
           ].join('\n'),
@@ -441,12 +459,21 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
     {
       title: 'Show a chapter card',
       description:
-        'Displays a centred title card over a blurred backdrop. Good for opening the video ' +
-        'or separating major steps.',
+        'Shows a title card that separates major steps. With motion on (tutorial_start) it ' +
+        'is an animated card laid over the picture when the video is finished, numbered ' +
+        '"02 / 04" when there are several; otherwise a static card over a blurred backdrop. ' +
+        'The recording waits for its length either way. With motion on, the video already ' +
+        'opens with a title card, so do not start with a chapter.',
       inputSchema: {
         title: z.string().min(1).describe('Heading shown large.'),
         description: z.string().optional().describe('Smaller line beneath the heading.'),
-        durationMs: z.number().int().min(500).max(10_000).default(2200),
+        durationMs: z
+          .number()
+          .int()
+          .min(1500)
+          .max(10_000)
+          .default(3000)
+          .describe('How long the card is on screen. Three seconds reads a two-line card.'),
       },
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
     },
@@ -455,7 +482,11 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
         const session = requireSession()
         await session.showChapter(args.title, args.description, args.durationMs)
         await session.page.waitForTimeout(args.durationMs)
-        return text(`Chapter card shown: "${args.title}".`)
+        return text(
+          session.options.motion
+            ? `Chapter "${args.title}" marked; its card is laid in when the video is rendered.`
+            : `Chapter card shown: "${args.title}".`,
+        )
       } catch (err) {
         return failure((err as Error).message)
       }
@@ -483,6 +514,32 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           .describe(
             'A short dissolve at every cut - between browsers, and where a wait was left ' +
               'out - instead of a jump. It costs the timeline nothing.',
+          ),
+        opening: z
+          .boolean()
+          .default(true)
+          .describe('With motion on: open with an animated card showing the title.'),
+        openingSubtitle: z
+          .string()
+          .optional()
+          .describe(
+            'The line under the title on the opening card, e.g. "InStar · for business ' +
+              'accounts". Left out, it gives the running time.',
+          ),
+        closing: z
+          .boolean()
+          .default(true)
+          .describe('With motion on: end with an animated card that fades to black.'),
+        closingTitle: z
+          .string()
+          .optional()
+          .describe('Heading of the closing card. Left out: "That\'s all it takes".'),
+        closingText: z
+          .string()
+          .optional()
+          .describe(
+            'One sentence under it saying what the viewer can now do, e.g. "Your Instagram ' +
+              'account now answers through InStar."',
           ),
         musicGainDb: z
           .number()
@@ -581,6 +638,21 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           }
         }
 
+        // The cards, rendered from the recording's own title and chapters. A card that
+        // fails is left out and named below; the video still goes out.
+        let cards: Awaited<ReturnType<typeof renderCards>> | null = null
+        if (session.options.motion) {
+          const lastCueEnd = session.cues.reduce((max, c) => Math.max(max, c.atMs + c.durationMs), 0)
+          cards = await renderCards(config, {
+            title: session.title,
+            recordingSec: Math.max(videoMs, lastCueEnd + 1200) / 1000,
+            chapters: session.chapters,
+            outDir: path.join(session.outputDir, 'cards'),
+            opening: args.opening ? { subtitle: args.openingSubtitle } : null,
+            closing: args.closing ? { title: args.closingTitle, text: args.closingText } : null,
+          })
+        }
+
         const result = await compose(config, {
           rawVideo: segments,
           cues: session.cues,
@@ -596,6 +668,9 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           transitions: args.transitions,
           avatarCorner: session.options.avatarCorner,
           avatarSize: session.options.avatarSize,
+          opening: cards?.opening,
+          closing: cards?.closing,
+          overlays: cards?.overlays,
         })
 
         const check = await verifyOutput(config, result.outputFile)
@@ -607,11 +682,17 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           `${result.durationSec.toFixed(1)}s, ${result.width}x${result.height}, ` +
             `${result.cueCount} narration lines, audio ${result.hasAudio ? 'mixed' : 'absent'}` +
             `${result.zoomCount > 0 ? `, ${result.zoomCount} camera moves` : ''}` +
-            `${result.avatarCount > 0 ? `, ${result.avatarCount} avatar bubbles` : ''}.`,
+            `${result.avatarCount > 0 ? `, ${result.avatarCount} avatar bubbles` : ''}` +
+            `${result.openingSec > 0 ? ', an opening card' : ''}` +
+            `${result.overlayCount > 0 ? `, ${result.overlayCount} chapter cards` : ''}` +
+            `${result.closingSec > 0 ? ', a closing card' : ''}.`,
           `Recorded ${(videoMs / 1000).toFixed(1)}s across ${session.frameCount} frames` +
             (segments.length > 1 ? `, joined from ${segments.length} segments.` : '.'),
           ...(musicNote ? [musicNote] : []),
           ...(avatarNote ? [avatarNote] : []),
+          ...(cards?.failures.length
+            ? [`Left out, because they could not be rendered: ${cards.failures.join('; ')}`]
+            : []),
         ]
         if (!check.ok) {
           lines.push('', 'Warning - the finished video looks wrong:')

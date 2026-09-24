@@ -31,6 +31,7 @@ import type { Config } from './env.js'
 import { slugify } from './env.js'
 import { launchBrowser } from './browser.js'
 import type { AvatarCorner } from './compose.js'
+import type { ChapterMark } from './motion.js'
 import { Recorder } from './recorder.js'
 import { boxContains, zoomForBox, MIN_USEFUL_ZOOM, type ZoomEvent } from './zoom.js'
 import { log } from './logger.js'
@@ -91,6 +92,11 @@ export interface SessionOptions {
   emphasis: boolean
   /** Move the camera in on whatever is being acted on. */
   autoZoom: boolean
+  /**
+   * Opening, closing and chapter cards rendered with HyperFrames when the video is
+   * finished. Decided at the start, because it changes how a chapter is recorded.
+   */
+  motion?: boolean
 }
 
 export interface SessionSummary {
@@ -145,6 +151,8 @@ export class RecordingSession {
   readonly options: SessionOptions
   readonly cues: NarrationCue[] = []
   readonly zoomEvents: ZoomEvent[] = []
+  /** Chapters to be laid over the video as animated cards, when motion is on. */
+  readonly chapters: ChapterMark[] = []
 
   /** The camera move currently held open, with the region it is showing. */
   private openZoom: {
@@ -238,7 +246,16 @@ export class RecordingSession {
     return frames
   }
 
-  async showChapter(title: string, description?: string, durationMs?: number): Promise<void> {
+  /**
+   * A chapter card. With motion on, only the moment is noted and the animated card is
+   * laid over the video when it is finished - drawing the static one into the capture
+   * as well would leave it showing through the new one.
+   */
+  async showChapter(title: string, description: string | undefined, durationMs: number): Promise<void> {
+    if (this.options.motion) {
+      this.chapters.push({ atMs: this.videoTimeMs, durationMs, title, description })
+      return
+    }
     await this.active.recorder.showChapter(title, description, durationMs)
   }
 
@@ -513,6 +530,7 @@ export class RecordingSession {
           segments,
           cues: this.cues,
           zoomEvents: this.zoomEvents,
+          chapters: this.chapters,
         },
         null,
         2,
