@@ -28,6 +28,8 @@ export interface Paths {
   ttsCache: string
   /** Cache for rendered avatar clips, keyed by the audio they speak. */
   avatarCache: string
+  /** Cache for rendered motion cards, keyed by template and text. */
+  motionCache: string
 }
 
 export interface Config {
@@ -204,6 +206,7 @@ export function loadConfig(): Config {
     assets,
     ttsCache: path.join(home, 'tmp', 'tts-cache'),
     avatarCache: path.join(home, 'tmp', 'avatar-cache'),
+    motionCache: path.join(home, 'tmp', 'motion-cache'),
   }
 
   for (const dir of Object.values(paths)) {

@@ -18,16 +18,23 @@ export interface RunResult {
  * filtergraph, where a Windows path needs its drive colon and its backslashes
  * escaped twice over; running in the file's own directory and naming it plainly
  * sidesteps the whole business.
+ *
+ * `env` is added to this process's environment, not a replacement for it.
  */
 export function run(
   binary: string,
   args: string[],
   timeoutMs = 15 * 60_000,
   cwd?: string,
+  env?: Record<string, string>,
 ): Promise<RunResult> {
   return new Promise((resolve, reject) => {
     log.debug(`${binary} ${args.map(a => (a.includes(' ') ? `"${a}"` : a)).join(' ')}`)
-    const child = spawn(binary, args, { windowsHide: true, cwd })
+    const child = spawn(binary, args, {
+      windowsHide: true,
+      cwd,
+      env: env ? { ...process.env, ...env } : undefined,
+    })
 
     let stdout = ''
     let stderr = ''

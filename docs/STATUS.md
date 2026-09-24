@@ -5,6 +5,63 @@ Newest entry on top.
 
 ---
 
+## 2026-09-24 - Motion cards with HyperFrames (M16)
+
+Asked for by name: HeyGen's open-source HTML-to-video renderer, to make the tutorials
+look produced.
+
+### Decided
+
+- **HyperFrames draws the cards; ffmpeg stays the backbone.** Spiked first: a whole
+  68 s recording through HyperFrames took 116 s and came out exact, but gained
+  nothing the measured ffmpeg composition does not already do. A card takes 15-30 s
+  once and is cached.
+- **Branding from stardawnai.com's own stylesheet**, not invented: navy #041422, cyan
+  #01fff4, magenta #ff1178, Satoshi, the white wordmark. Satoshi is loaded from
+  Fontshare at render time rather than committed (its licence does not allow
+  redistribution) and falls back to Segoe UI offline.
+- **Chapter cards replace the static Playwright card** when motion is on; drawing both
+  would show the old one through the new one. So motion is decided at
+  `tutorial_start`, and a chapter only notes its moment.
+- **Chapter cards are VP9 WebM with alpha**, not ProRes: 0.25 MB against 68 MB, 47 dB
+  apart. Needs `-c:v libvpx-vp9` on the input, or the alpha is silently dropped.
+- **The cards always dissolve** (0.6 s); `transitions` keeps its meaning of the cuts
+  inside a recording.
+- The running time on the opening is rounded, not rounded up - 77 s is "about 1
+  minute". The first demo said "about 2".
+- `tutorial_chapter` now defaults to 3 s (was 2.2): an animated card needs about a
+  second to arrive and the rest to be read.
+
+### Found on the way
+
+- `fps` after a `scale` drops the last frame of its stream on ffmpeg 7.1 - the
+  end-of-stream time it receives is the last frame's start. A 50-frame card arrived as
+  49 and a `concat` join put the recording a frame early. Joins now give every piece
+  spare frames and let the dissolve offsets and `-t` do the placing. The cuts inside a
+  recording were checked for the same fault and are exact (150 frames, changes at 50
+  and 100): they scale only after joining.
+- A stand-in card made with `color=c=white@0.5` came out fully opaque; the alpha has
+  to be set on RGBA (`colorchannelmixer=aa=0.5`). The pipeline was right, the test was
+  wrong.
+- ffmpeg 7.1 converts between BT.709 and BT.601 on its own when the output is tagged;
+  the explicit `colorspace` step is kept for older builds. Measured on a solid brand
+  cyan: (0, 254, 240) for (1, 255, 244).
+
+### Verified
+
+- `node scripts/e2e.mjs` 73/73, `node scripts/handshake.mjs` 11/11 with 22 tools,
+  `npm run doctor` reports "HyperFrames 0.8.68 - chapter cards as VP9 WebM"
+- InStar re-rendered with an opening, two chapters and a closing: 1918 frames =
+  113 + 1692 + 113, 76.72 s of picture and of sound; frames looked at. File:
+  `recordings/2026-09-13T11-18-20_instar-connect-an-instagram-business-account/instar-motion.subtitled.mp4`
+
+### Next
+
+- Lower thirds per step were considered and left out: the instruction card in the
+  margin (M10) already says what each step is for, and a second label would repeat it.
+
+---
+
 ## 2026-09-24 - Captions that follow the voice, and cuts that dissolve
 
 The two quickest wins from the M15 research, both built on what the installed ffmpeg

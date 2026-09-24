@@ -41,6 +41,10 @@ measured and rejected — are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
   fetches a second copy and warns instead)
 - An ElevenLabs API key for narration (optional: without it, recordings are still
   paced correctly and subtitles are written, they are just silent)
+- For the animated opening, chapter and closing cards: Node.js 22+ and the optional
+  dependencies `hyperframes` and `gsap`, which `npm install` fetches. HyperFrames
+  renders with a Chrome it finds on the machine or downloads once. Without them the
+  video is made exactly as before, without the cards
 
 ## Setup
 
@@ -144,7 +148,7 @@ finished video.
 | `tutorial_start` | Begin recording — title, starting URL, profile, resolution; `fresh` for an empty browser, `locale` for the page language |
 | `tutorial_switch` | Cut to another browser with its own logins, opening it on first use |
 | `tutorial_say` | Speak a line; the recording waits for it |
-| `tutorial_chapter` | Title card over a blurred backdrop |
+| `tutorial_chapter` | Chapter card - animated and numbered with motion on, otherwise static over a blurred backdrop |
 | `tutorial_goto` | Navigate |
 | `tutorial_click` | Click, after ringing the target and moving the camera to it; `optional` for prompts that only sometimes appear |
 | `tutorial_type` | Type into a field; mark `sensitive` for codes and passwords, `totpFrom` for a two-factor code |
@@ -295,6 +299,34 @@ exactly the frame the session clock gives it and the narration stays on its pict
 `tutorial_finish` with `transitions: false`, or `recompose.mjs --transitions off`,
 gives hard cuts.
 
+### Opening, chapter and closing cards
+
+With `motion` on in `tutorial_start` (the default), the video gets animated cards in
+the Stardawn look — the navy, cyan and magenta of stardawnai.com, set in Satoshi:
+
+- an **opening** with the title and a line under it (`openingSubtitle` in
+  `tutorial_finish`; left out, it gives the running time),
+- every **`tutorial_chapter`** as an animated card laid over the picture, numbered
+  "02 / 04" when there are several, with the page still faintly visible under it,
+- a **closing** that confirms what was done (`closingTitle`, `closingText`) and
+  fades to black.
+
+They are rendered with [HyperFrames](https://github.com/heygen-com/hyperframes),
+HeyGen's open-source HTML-to-video renderer (Apache-2.0), from the templates in
+`assets/motion/`. The recording itself never goes through it — the ffmpeg composition
+joins the cards in, with a 0.6 s dissolve, and moves narration, captions and music
+along by the opening's length so they stay on their pictures to the frame.
+
+A card takes 15 to 30 seconds to render the first time and nothing after that: they
+are cached by their text. Rendering runs locally and needs no HeyGen account; the
+anonymous usage statistics HyperFrames sends by default are switched off. If a card
+fails, the video is still delivered without it and `tutorial_finish` says which one.
+
+To change the look, edit `assets/motion/brand.css` and the three templates. An older
+recording gets cards with `scripts/recompose.mjs <folder>` — they are on by default
+there too — and `--chapter "<ms>|<title>|<description>"` adds a chapter to one that
+was recorded without.
+
 ### Keeping secrets out of the video
 
 The recorder captions each action on screen, including typed values — a
@@ -331,6 +363,7 @@ Each recording gets its own folder under `recordings/`:
   captions.srt
   timeline.json            every narration cue and its timestamp
   audio/000.mp3 …          the rendered narration clips
+  cards/                   the opening, chapter and closing cards, when motion is on
 ```
 
 Narration is cached by content, so re-recording after fixing one sentence only pays
@@ -345,5 +378,7 @@ node scripts/e2e.mjs
 Records a short tutorial against a built-in test page and asserts the result:
 frame rate, duration, audio/video alignment, listening level, that the music is
 audible where nobody is speaking and the voice sits clearly above it, that the camera
-measurably magnifies the picture during a move and leaves it untouched before one, and
-that the picture is neither black nor frozen.
+measurably magnifies the picture during a move and leaves it untouched before one,
+that the opening and closing cards sit exactly before and after the recording with
+the narration moved along with them, and that the picture is neither black nor
+frozen.

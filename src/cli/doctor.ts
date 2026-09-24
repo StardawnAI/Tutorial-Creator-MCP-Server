@@ -9,6 +9,7 @@ import { loadConfig } from '../lib/env.js'
 import { probeDuration, run } from '../lib/ffmpeg.js'
 import { listVoices, looksLikeApiKey } from '../lib/tts.js'
 import { remainingBalance } from '../lib/avatar.js'
+import { motionAvailability, transparentCardFormat } from '../lib/motion.js'
 
 const TICK = '  ok  '
 const CROSS = ' FAIL '
@@ -131,6 +132,18 @@ async function main(): Promise<void> {
     }
   } else {
     lines.push(`[${WARN}] avatar    no HEYGEN_API_KEY - recordings have no avatar`)
+  }
+
+  // HyperFrames, for the animated opening, chapter and closing cards. Optional.
+  const motion = motionAvailability()
+  if (motion.ok) {
+    const transparent = await transparentCardFormat(config)
+    lines.push(
+      `[${TICK}] cards     HyperFrames ${motion.version} - chapter cards as ` +
+        (transparent === 'webm' ? 'VP9 WebM' : 'ProRes, since this ffmpeg has no libvpx'),
+    )
+  } else {
+    lines.push(`[${WARN}] cards     none - ${motion.reason}`)
   }
 
   // Music

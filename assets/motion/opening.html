@@ -1,0 +1,116 @@
+<!doctype html>
+<!--
+  Opening card, played before the recording.
+
+  Filled in by src/lib/motion.ts: {{title}}, {{subtitle}}, {{eyebrow}} and
+  {{duration}} (seconds). The last half second holds still on purpose - the
+  composition dissolves from it into the first frame of the recording.
+-->
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" />
+    <link rel="stylesheet" href="brand.css" />
+    <script src="gsap.min.js"></script>
+    <style>
+      #block {
+        position: absolute;
+        left: 140px;
+        top: 40px;
+        bottom: 0;
+        width: 1560px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      #eyebrow {
+        margin-bottom: 30px;
+      }
+      #title {
+        font-size: 112px;
+        font-weight: 700;
+        line-height: 1.04;
+        letter-spacing: -0.03em;
+      }
+      #rule {
+        width: 360px;
+        margin: 44px 0 38px;
+      }
+      #subtitle {
+        font-size: 40px;
+        font-weight: 500;
+        color: var(--muted);
+      }
+      #brand {
+        position: absolute;
+        left: 140px;
+        top: 96px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="opening" data-start="0" data-duration="{{duration}}" data-width="1920" data-height="1080">
+      <div class="clip" data-start="0" data-duration="{{duration}}" data-track-index="0">
+        <div class="ground"></div>
+        <div id="glowCyan" class="glow cyan"></div>
+        <div id="glowMagenta" class="glow magenta"></div>
+        <svg class="lines" viewBox="0 0 1920 1080">
+          <path id="lineA" stroke="rgba(1,255,244,0.35)" d="M1980 250 L1480 250 L1380 350 L1380 610 L1250 740" />
+          <path id="lineB" stroke="rgba(255,17,120,0.3)" d="M1980 820 L1640 820 L1560 900 L1560 1140" />
+        </svg>
+        <div class="grain"></div>
+      </div>
+
+      <div class="clip" data-start="0" data-duration="{{duration}}" data-track-index="1">
+        <img id="brand" class="logo" src="stardawn-logo.png" alt="Stardawn" />
+        <div id="block">
+          <div id="content">
+            <div id="eyebrow" class="eyebrow optional">{{eyebrow}}</div>
+            <div class="mask"><h1 id="title">{{title}}</h1></div>
+            <div id="rule" class="rule"></div>
+            <div id="subtitle" class="optional">{{subtitle}}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const duration = Number(document.getElementById('root').dataset.duration)
+
+      // A long title steps down in size until it fits on two lines.
+      const title = document.getElementById('title')
+      let size = 112
+      while (title.scrollHeight > size * 1.04 * 2 + 4 && size > 64) {
+        size -= 4
+        title.style.fontSize = `${size}px`
+      }
+
+      for (const id of ['lineA', 'lineB']) {
+        const path = document.getElementById(id)
+        const length = path.getTotalLength()
+        path.style.strokeDasharray = `${length}`
+        path.style.strokeDashoffset = `${length}`
+      }
+
+      const tl = gsap.timeline({ paused: true })
+      tl.fromTo('#glowCyan', { scale: 0.7, opacity: 0 }, { scale: 1, opacity: 1, duration: 1.6, ease: 'power2.out' }, 0)
+        .fromTo('#glowMagenta', { scale: 0.7, opacity: 0 }, { scale: 1, opacity: 1, duration: 1.8, ease: 'power2.out' }, 0.15)
+        .to('#glowCyan', { x: 60, y: 30, duration, ease: 'none' }, 0)
+        .to('#glowMagenta', { x: -50, y: -20, duration, ease: 'none' }, 0)
+        .to('#lineA', { strokeDashoffset: 0, duration: 1.4, ease: 'power2.inOut' }, 0.2)
+        .to('#lineB', { strokeDashoffset: 0, duration: 1.2, ease: 'power2.inOut' }, 0.5)
+        .fromTo('#brand', { opacity: 0, y: -10 }, { opacity: 1, y: 0, duration: 0.7, ease: 'power2.out' }, 0.2)
+        .fromTo('#eyebrow', { opacity: 0, x: -24 }, { opacity: 1, x: 0, duration: 0.6, ease: 'power3.out' }, 0.3)
+        .fromTo('#title', { yPercent: 105 }, { yPercent: 0, duration: 0.9, ease: 'expo.out' }, 0.45)
+        .fromTo('#rule', { scaleX: 0 }, { scaleX: 1, duration: 0.9, ease: 'expo.inOut' }, 0.8)
+        .fromTo('#subtitle', { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }, 1.15)
+        // A slow push while the card holds, so it never sits dead still.
+        .fromTo('#content', { scale: 1 }, { scale: 1.025, duration, ease: 'none', transformOrigin: 'left center' }, 0)
+
+      window.__timelines = window.__timelines || {}
+      window.__timelines['opening'] = tl
+      tl.seek(0)
+    </script>
+  </body>
+</html>

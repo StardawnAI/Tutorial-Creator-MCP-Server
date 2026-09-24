@@ -330,3 +330,45 @@ for the page to change, and cuts the wait out of the finished video. The window 
 to come to the person: on the run this was built for, the check was answered — in the
 user's own Chrome, in a different window, while the recorder waited for one nobody
 had looked at.
+
+---
+
+## 10. Motion cards (HyperFrames)
+
+The opening, the closing and the chapter cards are HTML pages animated with GSAP and
+rendered by [HyperFrames](https://github.com/heygen-com/hyperframes), which loads a
+page in headless Chrome, asks it for every frame in turn and encodes them — exact to
+the frame and the same on every run. `src/lib/motion.ts` fills a template from
+`assets/motion/` and renders it; the composition joins the result in.
+
+**Only the cards go through HyperFrames, not the recording.** Measured on this
+machine: a 4.5 s card renders in 15–28 s, a cost the cache makes a one-off. A whole
+68 s recording pushed through HyperFrames as a `<video>` took 116 s and came out
+exact (PSNR 53 dB against its source, loudness unchanged) — so it works, and buys
+nothing the ffmpeg composition does not already do, which is measured and documented
+above. Rebuilding camera moves, loudness and the avatar in HTML would only move them
+somewhere they are not yet verified.
+
+**The opening moves the clock.** Camera moves, avatar bubbles and chapter cards are
+laid onto the recording on its own clock; the opening is joined in front afterwards,
+and narration, captions and music are moved along by its length. The joins are
+dissolves that cost the timeline nothing, the same trick `joinSegments` uses for the
+cuts inside a recording: the outgoing picture is held through the dissolve.
+
+**No join counts frames.** ffmpeg 7.1's `fps` filter, anywhere after a scale, drops
+the last frame of its stream — it is told the end of the stream is the last frame's
+start. A card cut to 50 frames arrived as 49 and a join by `concat` put everything
+after it a frame early. So each piece gets spare frames, the dissolve offsets alone
+place the pieces, and `-t` cuts the end. The InStar render came out at 1918 frames:
+113 + 1692 + 113. For the same reason the cards always dissolve; `transitions` only
+governs the cuts inside the recording.
+
+**Chapter cards are transparent VP9, not ProRes.** HyperFrames writes alpha as ProRes
+4444 in a .mov or VP9 in a .webm. For a three-second card with a full-frame veil the
+ProRes was 68 MB and the WebM 0.25 MB, and laid over the same picture the two agree
+to 47 dB. The one catch: ffmpeg's own VP9 decoder discards the alpha, so these inputs
+are opened with `-c:v libvpx-vp9`, and a build without libvpx gets ProRes.
+
+**Colours.** HyperFrames' mp4 is BT.709; the capture and the finished file are BT.601.
+The opening and closing are converted on the way in — a solid #01fff4 field comes out
+at (0, 254, 240). The transparent cards are untagged and measure as BT.601 already.

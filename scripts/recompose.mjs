@@ -17,6 +17,15 @@
  *   --avatar-clips <dir>   use clips already on disk instead of rendering new ones,
  *                          named 000.mp4, 001.mp4, ... in narration order, with an
  *                          optional idle.mp4 for the gaps
+ *   --cards off            no animated opening, chapter or closing cards; they are on
+ *                          by default wherever HyperFrames is installed
+ *   --subtitle <text>      the line under the title on the opening card
+ *   --closing-title <t>    heading of the closing card
+ *   --closing-text <t>     the sentence under it
+ *   --chapter "<ms>|<title>|<description>"
+ *                          add a chapter card at that moment of the recording; repeat
+ *                          the flag for several. A recording made with motion on
+ *                          already carries its chapters
  *
  * Every recording keeps its captures, narration clips and timeline.json, so a fix to
  * the mix, different music, or an avatar added afterwards reaches an existing video in
@@ -31,6 +40,7 @@ import { loadConfig, resolveMusicTrack } from '../dist/lib/env.js'
 import { compose, verifyOutput } from '../dist/lib/compose.js'
 import { generateMusic } from '../dist/lib/music-gen.js'
 import { renderAvatarClips, renderIdleClip, resolveLook } from '../dist/lib/avatar.js'
+import { motionAvailability, renderCards } from '../dist/lib/motion.js'
 
 /**
  * Find a file the timeline refers to, even though the recording has moved.
@@ -50,12 +60,16 @@ function locate(file, dir) {
   return file
 }
 
-/** `--flag value` pairs, and the positional arguments with them removed. */
+/**
+ * `--flag value` pairs, and the positional arguments with them removed. `--chapter`
+ * may be given more than once, so its values are collected.
+ */
 function parseArgs(argv) {
-  const flags = {}
+  const flags = { chapter: [] }
   const positional = []
   for (let i = 0; i < argv.length; i++) {
-    if (argv[i].startsWith('--')) flags[argv[i].slice(2)] = argv[++i]
+    if (argv[i] === '--chapter') flags.chapter.push(argv[++i])
+    else if (argv[i].startsWith('--')) flags[argv[i].slice(2)] = argv[++i]
     else positional.push(argv[i])
   }
   return { flags, positional }
@@ -144,6 +158,35 @@ async function main() {
     )
   }
 
+  let cards = null
+  if (flags.cards !== 'off') {
+    const availability = motionAvailability()
+    if (availability.ok) {
+      const chapters = [
+        ...(timeline.chapters ?? []),
+        ...flags.chapter.map(spec => {
+          const [atMs, title, description] = spec.split('|')
+          return { atMs: Number(atMs), durationMs: 3000, title, description }
+        }),
+      ].sort((a, b) => a.atMs - b.atMs)
+      cards = await renderCards(config, {
+        title: timeline.title,
+        recordingSec: Math.max(recordedMs, lastCueEnd + 1200) / 1000,
+        chapters,
+        outDir: path.join(dir, 'cards'),
+        opening: { subtitle: flags.subtitle },
+        closing: { title: flags['closing-title'], text: flags['closing-text'] },
+      })
+      process.stdout.write(
+        `Cards: ${[cards.opening && 'opening', cards.overlays.length && `${cards.overlays.length} chapter(s)`, cards.closing && 'closing']
+          .filter(Boolean)
+          .join(', ') || 'none'}` + (cards.failures.length ? ` - left out: ${cards.failures.join('; ')}` : '') + '\n',
+      )
+    } else {
+      process.stdout.write(`Cards: none - ${availability.reason}\n`)
+    }
+  }
+
   const result = await compose(config, {
     rawVideo: timeline.segments,
     cues: timeline.cues,
@@ -160,6 +203,9 @@ async function main() {
     outputName: flags.output ?? 'tutorial.mp4',
     avatarCorner: flags.corner ?? timeline.options.avatarCorner,
     avatarSize: timeline.options.avatarSize,
+    opening: cards?.opening,
+    closing: cards?.closing,
+    overlays: cards?.overlays,
   })
   const check = await verifyOutput(config, result.outputFile)
 

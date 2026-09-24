@@ -314,9 +314,8 @@ Ordered by what a viewer would notice, against what it costs:
 - [x] **A final check that the picture and the sound end together.** The first
       dissolve build froze the picture at the first cut while the file still
       reported its full length. `verifyOutput` now measures each stream on its own.
-- [ ] **An opening and closing card with motion.** Today's chapter card is static
-      HTML in the capture. Either animate it in CSS (free, we already own the layer)
-      or render it separately - see Revideo below.
+- [x] **An opening and closing card with motion.** Done with HyperFrames rather than
+      Revideo, and the chapter cards with it - see M16.
 - [ ] Decide whether the avatar should be able to appear cut out rather than in a
       bubble, for an opening where the person is over the whole frame
 
@@ -329,6 +328,51 @@ Ordered by what a viewer would notice, against what it costs:
 | **editly** | MIT | Declarative ffmpeg editing with gl-transitions and title layers. Solves what `xfade` and `drawtext` already solve for us, and it wants to own the whole render. Skip. |
 | **auto-editor** | Unlicense | Cuts silence automatically. We do not have that problem: the recorder cuts waits by the session clock, deliberately, and knows where every line is. Skip. |
 | **Whisper / faster-whisper** | MIT | Would give word timings from the audio. Unnecessary - both speech services hand them over for free with the audio they render. |
+
+## M16 - Motion design with HyperFrames
+
+Asked for by name: HeyGen's open-source HTML-to-video renderer (Apache-2.0), to
+make the tutorials look produced. Spiked first, on this machine: a templated 4.5 s
+intro rendered in 22 s, a transparent lower third came out as ProRes 4444 with
+alpha, and a whole 68 s recording pushed through it took 116 s but stayed exact
+(PSNR 53 dB against the source, loudness unchanged). So HyperFrames draws the
+motion pieces from templates, and the ffmpeg composition stays the backbone - it is
+measured, and rebuilding it in HTML would cost render time for nothing.
+
+- [x] Brand the templates after stardawnai.com: colours, typeface, logo
+      -> taken from the site's own stylesheet: navy #041422, cyan #01fff4, magenta
+        #ff1178, Satoshi (loaded from Fontshare, not committed - its licence does not
+        allow redistribution), and the site's white wordmark
+- [x] `src/lib/motion.ts`: find the HyperFrames CLI, render a template, cache by
+      content, telemetry off, ffmpeg pinned to the configured 7.1, fail soft
+      -> verified: e2e renders a real chapter card - 1920x1080, 1.60 s as asked, alpha
+        0 at the start and 238 under the veil
+- [x] Templates in `assets/motion/`: opening, closing, chapter card. GSAP is taken
+      from `node_modules` at render time, not fetched from a CDN
+      -> verified: frames of all three looked at; long titles step down to two lines
+- [x] Composition: the opening before the recording and the closing after it, both
+      dissolving, with the narration, captions and music moved along
+      -> verified: e2e 225 frames = 50 + 125 + 50, dissolves at 2.0-2.6 s and
+        7.0-7.6 s, caption at 3.00 s for a line at 1.0 s, speech after the opening and
+        silence under it. Found on the way: `fps` after a scale drops a stream's last
+        frame, so no join may count frames - see ARCHITECTURE §10
+- [x] Chapter cards: `tutorial_chapter` records the moment instead of drawing the
+      static Playwright card, and the composition lays the animated card over it
+      -> verified: e2e shows the half-transparent card at its moment and gone after;
+        VP9 WebM instead of ProRes, 0.25 MB against 68 MB, 47 dB apart
+- [x] Tool surface: `tutorial_start` `motion`, `tutorial_finish` `opening`,
+      `openingSubtitle`, `closing`, `closingTitle`, `closingText`; `recompose.mjs`
+      `--cards off`, `--subtitle`, `--closing-title`, `--closing-text`, `--chapter`;
+      doctor reports HyperFrames
+      -> verified: handshake 11/11 with 22 tools; doctor prints "HyperFrames 0.8.68"
+- [x] Optional dependency: a machine without HyperFrames still renders, as today
+      -> the e2e recording itself runs without motion and passes; motion is only
+        switched on when `motionAvailability()` says it can run
+- [x] Real run: the InStar recording re-rendered with opening, two chapters, closing
+      -> verified: 76.72 s, 1918 frames = 113 + 1692 + 113, picture and sound end
+        together; frames at the opening, a caption, both chapters and the closing
+        looked at. `recordings/.../instar-motion.subtitled.mp4`
+- [x] README, ARCHITECTURE, STATUS; commit and push
 
 ---
 

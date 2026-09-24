@@ -67,6 +67,21 @@ export interface ComposeOptions {
   avatarSize?: number
   /** Dissolve at every cut instead of jumping. On unless switched off. */
   transitions?: boolean
+  /** A card played before the recording, dissolving into its first frame. */
+  opening?: string | null
+  /** A card played after the recording, dissolving out of its last frame. */
+  closing?: string | null
+  /**
+   * Full-frame cards with a transparent background, laid over the recording at their
+   * moments - the chapter cards. Times are on the recording's own clock.
+   */
+  overlays?: MotionOverlay[]
+}
+
+export interface MotionOverlay {
+  file: string
+  atMs: number
+  durationMs: number
 }
 
 export type AvatarCorner = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
@@ -86,6 +101,11 @@ export interface ComposeResult {
   zoomCount: number
   /** Avatar bubbles that made it into the render. */
   avatarCount: number
+  /** Length of the opening and closing cards, 0 where there is none. */
+  openingSec: number
+  closingSec: number
+  /** Cards laid over the recording. */
+  overlayCount: number
 }
 
 /** Seconds -> `HH:MM:SS,mmm` for SubRip. */
@@ -570,6 +590,12 @@ function joinSegments(segments: RawSegment[], fps: number, transitionSec: number
 export const TRANSITION_SECONDS = 0.32
 
 /**
+ * Length of the dissolve into the recording from the opening card, and out of it into
+ * the closing one. Longer than a cut's: it is a change of scene, not of camera.
+ */
+export const CARD_DISSOLVE_SECONDS = 0.6
+
+/**
  * What the captured pixels are: limited range, BT.601 - what Chromium's VP8
  * screencast delivers, though the file does not say so.
  *
@@ -683,6 +709,124 @@ export function avatarOverlayFilters(
   return filters
 }
 
+/**
+ * A HyperFrames card's pixels, brought to the ones the recording has.
+ *
+ * Its mp4 is BT.709; the capture is BT.601, and so is the tag the finished file is
+ * written with (see `COLOUR_TAGS`). Decoded with the wrong matrix, the brand cyan
+ * (1, 255, 244) works out at about (23, 255, 242). Measured on a solid #01fff4 field
+ * through this conversion: (0, 254, 240). ffmpeg 7.1 negotiates the matrix on its own
+ * and got there without it too, but older builds do not, so it is stated. The
+ * transparent cards are untagged and measure as BT.601 already - (0, 255, 248) - so
+ * they are left alone.
+ */
+const CARD_TO_CAPTURE_COLOURS = 'colorspace=all=bt601-6-625:iall=bt709:fast=1'
+
+/**
+ * The opening card before the picture and the closing card after it, each joined by
+ * a dissolve - labelled `outLabel`.
+ *
+ * The same rule as `joinSegments`: a dissolve must not cost the timeline anything. The
+ * opening is held on its last frame through the dissolve, and the recording fades in
+ * over that hold, so its first frame still lands exactly `openingFrames` in; the
+ * recording is held the same way for the closing. The whole video is therefore
+ * exactly opening + recording + closing, and narration moved along by the opening's
+ * length is on its picture to the frame.
+ *
+ * Where each piece begins is set by the dissolves' offsets alone, which are exact, and
+ * where the video ends by the encoder's `-t`. No frame count has to come out exactly,
+ * and that is deliberate. Measured on ffmpeg 7.1: an `fps` filter anywhere after a
+ * scale throws away the last frame of its stream - the end-of-stream time it is told
+ * is the last frame's start rather than its end - so a card cut to 50 frames arrived
+ * as 49, and a join that counted frames put everything after it one frame early. So
+ * every piece is given a few frames more than it needs: a dissolve ignores whatever
+ * runs past its end, and `-t` cuts the last piece.
+ *
+ * The cards always dissolve. `transitions` is about the cuts inside the recording; a
+ * card is a change of scene, and a jump into or out of one reads as a mistake.
+ */
+export function bookendFilters(options: {
+  fps: number
+  width: number
+  height: number
+  fadeFrames: number
+  mainLabel: string
+  mainFrames: number
+  opening?: { input: number; frames: number }
+  closing?: { input: number; frames: number }
+  outLabel: string
+}): string[] {
+  const { fps } = options
+  const fadeFrames = Math.max(1, options.fadeFrames)
+  // Spare frames beyond what each piece has to show, for the fps filter to eat.
+  const spare = 2
+  const restamp = `setpts=N/(${fps}*TB),fps=${fps}`
+  // Cards are rendered at exactly their length, so they are padded, never cut. The
+  // rate is still known here - nothing has trimmed the stream - so the clones are
+  // stamped a frame apart and survive the fps filter.
+  const card = (input: number, pad: number) =>
+    `[${input}:v]fps=${fps},scale=${options.width}:${options.height}:flags=lanczos,` +
+    `${CARD_TO_CAPTURE_COLOURS},setsar=1,format=yuv420p,` +
+    `tpad=stop_mode=clone:stop=${pad},fps=${fps}`
+
+  const filters: string[] = []
+  // The recording runs on past its finished length (the capture's tail), or is padded
+  // here when it does not; either way the frames past the end only ever show during
+  // the dissolve into the closing, where they are the same still page.
+  const mainPad = spare + (options.closing ? fadeFrames : 0)
+  filters.push(
+    `[${options.mainLabel}]fps=${fps},tpad=stop_mode=clone:stop=${mainPad},` +
+      `trim=end_frame=${options.mainFrames + mainPad},setpts=PTS-STARTPTS,` +
+      `setsar=1,format=yuv420p,fps=${fps}[bkmain]`,
+  )
+
+  const join = (first: string, second: string, offsetFrames: number, label: string) =>
+    `[${first}][${second}]xfade=transition=fade:duration=${(fadeFrames / fps).toFixed(3)}:` +
+    `offset=${(offsetFrames / fps).toFixed(3)},${restamp}[${label}]`
+
+  let current = 'bkmain'
+  let framesSoFar = options.mainFrames
+  if (options.opening) {
+    filters.push(`${card(options.opening.input, fadeFrames + spare)}[bkopen]`)
+    const label = options.closing ? 'bkopened' : options.outLabel
+    filters.push(join('bkopen', current, options.opening.frames, label))
+    current = label
+    framesSoFar += options.opening.frames
+  }
+  if (options.closing) {
+    filters.push(`${card(options.closing.input, spare)}[bkclose]`)
+    filters.push(join(current, 'bkclose', framesSoFar, options.outLabel))
+  } else if (!options.opening) {
+    filters.push(`[${current}]null[${options.outLabel}]`)
+  }
+  return filters
+}
+
+/**
+ * Transparent full-frame cards laid over the picture at their moments - labelled
+ * `outLabel`. Each is cut to its own length, so a card that came back a frame long
+ * cannot linger.
+ */
+export function overlayFilters(
+  overlays: Array<{ input: number; atMs: number; durationMs: number }>,
+  options: { fps: number; width: number; height: number; inLabel: string; outLabel: string },
+): string[] {
+  const filters: string[] = []
+  let previous = options.inLabel
+  overlays.forEach((overlay, i) => {
+    const frames = Math.max(1, Math.round((overlay.durationMs * options.fps) / 1000))
+    const next = i === overlays.length - 1 ? options.outLabel : `ovstage${i}`
+    filters.push(
+      `[${overlay.input}:v]fps=${options.fps},scale=${options.width}:${options.height}:flags=lanczos,` +
+        `format=yuva420p,trim=end_frame=${frames},` +
+        `setpts=PTS-STARTPTS+${(overlay.atMs / 1000).toFixed(3)}/TB[ov${i}]`,
+    )
+    filters.push(`[${previous}][ov${i}]overlay=0:0:eof_action=pass:repeatlast=0[${next}]`)
+    previous = next
+  })
+  return filters
+}
+
 /** Pass 2 - transcode the picture and mux the audio. */
 export async function compose(config: Config, options: ComposeOptions): Promise<ComposeResult> {
   const ffmpeg = requireFfmpeg(config)
@@ -709,7 +853,26 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
   const requiredSec = Math.max(recordedSec, lastCueEndMs / 1000 + 1.2)
   const needsExtension = requiredSec > recordedSec + 0.05
 
-  const audioFile = await buildAudio(config, options, requiredSec)
+  const OUTPUT_FPS = 25
+
+  // The cards before and after, counted in whole frames so every boundary is exact.
+  const opening = options.opening && fs.existsSync(options.opening) ? options.opening : null
+  const closing = options.closing && fs.existsSync(options.closing) ? options.closing : null
+  const cardFrames = async (file: string | null): Promise<number> =>
+    file ? Math.round((await probeVideo(ffprobe, file)).durationSec * OUTPUT_FPS) : 0
+  const openingFrames = await cardFrames(opening)
+  const closingFrames = await cardFrames(closing)
+  const mainFrames = Math.round(requiredSec * OUTPUT_FPS)
+  const totalSec =
+    opening || closing ? (openingFrames + mainFrames + closingFrames) / OUTPUT_FPS : requiredSec
+
+  // Sound and captions run on the finished video's clock, which the opening moves the
+  // whole recording along on; camera moves, bubbles and chapter cards are laid onto
+  // the recording before the opening is joined, so they keep its own clock.
+  const leadMs = (openingFrames * 1000) / OUTPUT_FPS
+  const cues = leadMs > 0 ? options.cues.map(c => ({ ...c, atMs: c.atMs + leadMs })) : options.cues
+
+  const audioFile = await buildAudio(config, { ...options, cues }, totalSec)
 
   const outputName = options.outputName ?? 'tutorial.mp4'
   const outputFile = path.join(options.outputDir, outputName)
@@ -740,8 +903,27 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
   }
   const firstAvatarInput = nextInput
   for (const clip of avatarClips) args.push('-i', clip.file)
+  nextInput += avatarClips.length
 
-  const OUTPUT_FPS = 25
+  const overlays = (options.overlays ?? [])
+    .filter(o => fs.existsSync(o.file) && o.atMs / 1000 < requiredSec)
+    .map(o => {
+      // ffmpeg's own VP9 decoder drops the alpha plane; libvpx keeps it.
+      if (o.file.toLowerCase().endsWith('.webm')) args.push('-c:v', 'libvpx-vp9')
+      args.push('-i', o.file)
+      return { ...o, input: nextInput++ }
+    })
+  let openingInput: number | undefined
+  let closingInput: number | undefined
+  if (opening) {
+    args.push('-i', opening)
+    openingInput = nextInput++
+  }
+  if (closing) {
+    args.push('-i', closing)
+    closingInput = nextInput++
+  }
+
   const chain: string[] = []
 
   if (needsExtension) {
@@ -783,15 +965,31 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
   // ffmpeg's automatic stream selection off, so the audio map below would otherwise
   // leave the picture with no route to the file.
   // The bubbles go on last, over the finished picture, so a camera move cannot crop
-  // or magnify them.
+  // or magnify them. Chapter cards go on before them, so the presenter stays on
+  // screen through a chapter. The opening and closing are joined around the lot.
   const hasAvatar = avatarClips.length > 0 || Boolean(idleClip)
-  const pictureLabel = hasAvatar ? 'picture' : 'vout'
+  const hasBookends = Boolean(opening || closing)
+  const mainLabel = hasBookends ? 'main' : 'vout'
+  const carded = hasAvatar ? 'picture' : mainLabel
+  const pictureLabel = overlays.length > 0 ? 'bare' : carded
   const graph = [
     joined
       ? `${joinSegments(joined, OUTPUT_FPS, options.transitions === false ? 0 : TRANSITION_SECONDS)};` +
         `\n[joined]${chain.join(',\n')}[${pictureLabel}]`
       : `[0:v]${chain.join(',\n')}[${pictureLabel}]`,
   ]
+  if (overlays.length > 0) {
+    log.info(`Laying ${overlays.length} chapter card(s) over the recording`)
+    graph.push(
+      ...overlayFilters(overlays, {
+        fps: OUTPUT_FPS,
+        width: options.outputWidth,
+        height: options.outputHeight,
+        inLabel: pictureLabel,
+        outLabel: carded,
+      }),
+    )
+  }
   if (hasAvatar) {
     log.info(
       `Placing ${avatarClips.length} spoken avatar clip(s)` +
@@ -805,10 +1003,30 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
         corner: options.avatarCorner ?? AVATAR_CORNER,
         size: options.avatarSize ?? AVATAR_SIZE,
         fps: OUTPUT_FPS,
-        inLabel: pictureLabel,
-        outLabel: 'vout',
+        inLabel: 'picture',
+        outLabel: mainLabel,
         idleInput,
         totalSeconds: requiredSec,
+      }),
+    )
+  }
+  if (hasBookends) {
+    log.info(
+      `Joining ${[opening && `a ${(openingFrames / OUTPUT_FPS).toFixed(1)}s opening`, closing && `a ${(closingFrames / OUTPUT_FPS).toFixed(1)}s closing`]
+        .filter(Boolean)
+        .join(' and ')}`,
+    )
+    graph.push(
+      ...bookendFilters({
+        fps: OUTPUT_FPS,
+        width: options.outputWidth,
+        height: options.outputHeight,
+        fadeFrames: Math.round(CARD_DISSOLVE_SECONDS * OUTPUT_FPS),
+        mainLabel,
+        mainFrames,
+        opening: openingInput === undefined ? undefined : { input: openingInput, frames: openingFrames },
+        closing: closingInput === undefined ? undefined : { input: closingInput, frames: closingFrames },
+        outLabel: 'vout',
       }),
     )
   }
@@ -825,15 +1043,15 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
     ...COLOUR_TAGS,
     ...(audioFile ? ['-c:a', 'aac', '-b:a', '192k'] : []),
     '-movflags', '+faststart',
-    '-t', requiredSec.toFixed(3),
+    '-t', totalSec.toFixed(3),
     outputFile,
   )
 
   await run(ffmpeg, args)
 
-  if (options.subtitles && options.cues.length > 0) {
+  if (options.subtitles && cues.length > 0) {
     const srtFile = path.join(options.outputDir, 'captions.srt')
-    fs.writeFileSync(srtFile, buildSrt(options.cues), 'utf8')
+    fs.writeFileSync(srtFile, buildSrt(cues), 'utf8')
     const subbed = path.join(options.outputDir, outputName.replace(/\.mp4$/, '.subtitled.mp4'))
 
     // A bubble in a bottom corner is exactly where a centred caption box would go.
@@ -854,7 +1072,7 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
       // Where each word falls, so the caption can follow the voice. Taken from the
       // clips themselves, so it holds for any voice and any recording.
       const words = await Promise.all(
-        options.cues.map(cue =>
+        cues.map(cue =>
           cue.audioFile && fs.existsSync(cue.audioFile)
             ? wordTimings(config, {
                 audioFile: cue.audioFile,
@@ -874,7 +1092,7 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
       const assFile = path.join(options.outputDir, 'captions.ass')
       fs.writeFileSync(
         assFile,
-        buildAss(options.cues, {
+        buildAss(cues, {
           width: options.outputWidth,
           height: options.outputHeight,
           reserve,
@@ -908,7 +1126,7 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
     }
   }
 
-  const finalDuration = (await probeDuration(ffprobe, outputFile)) ?? requiredSec
+  const finalDuration = (await probeDuration(ffprobe, outputFile)) ?? totalSec
 
   return {
     outputFile,
@@ -919,6 +1137,9 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
     cueCount: options.cues.length,
     zoomCount: zoomFilter ? (options.zoomEvents ?? []).length : 0,
     avatarCount: avatarClips.length,
+    openingSec: openingFrames / OUTPUT_FPS,
+    closingSec: closingFrames / OUTPUT_FPS,
+    overlayCount: overlays.length,
   }
 }
 
