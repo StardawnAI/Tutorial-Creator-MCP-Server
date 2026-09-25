@@ -10,6 +10,7 @@ import { probeDuration, run } from '../lib/ffmpeg.js'
 import { listVoices, looksLikeApiKey } from '../lib/tts.js'
 import { remainingBalance } from '../lib/avatar.js'
 import { motionAvailability, transparentCardFormat } from '../lib/motion.js'
+import { autoconsentScript, autoconsentVersion, loadPlatformSchema } from '../lib/privacy.js'
 
 const TICK = '  ok  '
 const CROSS = ' FAIL '
@@ -144,6 +145,20 @@ async function main(): Promise<void> {
     )
   } else {
     lines.push(`[${WARN}] cards     none - ${motion.reason}`)
+  }
+
+  // The privacy layer: the platform schema, and autoconsent for cookie banners.
+  try {
+    const schema = loadPlatformSchema(config)
+    const consent = autoconsentScript() ? `autoconsent ${autoconsentVersion() ?? ''}`.trim() : null
+    lines.push(
+      `[${consent ? TICK : WARN}] privacy   ${schema.platforms.length} platforms in the schema, ` +
+        (consent ? `cookie banners rejected by ${consent}` : 'cookie banners NOT handled'),
+    )
+    if (!consent) warnings.push('Install @duckduckgo/autoconsent to have cookie banners rejected.')
+  } catch (err) {
+    lines.push(`[${CROSS}] privacy   the platform schema does not load`)
+    problems.push(`assets/privacy/platforms.json: ${(err as Error).message}`)
   }
 
   // Music

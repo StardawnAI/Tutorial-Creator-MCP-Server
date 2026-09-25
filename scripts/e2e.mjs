@@ -33,6 +33,7 @@ import { spotlight, ripple, instruct, instructionLayout, keycaps } from '../dist
 import { probeVideo, run } from '../dist/lib/ffmpeg.js'
 import { musicPrompt } from '../dist/lib/music-gen.js'
 import { launchBrowser } from '../dist/lib/browser.js'
+import { createDetector, describePrivacy } from '../dist/lib/privacy.js'
 import { currentCode, secondsLeft, totp } from '../dist/lib/totp.js'
 
 const OUT_W = 1280
@@ -761,6 +762,329 @@ async function stageCheck(config) {
   fs.rmSync(dir, { recursive: true, force: true })
 }
 
+/** A stand-in for Instagram's inbox, served at instagram.com so its schema entry applies. */
+function avatarUrl(colour, initials) {
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48"><circle cx="24" cy="24" r="24" fill="${colour}"/>` +
+    `<text x="24" y="31" font-family="Segoe UI,sans-serif" font-size="19" font-weight="700" fill="#fff" text-anchor="middle">${initials}</text></svg>`
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`
+}
+
+const INBOX_PAGE = `<!doctype html><meta charset="utf-8"><title>Instagram - Direct</title>
+<style>
+ body{font:15px/1.4 "Segoe UI",system-ui,sans-serif;margin:0;display:flex;color:#111;background:#fff}
+ nav{width:200px;padding:24px;border-right:1px solid #ddd;display:flex;flex-direction:column;gap:18px}
+ nav a{color:#111;text-decoration:none;font-weight:600;font-size:16px}
+ .inbox{width:430px;border-right:1px solid #ddd}
+ .inbox a{display:flex;gap:12px;align-items:center;padding:12px 20px;color:#111;text-decoration:none}
+ .inbox img{width:48px;height:48px;border-radius:50%}
+ .inbox b{display:block}
+ .thread{flex:1;padding:20px}
+ [role=row]{margin:10px 0;padding:10px 14px;border-radius:18px;background:#efefef;max-width:440px}
+ p{margin:14px 0}
+ input{font:15px "Segoe UI",sans-serif;padding:8px;width:280px;display:block;margin:8px 0}
+ #notify{position:fixed;left:40%;top:30%;padding:24px;background:#fff;box-shadow:0 8px 40px #0006;border-radius:12px}
+</style>
+<nav><a href="/">Home</a><a href="/explore/">Explore</a><a id="navmsg" href="/direct/inbox/">Messages</a></nav>
+<section class="inbox">
+ <a id="t1" href="/direct/t/111/"><img alt="Maria Schneider's profile picture" src="${avatarUrl('#e91e63', 'MS')}"><span><b>Maria Schneider</b>Are we still on for Friday?</span></a>
+ <a id="t2" href="/direct/t/222/"><img alt="InStar Support's profile picture" src="${avatarUrl('#0a7cff', 'IS')}"><span><b class="name">InStar Support</b>Your account is connected.</span></a>
+ <a id="t3" href="/direct/t/333/"><img alt="Tom Becker's profile picture" src="${avatarUrl('#ff9800', 'TB')}"><span><b>Tom Becker</b>Sent you the invoice yesterday.</span></a>
+</section>
+<section class="thread">
+ <div role="grid" aria-label="Messages in conversation with InStar Support">
+  <div role="row" id="m1">Hi! Reach me at max.mustermann@example.com</div>
+  <div role="row" id="m2">Your Instagram account is connected.</div>
+ </div>
+ <p id="contact">Call +49 30 12345678 or write to max.mustermann@example.com. Key: sk-proj-abcdefghijklmnopqrstuvwx</p>
+ <p id="clean">Version 2.14.3, released 2026-09-25, 100 000 followers.</p>
+ <input id="mail" type="email" value="someone@example.com">
+ <input id="plain" type="text" value="Just a label">
+ <input id="note" type="text" placeholder="Note">
+</section>
+<div role="dialog" id="notify"><h2>Turn on Notifications</h2><button id="notnow">Not Now</button> <button>Turn On</button></div>
+<div id="credential_picker_container">Sign in as Jane Doe</div>
+<script>
+ document.getElementById('notnow').onclick = () => { window.__dismissed = true; document.getElementById('notify').remove() }
+</script>`
+
+/** How much fine detail a region holds: the share of it that is an edge. Blur removes edges. */
+async function edgeDensity(config, input, box, inputArgs = []) {
+  const crop = [box.width, box.height, box.x, box.y].map(v => Math.max(0, Math.round(v))).join(':')
+  const { stderr } = await run(config.ffmpegPath, [
+    '-hide_banner', '-nostats', ...inputArgs, '-i', input,
+    '-vf', `crop=${crop},format=gray,edgedetect=low=0.08:high=0.2,signalstats,metadata=print`,
+    '-frames:v', '1', '-f', 'null', '-',
+  ])
+  return Number(stderr.match(/signalstats\.YAVG=([0-9.]+)/)?.[1] ?? NaN)
+}
+
+/**
+ * Private data kept out of the picture.
+ *
+ * The detectors first, on their own, including what they must leave alone - covering
+ * every version number and date would make a tutorial unreadable. Then the whole layer
+ * in a real session, on a stand-in for Instagram's inbox served at instagram.com: other
+ * people's conversations greyed out, the one the tutorial touches kept, personal data
+ * covered before it is painted - and all of it already in the capture file.
+ */
+async function privacyCheck(config) {
+  process.stdout.write('\nPrivacy...\n')
+  const detector = createDetector()
+  const found = t => detector.find(t).map(d => `${d.kind}:${t.slice(d.index, d.index + d.length)}`)
+
+  const mustFind = [
+    ['write to max.mustermann@example.com today', 'email:max.mustermann@example.com'],
+    ['call +49 30 12345678 now', 'phone:+49 30 12345678'],
+    ['or on 030 12345678', 'phone:030 12345678'],
+    ['IBAN DE89 3704 0044 0532 0130 00', 'iban:DE89 3704 0044 0532 0130 00'],
+    ['card 4111 1111 1111 1111 expires', 'card:4111 1111 1111 1111'],
+    ['key sk-proj-abcdefghijklmnopqrstuvwx', 'secret:sk-proj-abcdefghijklmnopqrstuvwx'],
+    ['token ghp_abcdefghijklmnopqrstuvwxyz0123456789', 'secret:ghp_abcdefghijklmnopqrstuvwxyz0123456789'],
+    ['AWS AKIAIOSFODNN7EXAMPLE here', 'secret:AKIAIOSFODNN7EXAMPLE'],
+  ]
+  const missed = mustFind.filter(([t, want]) => !found(t).includes(want))
+  check(
+    'email addresses, phone numbers, IBANs, cards and keys are found',
+    missed.length === 0,
+    missed.length ? `missed: ${missed.map(m => m[1]).join(', ')}` : `${mustFind.length} kinds of example`,
+  )
+  const mustNot = [
+    'Version 2.14.3',
+    'released 2026-09-25',
+    'Price 1,299.00 EUR',
+    'commit 09b6fae1c3',
+    'follow @jim_presting',
+    '100 000 followers',
+    'IBAN DE12 3456 7890 1234 5678 90',
+    'card 4111 1111 1111 1112',
+    'order 1234567890124',
+    'call 112',
+    'ISSN 0413-4360',
+  ]
+  const falseAlarms = mustNot.filter(t => found(t).length > 0)
+  check(
+    'versions, dates, prices, handles and numbers failing their check digits are left alone',
+    falseAlarms.length === 0,
+    falseAlarms.length ? `covered: ${falseAlarms.map(t => `${t} -> ${found(t)}`).join('; ')}` : `${mustNot.length} examples`,
+  )
+
+  const session = await RecordingSession.start(config, {
+    title: 'E2E Privacy',
+    profile: 'e2e-privacy',
+    fresh: true,
+    width: OUT_W,
+    height: OUT_H,
+    headless: true,
+    deviceScaleFactor: 1,
+    voiceId: config.defaultVoiceId,
+    modelId: config.defaultModelId,
+    music: null,
+    musicGainDb: 0,
+    showActions: false,
+    quality: 90,
+    emphasis: false,
+    autoZoom: false,
+    privacy: { veil: true, cookies: true, hideText: ['Tom Becker'] },
+  })
+  const page = session.page
+  try {
+    await page.context().route('https://www.instagram.com/**', route =>
+      route.fulfill({ contentType: 'text/html; charset=utf-8', body: INBOX_PAGE }),
+    )
+    await page.goto('https://www.instagram.com/direct/inbox/', { waitUntil: 'domcontentloaded' })
+    await page.waitForTimeout(900)
+
+    const blurred = id => page.evaluate(i => getComputedStyle(document.getElementById(i)).filter, id)
+    const [t1, t2, t3, nav, m1] = await Promise.all(['t1', 't2', 't3', 'navmsg', 'm1'].map(blurred))
+    check(
+      "other people's conversations are greyed out on first paint, the platform's own links are not",
+      /blur/.test(t1) && /blur/.test(t2) && /blur/.test(t3) && nav === 'none',
+      `thread ${t1.split(' ')[0]}, navigation ${nav}`,
+    )
+    check('messages in a conversation are greyed out by their screen-reader label', /blur/.test(m1), m1.split(' ')[0])
+
+    const covered = () =>
+      page.evaluate(() => [...(CSS.highlights.get('tc-private') ?? [])].filter(r => !r.collapsed).map(r => r.toString()))
+    const bars = await covered()
+    const wanted = ['max.mustermann@example.com', '+49 30 12345678', 'sk-proj-abcdefghijklmnopqrstuvwx', 'Tom Becker']
+    check(
+      'personal data in text is covered with a bar, and so is a word the tutorial named',
+      wanted.every(w => bars.includes(w)) && !bars.some(b => /2\.14\.3|2026|100 000/.test(b)),
+      `${bars.length} bars: ${[...new Set(bars)].join(' | ')}`,
+    )
+
+    const security = id => page.evaluate(i => getComputedStyle(document.getElementById(i)).webkitTextSecurity, id)
+    await page.locator('#note').pressSequentially('someone.else@example.org', { delay: 5 })
+    const [mail, plain, note] = await Promise.all(['mail', 'plain', 'note'].map(security))
+    check(
+      'an email field and an address typed into a plain field show dots, other fields do not',
+      mail === 'disc' && note === 'disc' && plain === 'none',
+      `email ${mail}, typed ${note}, plain ${plain}`,
+    )
+
+    const prompt = await page.evaluate(() => ({ dismissed: Boolean(window.__dismissed), gone: !document.getElementById('notify') }))
+    const oneTap = await page.evaluate(() => getComputedStyle(document.getElementById('credential_picker_container')).display)
+    check(
+      'a "Turn on notifications" prompt is answered "Not now", the one-tap account chooser hidden',
+      prompt.dismissed && prompt.gone && oneTap === 'none',
+      `prompt ${prompt.gone ? 'gone' : 'still there'}, one-tap ${oneTap}`,
+    )
+
+    // Arriving while the page is open: judged in the next animation frame, which runs
+    // before the browser paints - so it is covered in the first frame it appears in.
+    const late = await page.evaluate(() => new Promise(resolve => {
+      const row = document.createElement('a')
+      row.href = '/direct/t/444/'
+      row.id = 't4'
+      row.textContent = 'Late Arrival - write to late.person@example.net'
+      document.querySelector('.inbox').append(row)
+      requestAnimationFrame(() => resolve({
+        filter: getComputedStyle(row).filter,
+        covered: [...CSS.highlights.get('tc-private')].some(r => r.toString() === 'late.person@example.net'),
+      }))
+    }))
+    check(
+      'a conversation arriving later is greyed out and covered before its first frame',
+      /blur/.test(late.filter) && late.covered,
+      `${late.filter.split(' ')[0]}, address ${late.covered ? 'covered' : 'visible'}`,
+    )
+
+    // What the tutorial touches keeps its whole unit: the name inside the conversation
+    // brings back the conversation, picture and all.
+    await session.privacy.keepAuto(page.locator('#t2 .name'))
+    await session.updatePrivacy({ keepCss: ['#m2'] })
+    await page.waitForTimeout(700)
+    const [t1b, t2b, t3b, m1b, m2b] = await Promise.all(['t1', 't2', 't3', 'm1', 'm2'].map(blurred))
+    const avatarKept = await page.evaluate(() => getComputedStyle(document.querySelector('#t2 img')).filter)
+    check(
+      'the conversation the tutorial acts on comes out whole, the others stay grey',
+      t2b === 'none' && avatarKept === 'none' && /blur/.test(t1b) && /blur/.test(t3b),
+      `kept ${t2b}, its picture ${avatarKept}, others ${t1b.split(' ')[0]}`,
+    )
+    check('a message kept by the tutorial is shown, the one beside it is not', m2b === 'none' && /blur/.test(m1b), `${m2b} / ${m1b.split(' ')[0]}`)
+
+    // tutorial_type with sensitive: true greys the field out as well - and it stays
+    // grey when the tutorial changes what is kept afterwards.
+    await session.updatePrivacy({ hide: [{ label: '#plain', locate: p => p.locator('#plain') }] })
+    await session.updatePrivacy({ keepCss: ['#m1'] })
+    const sensitiveField = await blurred('plain')
+    check('a field typed into as sensitive is greyed out, and stays so', /blur/.test(sensitiveField), sensitiveField.split(' ')[0])
+
+    const report = describePrivacy(await session.privacy.report(page))
+    check('the tool reports what it keeps out of the picture', /Instagram/.test(report) && /Kept visible/.test(report), report.split('\n')[0])
+
+    const consent = await page.evaluate(() => Boolean(window.autoconsentStandalone))
+    check('the cookie-banner handler is running in the page', consent)
+
+    // In the picture, not only in the styles: fine detail survives in the kept
+    // conversation and is gone from the greyed-out ones.
+    const shot = path.join(session.outputDir, 'privacy.png')
+    await page.screenshot({ path: shot })
+    const boxes = await Promise.all(['#t1', '#t2'].map(s => page.locator(s).boundingBox()))
+    const [greyEdges, keptEdges] = await Promise.all(boxes.map(b => edgeDensity(config, shot, b)))
+    check(
+      'in the picture, a greyed-out conversation has lost its detail and the kept one has not',
+      keptEdges > 8 * Math.max(greyEdges, 0.05),
+      `edges ${greyEdges.toFixed(2)} against ${keptEdges.toFixed(2)}`,
+    )
+
+    // Off camera: the clock stands still until the camera is back on.
+    const before = session.videoTimeMs
+    session.setLive(false)
+    await page.waitForTimeout(1200)
+    session.setLive(true)
+    const held = session.videoTimeMs - before
+    check('time off camera is left out of the video', held < 150, `${held}ms of 1200 counted`)
+
+    await page.waitForTimeout(1200)
+    const { segments } = await session.stopRecording()
+    const capture = segments[0]?.file
+    const [greyCapture, keptCapture] = capture
+      ? await Promise.all(boxes.map(b => edgeDensity(config, capture, b, ['-sseof', '-0.6'])))
+      : [NaN, NaN]
+    check(
+      'the capture file itself holds the greyed-out picture',
+      keptCapture > 8 * Math.max(greyCapture, 0.05),
+      `edges ${greyCapture.toFixed(2)} against ${keptCapture.toFixed(2)}`,
+    )
+  } finally {
+    if (!session.isFinished) await session.cancel().catch(() => {})
+    // E2E_KEEP=1 leaves the screenshot and the capture behind, to be looked at.
+    if (!process.env.E2E_KEEP) fs.rmSync(session.outputDir, { recursive: true, force: true })
+  }
+}
+
+/**
+ * Decorations on a page that enforces Trusted Types.
+ *
+ * Playwright puts every overlay into the page with innerHTML, which such a page
+ * blocks - YouTube and Google's other apps do. The rings, cards and keycaps were
+ * simply missing from every frame there, and nothing noticed, because nothing looked
+ * at the pixels of a real overlay. This does, on a local page sending the same policy.
+ */
+async function overlaysUnderTrustedTypes(config) {
+  process.stdout.write('\nDecorations under Trusted Types...\n')
+  const server = http.createServer((req, res) => {
+    res.writeHead(200, {
+      'content-type': 'text/html; charset=utf-8',
+      'content-security-policy': "require-trusted-types-for 'script'",
+    })
+    res.end('<!doctype html><title>Strict</title><body style="margin:0;background:#fff"><h1>Strict page</h1></body>')
+  })
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
+  const url = `http://127.0.0.1:${server.address().port}/`
+  const session = await RecordingSession.start(config, {
+    title: 'E2E Trusted Types',
+    profile: 'e2e-trusted-types',
+    fresh: true,
+    width: 800,
+    height: 600,
+    headless: true,
+    deviceScaleFactor: 1,
+    voiceId: config.defaultVoiceId,
+    modelId: config.defaultModelId,
+    music: null,
+    musicGainDb: 0,
+    showActions: true,
+    quality: 90,
+    emphasis: true,
+    autoZoom: false,
+  }, url)
+  try {
+    const blocked = await session.page.evaluate(() => {
+      try {
+        document.createElement('div').innerHTML = '<b>x</b>'
+        return false
+      } catch {
+        return true
+      }
+    })
+    const at = session.videoTimeMs
+    await instruct(session.page, { x: 560, y: 300, width: 120, height: 60 }, 'A card on a strict page.', { durationMs: 2500 })
+    await session.page.waitForTimeout(1800)
+    const { segments } = await session.stopRecording()
+    // The card sits in the left margin, navy on a white page.
+    const { stderr } = await run(config.ffmpegPath, [
+      '-hide_banner', '-nostats', '-i', segments[0].file,
+      '-vf', `trim=start=${((at + 1200) / 1000).toFixed(2)},crop=60:24:60:318,signalstats,metadata=print`,
+      '-frames:v', '1', '-f', 'null', '-',
+    ])
+    const y = Number(stderr.match(/signalstats\.YAVG=([0-9.]+)/)?.[1] ?? NaN)
+    // Without the recorder ignoring the policy, this comes out white (Y 235): the card
+    // is blocked. Checked by switching bypassCSP off.
+    check(
+      'an instruction card is drawn on a page that enforces Trusted Types',
+      y < 90,
+      `card Y ${y.toFixed(1)}, the page's policy ${blocked ? 'still enforced in its own scripts' : 'set aside while recording'}`,
+    )
+  } finally {
+    if (!session.isFinished) await session.cancel().catch(() => {})
+    fs.rmSync(session.outputDir, { recursive: true, force: true })
+    server.close()
+  }
+}
+
 /**
  * What a bot check reads, and the two-factor codes typed into one.
  *
@@ -835,8 +1159,28 @@ async function botAndTwoFactor(config) {
   )
 }
 
+/** The parts that run on their own: `node scripts/e2e.mjs privacy`. */
+const SECTIONS = {
+  'two-browsers': twoBrowsers,
+  avatar: avatarBubble,
+  motion: motionCards,
+  stage: stageCheck,
+  privacy: privacyCheck,
+  'trusted-types': overlaysUnderTrustedTypes,
+  bot: botAndTwoFactor,
+}
+
 async function main() {
   const config = loadConfig()
+  const only = process.argv[2]
+  if (only) {
+    const section = SECTIONS[only]
+    if (!section) throw new Error(`No section "${only}". Sections: ${Object.keys(SECTIONS).join(', ')}`)
+    await section(config)
+    const failed = results.filter(r => !r.ok)
+    process.stdout.write(`\n${results.length - failed.length}/${results.length} checks passed\n`)
+    process.exit(failed.length > 0 ? 1 : 0)
+  }
   process.stdout.write('End-to-end pipeline check\n\n')
 
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'tutorial-e2e-'))
@@ -1261,6 +1605,8 @@ async function main() {
   await avatarBubble(config)
   await motionCards(config)
   await stageCheck(config)
+  await privacyCheck(config)
+  await overlaysUnderTrustedTypes(config)
   await botAndTwoFactor(config)
 
   const failed = results.filter(r => !r.ok)

@@ -5,6 +5,82 @@ Newest entry on top.
 
 ---
 
+## 2026-09-25 - Nothing private on camera (M18)
+
+Asked for as: cookie banners, the sign-in business, and personal data that has
+nothing to do with the tutorial should be recognised and greyed out - from a schema of
+what on Facebook or Instagram is the platform and what is private; a tutorial on
+commenting shows the post and the comment, one on messages greys out the others.
+Pacing was set aside by the user: a speed-up can be applied by hand.
+
+### Built
+
+- **Cookie banners rejected** by DuckDuckGo's autoconsent (standalone build, a new
+  dependency), in every page and frame; the first page of a recording is filmed only
+  once its banner is answered.
+- **A platform schema**, `assets/privacy/platforms.json`: 11 platforms plus a generic
+  part keyed on screen-reader labels. Its units are greyed out by generated CSS,
+  from the first paint.
+- **Kept: what the tutorial acts on**, with its whole unit - the post around the
+  Comment button, the conversation opened. `tutorial_privacy` keeps, hides and covers
+  words; `hideText` on `tutorial_start` from the first frame.
+- **Personal data covered on any site**: emails, phone numbers, IBANs, cards, keys as
+  grey bars (Custom Highlight API, no DOM changes); personal fields as dots.
+- **Sign-in clutter**: one-tap chooser hidden; Instagram's save-login, notifications
+  and visitor sign-up prompts answered.
+- **`tutorial_camera`**: off camera across several tool calls, for a sign-in.
+- `sensitive` typing greys the field out; doctor reports the schema and autoconsent.
+
+### Decided
+
+- **In the page, not in the composition.** Blurring afterwards would need every
+  region tracked through every frame, and the capture file would still hold the data.
+- **CSS for the schema, a MutationObserver only for text.** CSS needs nobody to notice
+  new content; the observer's callback runs before paint, so text is covered in its
+  first frame too.
+- **Screen-reader labels as the generic schema.** They are what large platforms keep
+  stable, because accessibility depends on them; class names change weekly.
+- **Privacy first**: profile pictures and labelled lists are greyed out even where
+  they would be harmless. The report after each `tutorial_goto` tells the agent what
+  was covered, so it can keep what the narration is about.
+
+### Found on the way, fixed
+
+- **No ring, card or keycap on YouTube** - or on any page enforcing Trusted Types,
+  which covers Google's apps. Playwright inserts overlays with `innerHTML`, which such
+  pages block even from Playwright's isolated world. The recording browser now
+  ignores page CSP (`bypassCSP`). e2e draws a card under the policy and fails with the
+  switch off. This had never been noticed: no check looked at a real overlay's pixels.
+- **21 s before every first page**: Chromium's proxy discovery (WPAD) went unanswered.
+  `--no-proxy-server` unless a proxy is named in the environment.
+- An ISSN passed for a phone number (zeit.de); numbers without a country code now
+  need nine digits.
+
+### Verified
+
+- `node scripts/e2e.mjs` 98/98 (17 new: detectors both ways, first-paint veil, bars,
+  dots, prompts, late arrivals covered before their first frame, keep, report,
+  edge density in a screenshot and in the capture, off camera, sensitive field,
+  Trusted Types); `node scripts/handshake.mjs` 11/11 with 24 tools; doctor
+- `node scripts/privacy-live.mjs`: 8 of 8 real banners answered, pictures clean
+- A real recording, `examples/pinned-comment-on-youtube.json` in a fresh profile:
+  no banner in any frame, other comments grey, the pinned one ringed and sharp, the
+  Sort-by card and zoom drawn - frames looked at in full resolution
+
+### Known, not yet solved
+
+- **The signed-in pages of Instagram, Facebook, WhatsApp, X, LinkedIn, Gmail,
+  Outlook, Slack and Telegram are not checked against a real account.** Their schema
+  entries follow the platforms' structure (hrefs, roles, labels) and the generic
+  label rule backs them up, but opening a real inbox to check them means reading
+  private messages, which needs the owner's go-ahead.
+- Canvas-drawn text (Google Docs, Figma) and shadow DOM are not reached.
+- Names are only recognised where the schema or `hideText` says so.
+- Dead stretches remain where narration takes long to synthesise: the line is placed
+  where it was asked for, and the recording waits for synthesis and speech after it.
+
+---
+
 ## 2026-09-25 - The recording itself looks produced (M17)
 
 Asked for as "what professional tutorials look like, with clean animations". The cards

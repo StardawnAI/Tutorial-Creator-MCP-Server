@@ -1,0 +1,60 @@
+{
+  "start": {
+    "title": "Find the pinned comment on a YouTube video",
+    "url": "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+    "resolution": "1080p",
+    "fresh": true,
+    "locale": "en-US",
+    "music": true,
+    "showActions": true,
+    "emphasis": true,
+    "autoZoom": true
+  },
+  "steps": [
+    { "tool": "tutorial_wait", "args": { "ms": 1200 } },
+    {
+      "tool": "tutorial_say",
+      "args": {
+        "text": "The comments under a video are where its creator often adds context. On this one, the zoo where it was filmed has left a comment of its own."
+      }
+    },
+    { "tool": "tutorial_scroll", "args": { "selector": "#comments" } },
+    {
+      "tool": "tutorial_wait",
+      "args": { "selector": "ytd-comment-thread-renderer", "ms": 20000 }
+    },
+    {
+      "tool": "tutorial_highlight",
+      "args": {
+        "selector": "ytd-comment-thread-renderer",
+        "nth": 0,
+        "instruction": "A pinned comment always comes first, above everything the sort order decides.",
+        "durationMs": 2600
+      }
+    },
+    {
+      "tool": "tutorial_say",
+      "args": { "text": "Everything below it depends on how the list is sorted." }
+    },
+    {
+      "tool": "tutorial_click",
+      "args": {
+        "text": "Sort by",
+        "instruction": "Choose the order here: the top comments, or the newest first.",
+        "waitForMs": 1800
+      }
+    },
+    { "tool": "tutorial_press", "args": { "key": "Escape", "waitForMs": 900 } },
+    {
+      "tool": "tutorial_say",
+      "args": {
+        "text": "Top comments are the ones YouTube picks out. Newest first shows the conversation as it happens."
+      }
+    }
+  ],
+  "finish": {
+    "subtitles": true,
+    "openingSubtitle": "YouTube · the comments under a video",
+    "closingText": "Pinned first, then the order you choose."
+  }
+}

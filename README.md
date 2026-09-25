@@ -41,6 +41,7 @@ measured and rejected — are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
   fetches a second copy and warns instead)
 - An ElevenLabs API key for narration (optional: without it, recordings are still
   paced correctly and subtitles are written, they are just silent)
+- `@duckduckgo/autoconsent`, which `npm install` fetches, to answer cookie banners
 - For the animated opening, chapter and closing cards: Node.js 22+ and the optional
   dependencies `hyperframes` and `gsap`, which `npm install` fetches. HyperFrames
   renders with a Chrome it finds on the machine or downloads once. Without them the
@@ -145,7 +146,7 @@ finished video.
 
 | Tool | Purpose |
 |---|---|
-| `tutorial_start` | Begin recording — title, starting URL, profile, resolution; `fresh` for an empty browser, `locale` for the page language |
+| `tutorial_start` | Begin recording — title, starting URL, profile, resolution; `fresh` for an empty browser, `locale` for the page language; `privacy`, `cookies`, `hideText` |
 | `tutorial_switch` | Cut to another browser with its own logins, opening it on first use |
 | `tutorial_say` | Speak a line; the recording waits for it |
 | `tutorial_chapter` | Chapter card - animated and numbered with motion on, otherwise static over a blurred backdrop |
@@ -158,6 +159,8 @@ finished video.
 | `tutorial_zoom` | Move the camera to a region, or back out to the full page |
 | `tutorial_wait` | Hold, optionally until an element appears; `cut` leaves the wait out of the video |
 | `tutorial_handoff` | Hand over to a person for one step - window to the front, instruction on screen, wait cut out |
+| `tutorial_privacy` | Keep something visible, grey something out, or cover given words everywhere; reports what is kept out of the picture |
+| `tutorial_camera` | `live: false` leaves everything that follows out of the video until `live: true` - for a sign-in |
 | `tutorial_snapshot` | Read the page as an accessibility tree |
 | `tutorial_screenshot` | Look at the page |
 | `tutorial_finish` | Stop, mix, render, return the mp4 |
@@ -350,11 +353,56 @@ recording gets cards with `scripts/recompose.mjs <folder>` — they are on by de
 there too — and `--chapter "<ms>|<title>|<description>"` adds a chapter to one that
 was recorded without.
 
-### Keeping secrets out of the video
+### Nothing private on camera
 
-The recorder captions each action on screen, including typed values — a
-verification code would be spelled out in the picture. Pass `sensitive: true` to
-`tutorial_type` and the caption is suppressed for that entry.
+A tutorial is recorded in a real, signed-in browser, so the screen is full of things
+that are nobody's business - and a cookie banner in front of them. All of the
+following is on by default and happens inside the page before anything is painted,
+so private data does not reach the capture file either, not only the finished video.
+
+- **Cookie banners are rejected.** DuckDuckGo's
+  [autoconsent](https://github.com/duckduckgo/autoconsent) answers them with "reject" -
+  it knows the consent tools of some three hundred vendors, Facebook's, Instagram's
+  and Google's among them - and hides a banner it recognises while it works. The
+  first page of a recording is only filmed once its banner has been answered.
+  Checked live on Instagram, Facebook, YouTube, Spiegel, Zeit, Cookiebot, LinkedIn
+  and Bahn: `node scripts/privacy-live.mjs` photographs each site with and without.
+- **Other people's content is greyed out** - blurred, drained of colour and dimmed,
+  so it is plainly still there but cannot be read. What counts as someone's content
+  comes from a schema, [assets/privacy/platforms.json](assets/privacy/platforms.json):
+  messages, conversations, posts, comments, notifications, contacts, account choosers
+  and profile pictures on Instagram, Facebook, WhatsApp, X, LinkedIn, YouTube, Gmail,
+  Outlook, Slack and Telegram - and on any other site, whatever it labels for screen
+  readers as chats, conversations, messages, notifications or contacts, a feed or a
+  log. The platform's own interface - buttons, menus, navigation - stays sharp.
+- **What the tutorial is about stays visible.** Whatever is clicked, typed into or
+  highlighted comes out from under the veil with its whole unit: the post, not only
+  the Comment button pressed in it; the one conversation opened, while the rest of
+  the list stays grey. `tutorial_privacy` keeps more - the message that just arrived
+  - or greys out more, and covers given words (a customer's name) wherever they
+  appear; `tutorial_start` takes those words as `hideText` from the first frame.
+- **Personal data is covered on every site**, schema or not: email addresses, phone
+  numbers, IBANs, card numbers and API keys in text get a grey bar over exactly those
+  characters, and email, phone, name, address, username and one-time-code fields
+  show dots. Card numbers must pass the Luhn check and IBANs their check digits, so
+  order numbers, dates and versions are left alone.
+- **Sign-in clutter goes.** Google's one-tap account chooser is hidden; Instagram's
+  "Save your login info?", "Turn on notifications" and its sign-up wall for visitors
+  are answered "Not now". A sign-in nobody needs to watch can be done off camera:
+  everything between `tutorial_camera` `live: false` and `live: true` is left out.
+- **Typed secrets.** `sensitive: true` on `tutorial_type` greys the field out as well
+  as suppressing the on-screen caption that would spell the value out.
+
+Every `tutorial_goto` reports what was kept out of the picture, so the agent can
+decide to keep something the narration is about. `privacy: false` and
+`cookies: false` on `tutorial_start` switch it off.
+
+Known limits: the platform schema's selectors for signed-in pages of Instagram,
+Facebook, WhatsApp, X, LinkedIn, Gmail, Outlook, Slack and Telegram are written from
+the platforms' published structure and have not all been checked against a signed-in
+account (YouTube and Instagram's public pages have); text drawn onto a canvas (Google
+Docs, Figma) and content inside shadow DOM are not reached; and a name is only
+recognised as personal where the schema or `hideText` says so.
 
 ## Configuration
 
@@ -372,6 +420,8 @@ All optional; sensible defaults apply.
 | `TUTORIAL_MCP_CHROMIUM` | Chromium executable, if not auto-detected |
 | `FFMPEG_PATH` / `FFPROBE_PATH` | Explicit binary paths |
 | `TUTORIAL_MCP_LOG_LEVEL` | `debug`, `info`, `warn`, `error` |
+| `HTTPS_PROXY` / `HTTP_PROXY` | A proxy the recording browser should use. Without one it looks for none: Chromium's automatic proxy discovery cost 21 s before the first page on this machine |
+| `TUTORIAL_MCP_SYSTEM_PROXY` | `1` keeps Chromium's automatic proxy discovery |
 
 ## Output
 
@@ -404,4 +454,10 @@ audible where nobody is speaking and the voice sits clearly above it, that the c
 measurably magnifies the picture during a move and leaves it untouched before one,
 that the opening and closing cards sit exactly before and after the recording with
 the narration moved along with them, and that the picture is neither black nor
-frozen.
+frozen. It also checks the privacy layer on a stand-in for Instagram's inbox served
+at instagram.com - conversations greyed out on first paint, the one acted on kept
+whole, personal data covered before its first frame, and all of it already in the
+capture file - and that decorations are drawn on a page enforcing Trusted Types.
+
+A single part runs on its own with its name: `node scripts/e2e.mjs privacy`
+(also `two-browsers`, `avatar`, `motion`, `stage`, `trusted-types`, `bot`).

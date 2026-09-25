@@ -121,6 +121,7 @@ async function main() {
     'tutorial_snapshot', 'tutorial_screenshot',
     'tutorial_highlight', 'tutorial_zoom', 'tutorial_switch',
     'tutorial_import_session', 'tutorial_profiles',
+    'tutorial_privacy', 'tutorial_camera',
   ]
   const names = list.map(t => t.name)
   const missing = expected.filter(n => !names.includes(n))

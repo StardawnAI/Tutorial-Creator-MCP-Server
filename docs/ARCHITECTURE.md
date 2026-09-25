@@ -415,3 +415,81 @@ stage lies over the whole frame.
   was in. They are placed in the camera's region and shrunk by its magnification.
 - The first page used to load on camera: the GitHub example opened on 25 s of a page
   filling in. It is now loaded before the capture starts.
+
+## 12. Nothing private on camera
+
+A tutorial is recorded in a real, signed-in browser, and the screen is full of other
+people's messages, posts and names, an address in a header, an account chooser - and
+a cookie banner in front of it all (`src/lib/privacy.ts`, `assets/privacy/`).
+
+**Everything happens in the page, before it is painted.** Blurring afterwards, in the
+composition, would need every private region tracked through every frame, and the
+capture file would still hold the data. Instead, two init scripts run in every page
+and frame of the recording browser, and the capture never contains what they cover.
+
+**Cookie banners: DuckDuckGo's autoconsent**, its self-contained standalone build,
+which knows some three hundred consent tools and answers with "reject". It hides a
+banner it recognises while it works. Autoconsent only gives up looking after about
+ten seconds, too long to wait for on every page, so `Privacy.settle` reads the state
+it reports: a page is given two seconds for a banner to turn up (off camera, where
+waiting costs the video nothing); a recognised consent tool three seconds more to
+open one - Sourcepoint's opens two seconds after the page has loaded, and the first
+version, which did not wait for it, filmed Spiegel's banner; an open banner until it
+is answered; and then the reload several sites do after saving the choice.
+
+**The veil is CSS generated from a schema.** `platforms.json` lists, per site, the
+elements that hold somebody's content, at the smallest unit that makes sense on its
+own - one conversation, not the list. A generic part applies everywhere and relies on
+what a page labels for screen readers: a region named "Chats" or "Notifications", a
+feed, a log. Platforms keep those labels stable far longer than their class names,
+because accessibility depends on them. The generated rule is
+
+```css
+:is(<units>):not([data-tc-keep], [data-tc-keep] *, :has([data-tc-keep])) { filter: blur(max(8px,.5em)) grayscale(1); opacity: .5 }
+```
+
+- pure CSS, so it applies on first paint and to anything an app renders later,
+  without a script having to notice it. Going into the veil is instant; coming out
+  of it is a 0.45 s transition, so the move from grey to sharp reads as intended.
+
+**What the tutorial is about is marked, not listed.** Acting on an element marks the
+nearest unit around it (`closest()` on the schema's selectors) with `data-tc-keep`:
+clicking Comment keeps the post, opening a conversation keeps that conversation, and
+the rest of the list stays grey. `tutorial_privacy` marks more. Plain CSS selectors
+are applied in the page from the first paint and survive re-rendering; Playwright
+targets (role and name, text) can only be found from Node, so they are re-marked
+every second.
+
+**Personal data in text: the CSS Custom Highlight API.** A detector finds email
+addresses, phone numbers, IBANs, card numbers and API keys; the matching characters
+become a `Range` in a highlight painted as a grey bar with transparent text. No DOM
+is changed - splitting text nodes to wrap a match in a span would break every
+framework that keeps a reference to its text nodes. A MutationObserver rescans what
+changes; its callback runs before the browser paints, so a message arriving in a chat
+is covered in the first frame it appears in (asserted in a `requestAnimationFrame`
+callback in e2e). Cards must pass Luhn and IBANs mod 97; a number without a country
+code needs nine digits, because an ISSN - "0413-4360", on every newspaper's page -
+passes for a phone number otherwise. Personal form fields show dots via
+`-webkit-text-security`.
+
+**Prompts** are answered by text: a container, what it says, the label of the button
+to press (or its screen-reader label, for a close button with no text). A prompt that
+cannot be answered is left alone - hidden but still modal, it would leave the page
+unusable.
+
+**Found while building it:**
+
+- Every ring, instruction card and keycap was missing on YouTube, and on every page
+  that enforces Trusted Types - Google's apps do. Playwright hands overlays to the
+  page as HTML through `innerHTML`, which Trusted Types blocks ("This document
+  requires 'TrustedHTML' assignment"), in Playwright's isolated world as well, so a
+  default policy in the page does not help. Nothing had noticed, because no check
+  looked at the pixels of a real overlay. The recording browser now ignores the
+  page's Content-Security-Policy (`bypassCSP`); e2e draws a card on a local page
+  sending the policy, and fails with the switch off. The price is that a page, while
+  it is recorded, does without that second line of defence against injected script.
+- Chromium looked for a proxy before its first request (WPAD) and nothing answered
+  for 21 seconds: 21.3 s and 21.1 s to the first response for example.com, 0.2 s with
+  discovery off, while name lookup, connection and first byte took under 0.2 s either
+  way. That was the 25 s of loading at the start of the GitHub recording. The
+  recording browser now uses no proxy unless `HTTPS_PROXY` or `HTTP_PROXY` names one.

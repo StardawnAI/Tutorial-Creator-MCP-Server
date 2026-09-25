@@ -76,6 +76,26 @@ const LOOK_LIKE_A_PERSON = [
 ]
 
 /**
+ * No proxy discovery.
+ *
+ * With no proxy configured, Chromium still asks the network whether there is one
+ * (WPAD) before its first request, and on this machine nothing answers for 21
+ * seconds. Measured on example.com in a new browser: 21.3 s and 21.1 s to the first
+ * response, against 0.2 s with discovery off - while name lookup, connection and
+ * first byte took under 0.2 s either way. That was the "25 seconds of loading" at the
+ * start of a recording.
+ *
+ * A proxy that is really wanted is still used: set HTTPS_PROXY or HTTP_PROXY and the
+ * system settings are left alone, or TUTORIAL_MCP_SYSTEM_PROXY=1 to keep discovery.
+ */
+function proxyArgs(): string[] {
+  const env = process.env
+  const wanted = env.HTTPS_PROXY ?? env.https_proxy ?? env.HTTP_PROXY ?? env.http_proxy
+  if (wanted || env.TUTORIAL_MCP_SYSTEM_PROXY === '1') return []
+  return ['--no-proxy-server']
+}
+
+/**
  * The last automation traces a page can read from JavaScript.
  *
  * Kept to the ones that are true statements about a real browser rather than a pile
@@ -160,7 +180,16 @@ export async function launchBrowser(
     deviceScaleFactor: options.deviceScaleFactor ?? 1,
     locale: options.locale,
     timezoneId: options.timezoneId,
-    args: [...KEEP_PAINTING, ...LOOK_LIKE_A_PERSON],
+    args: [...KEEP_PAINTING, ...LOOK_LIKE_A_PERSON, ...proxyArgs()],
+    // Every ring, instruction card and keycap is handed to Playwright as HTML, which
+    // it puts into the page with innerHTML. A page that enforces Trusted Types -
+    // YouTube, Gmail and Google's other apps do - blocks exactly that ("This document
+    // requires 'TrustedHTML' assignment"), from Playwright's own isolated world too,
+    // so the decorations silently never appeared there. Ignoring the page's
+    // Content-Security-Policy is the only switch that reaches them. The price: while
+    // recording, a page does without that second line of defence against injected
+    // script.
+    bypassCSP: true,
     // Playwright adds this one itself; it is the banner that says "automated".
     ignoreDefaultArgs: ['--enable-automation'],
   })

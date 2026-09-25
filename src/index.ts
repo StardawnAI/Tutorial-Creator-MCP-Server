@@ -16,6 +16,7 @@ import { getSession, setSession } from './lib/session.js'
 import { registerRecordingTools } from './tools/recording.js'
 import { registerActionTools } from './tools/actions.js'
 import { registerSetupTools } from './tools/setup.js'
+import { registerPrivacyTools } from './tools/privacy.js'
 import { log } from './lib/logger.js'
 
 async function main(): Promise<void> {
@@ -39,6 +40,12 @@ async function main(): Promise<void> {
         'only to frame something you are talking about but not acting on, or to pull back out ' +
         'early; the camera holds its framing while actions stay in one area and releases by ' +
         'itself on scrolling and navigation.\n\n' +
+        'Private data is kept out of the picture on its own: cookie banners are rejected, ' +
+        "other people's messages, posts and profile pictures are greyed out, and addresses, " +
+        'phone numbers and keys are covered. What is clicked or highlighted stays visible. ' +
+        'Use tutorial_privacy to keep what the tutorial is about but does not touch, and to ' +
+        'hide names; do a sign-in nobody needs to see between tutorial_camera live: false and ' +
+        'live: true.\n\n' +
         'Recording an app the user is signed into needs that session in the recording ' +
         'profile. Do NOT ask the user to log in by hand if a Playwright MCP server is ' +
         'available that drives their real browser: navigate to the site there FIRST, then ' +
@@ -51,6 +58,7 @@ async function main(): Promise<void> {
 
   registerRecordingTools(server, config)
   registerActionTools(server)
+  registerPrivacyTools(server)
   registerSetupTools(server, config)
 
   // A crashing recording must not leave an orphaned browser running.

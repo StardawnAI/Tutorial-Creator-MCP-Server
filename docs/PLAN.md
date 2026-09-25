@@ -411,7 +411,66 @@ motion rather than blinking on and off.
 - [x] README, ARCHITECTURE, STATUS; commit and push
 - [ ] Pacing: stretches where nothing moves and nobody speaks - a page loading, the
       pause before a click - could be shortened automatically. The GitHub example
-      runs 104 s where a produced version would be nearer 70
+      runs 104 s where a produced version would be nearer 70. Deprioritised by the
+      user: a speed-up can be applied by hand where it matters
+
+## M18 - Nothing private on camera
+
+Asked for as: cookie banners, the sign-in business, and personal data that has
+nothing to do with the tutorial should be recognised and greyed out - "on Facebook or
+Instagram, work out from a schema what belongs to the platform and what is private.
+A tutorial on commenting shows the post and the comment; going to the messages to
+show that something arrived greys out the other messages."
+
+Everything happens in the page itself, before a frame is painted, so private data
+never reaches the capture file - not only the finished video.
+
+- [x] Cookie banners answered automatically with "reject", in every page and frame,
+      hidden while that happens (DuckDuckGo's autoconsent, 300+ consent tools, among
+      them Facebook's, Instagram's and Google's own)
+      -> verified live, fresh profile, `scripts/privacy-live.mjs`: 8 of 8 answered
+        (Instagram, Facebook, YouTube, Spiegel, Cookiebot, Zeit, LinkedIn, Bahn), and
+        all 8 pictures clean at the moment a recording would start. The first
+        version filmed Spiegel's banner, which opens 2 s after load; `settle` now
+        reads autoconsent's state
+- [x] A platform schema (`assets/privacy/platforms.json`): per site, which elements
+      are other people's content - messages, conversations, posts, comments,
+      notifications, contacts, account choosers, profile pictures - as opposed to the
+      platform's own interface. Plus a generic part that works on any site from the
+      labels a page gives screen readers (a region labelled "Chats", a feed, a log)
+      -> 11 platforms; YouTube and Instagram's public pages checked live. The
+        signed-in pages of the others are not checked against a real account
+- [x] The veil: those elements are greyed out and blurred, unless the tutorial is
+      about them. Pure CSS generated from the schema, so it applies on first paint
+      and survives re-renders
+      -> verified: edge density of a greyed conversation 0.00 against 11.1 for the
+        kept one, in a screenshot and in the capture file
+- [x] What the tutorial is about stays visible: whatever is clicked, typed into or
+      highlighted keeps its whole item (the post, the conversation, the message);
+      `tutorial_privacy` keeps or hides more, and hides given words everywhere
+      -> verified: the name inside a conversation keeps the conversation and its
+        picture; the YouTube recording highlights the pinned comment, others grey
+- [x] Personal data on any site, without a schema: email addresses, phone numbers,
+      IBANs, card numbers and API keys in text are covered with a grey bar; personal
+      form fields (email, phone, name, address, username, one-time code) show dots
+      -> verified: 8 kinds found, 11 look-alikes left alone (versions, dates, prices,
+        handles, bad check digits, an ISSN - found live on zeit.de)
+- [x] Sign-in clutter: Google's one-tap account chooser hidden, Instagram's "Save
+      your login info?" and "Turn on notifications" answered "Not now"
+      -> verified on the stand-in; live, Instagram's sign-up wall for visitors is
+        closed as well
+- [x] Sign-ins off camera: `tutorial_camera` stops putting what happens into the video
+      and resumes it, so a login can be done without being filmed
+      -> verified: 2 ms of 1200 counted
+- [x] `sensitive` typing also greys out the field itself
+- [x] `tutorial_start` `privacy` (default on), `cookies`, `hideText`; doctor line
+- [x] Real run: a recording with private data and a cookie banner, frames looked at
+      -> `examples/pinned-comment-on-youtube.json`, fresh profile:
+        `recordings/2026-09-25T17-36-01_find-the-pinned-comment-on-a-youtube-video`
+- [x] Found on the way and fixed: every decoration was missing on pages enforcing
+      Trusted Types (YouTube, Google's apps); Chromium spent 21 s looking for a proxy
+      before its first page
+- [x] README, ARCHITECTURE, STATUS; commit and push
 
 ---
 

@@ -1,0 +1,187 @@
+{
+  "$comment": [
+    "What on a page is the platform, and what is somebody's private content.",
+    "",
+    "private: elements holding other people's content - a message, a conversation, a post,",
+    "  a comment, a notification, a contact, a profile picture. They are greyed out unless",
+    "  the tutorial is about them. List the smallest unit that makes sense on its own (one",
+    "  conversation, not the whole list): whatever the tutorial touches keeps its whole",
+    "  unit, and the rest of the list stays greyed out.",
+    "hidden: clutter removed from the picture altogether, such as an account chooser",
+    "  popping up over the page.",
+    "prompts: dialogs answered on the viewer's behalf - container is where to look, text",
+    "  what the dialog says, dismiss the label of the button to press, path an optional",
+    "  address pattern the rule is limited to. text, dismiss and path are regular",
+    "  expressions, matched without regard to case.",
+    "",
+    "generic applies on every site. It relies on the labels a page gives screen readers -",
+    "a region named 'Chats' or 'Notifications', a feed, a log - which large platforms",
+    "keep stable far longer than their class names. The platform entries add what those",
+    "labels miss. Selectors on class names (LinkedIn, Gmail, Slack, Telegram) are the",
+    "least durable and the first to check when something shows through."
+  ],
+  "generic": {
+    "private": [
+      {
+        "name": "posts in a feed",
+        "selector": "[role=\"feed\"] > *, [role=\"feed\"] [role=\"article\"]"
+      },
+      {
+        "name": "chat messages",
+        "selector": "[role=\"log\"] > *"
+      },
+      {
+        "name": "conversations, messages, notifications and contacts",
+        "selector": ":is(div, section, aside, ul, ol, table, [role=\"grid\"], [role=\"list\"], [role=\"listbox\"], [role=\"tree\"], [role=\"region\"], [role=\"dialog\"], [role=\"complementary\"]):is([aria-label*=\"chat\" i], [aria-label*=\"conversation\" i], [aria-label*=\"message\" i], [aria-label*=\"inbox\" i], [aria-label*=\"notification\" i], [aria-label*=\"contact\" i], [aria-label*=\"nachricht\" i], [aria-label*=\"unterhaltung\" i], [aria-label*=\"benachrichtigung\" i], [aria-label*=\"kontakt\" i], [aria-label*=\"posteingang\" i]) :is([role=\"row\"], [role=\"listitem\"], [role=\"option\"], [role=\"article\"], [role=\"treeitem\"], li, tr)"
+      },
+      {
+        "name": "profile pictures",
+        "selector": "img:is([alt*=\"profile picture\" i], [alt*=\"profile photo\" i], [alt*=\"profilbild\" i], [alt*=\"avatar\" i], [class*=\"avatar\" i])"
+      }
+    ],
+    "hidden": [
+      {
+        "name": "Google one-tap account chooser",
+        "selector": "#credential_picker_container, #credential_picker_iframe, iframe[src*=\"accounts.google.com/gsi/iframe/select\"]"
+      }
+    ],
+    "prompts": []
+  },
+  "platforms": [
+    {
+      "name": "Instagram",
+      "hosts": ["instagram.com"],
+      "private": [
+        { "name": "direct message threads", "selector": "a[href^=\"/direct/t/\"], [aria-label=\"Thread list\" i] :is([role=\"button\"], [role=\"listitem\"])" },
+        { "name": "posts", "selector": "article" },
+        { "name": "comments", "selector": "article ul li" }
+      ],
+      "hidden": [],
+      "prompts": [
+        {
+          "name": "Save your login info",
+          "container": "main",
+          "path": "^/accounts/onetap",
+          "text": "save your login info|login-?info(rmationen)? speichern|anmeldeinformationen speichern",
+          "dismiss": "^(not now|jetzt nicht)$"
+        },
+        {
+          "name": "Turn on notifications",
+          "container": "[role=\"dialog\"]",
+          "text": "turn on notifications|benachrichtigungen aktivieren",
+          "dismiss": "^(not now|jetzt nicht)$"
+        },
+        {
+          "name": "Sign up to see more",
+          "container": "[role=\"dialog\"]",
+          "text": "see photos,? videos and more from|sign up to see|sieh dir fotos,? videos und mehr|registriere dich,? um",
+          "dismiss": "^(close|schließen)$"
+        }
+      ]
+    },
+    {
+      "name": "Facebook",
+      "hosts": ["facebook.com", "messenger.com"],
+      "private": [
+        { "name": "posts and comments", "selector": "[role=\"article\"]" },
+        { "name": "conversations", "selector": "a[href*=\"/messages/t/\"], a[href*=\"/messages/e2ee/t/\"]" }
+      ],
+      "hidden": [],
+      "prompts": []
+    },
+    {
+      "name": "WhatsApp",
+      "hosts": ["web.whatsapp.com"],
+      "private": [
+        { "name": "chats", "selector": "#pane-side :is([role=\"listitem\"], [role=\"row\"])" },
+        { "name": "messages", "selector": "#main [role=\"row\"]" },
+        { "name": "open chat's name", "selector": "#main header" }
+      ],
+      "hidden": [],
+      "prompts": []
+    },
+    {
+      "name": "X",
+      "hosts": ["x.com", "twitter.com"],
+      "private": [
+        { "name": "posts", "selector": "article[data-testid=\"tweet\"]" },
+        { "name": "conversations and messages", "selector": "[data-testid=\"conversation\"], [data-testid=\"messageEntry\"]" },
+        { "name": "people", "selector": "[data-testid=\"UserCell\"]" },
+        { "name": "notifications", "selector": "[data-testid=\"notification\"]" }
+      ],
+      "hidden": [],
+      "prompts": []
+    },
+    {
+      "name": "LinkedIn",
+      "hosts": ["linkedin.com"],
+      "private": [
+        { "name": "posts", "selector": ".feed-shared-update-v2, [data-urn^=\"urn:li:activity\"]" },
+        { "name": "comments", "selector": ".comments-comment-entity, .comments-comment-item" },
+        { "name": "conversations", "selector": ".msg-conversation-listitem, .msg-conversation-card" },
+        { "name": "messages", "selector": ".msg-s-message-list__event, .msg-s-event-listitem" },
+        { "name": "notifications", "selector": ".nt-card" }
+      ],
+      "hidden": [],
+      "prompts": []
+    },
+    {
+      "name": "YouTube",
+      "hosts": ["youtube.com"],
+      "private": [
+        { "name": "comments", "selector": "ytd-comment-thread-renderer, ytd-comment-view-model" },
+        { "name": "live chat", "selector": "yt-live-chat-text-message-renderer, yt-live-chat-paid-message-renderer" }
+      ],
+      "hidden": [],
+      "prompts": []
+    },
+    {
+      "name": "Gmail",
+      "hosts": ["mail.google.com"],
+      "private": [
+        { "name": "mail list", "selector": "tr.zA" },
+        { "name": "messages", "selector": ".adn, .a3s" },
+        { "name": "people", "selector": "[email], [data-hovercard-id]" }
+      ],
+      "hidden": [],
+      "prompts": []
+    },
+    {
+      "name": "Google accounts",
+      "hosts": ["accounts.google.com"],
+      "private": [
+        { "name": "signed-in accounts", "selector": "li:has([data-identifier], [data-email]), [data-identifier], [data-email]" }
+      ],
+      "hidden": [],
+      "prompts": []
+    },
+    {
+      "name": "Outlook",
+      "hosts": ["outlook.live.com", "outlook.office.com", "outlook.office365.com"],
+      "private": [
+        { "name": "mail list", "selector": "[data-convid]" }
+      ],
+      "hidden": [],
+      "prompts": []
+    },
+    {
+      "name": "Slack",
+      "hosts": ["app.slack.com"],
+      "private": [
+        { "name": "messages and channels", "selector": ".c-virtual_list__item, [data-qa=\"virtual-list-item\"]" }
+      ],
+      "hidden": [],
+      "prompts": []
+    },
+    {
+      "name": "Telegram",
+      "hosts": ["web.telegram.org"],
+      "private": [
+        { "name": "chats", "selector": ".chatlist-chat, .ListItem.Chat" },
+        { "name": "messages", "selector": ".bubble, .Message" }
+      ],
+      "hidden": [],
+      "prompts": []
+    }
+  ]
+}

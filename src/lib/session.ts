@@ -32,6 +32,7 @@ import { slugify } from './env.js'
 import { launchBrowser } from './browser.js'
 import type { AvatarCorner } from './compose.js'
 import type { ChapterMark } from './motion.js'
+import { Privacy, type LocatedTarget, type PrivacySettings, type VeilOptions } from './privacy.js'
 import { Recorder } from './recorder.js'
 import { hostOf, type LocationMark } from './stage.js'
 import { boxContains, zoomForBox, MIN_USEFUL_ZOOM, type ZoomEvent } from './zoom.js'
@@ -105,6 +106,11 @@ export interface SessionOptions {
   frame?: boolean
   outputWidth?: number
   outputHeight?: number
+  /**
+   * Keep private data out of the picture: cookie banners answered, other people's
+   * content greyed out, personal data covered. Null switches all of it off.
+   */
+  privacy?: (PrivacySettings & { hideText: string[] }) | null
 }
 
 export interface SessionSummary {
@@ -143,6 +149,8 @@ interface OpenBrowser {
   profile: string | null
   /** A throwaway profile's directory, deleted when the browser closes. */
   disposableDir: string | null
+  /** Its privacy layer, or null when privacy is off. */
+  privacy: Privacy | null
 }
 
 /** A stretch of wall-clock time during which one browser was on air. */
@@ -178,6 +186,12 @@ export class RecordingSession {
   private onAirSince: number | null = null
   /** How many off-camera operations are in progress. */
   private offAirDepth = 0
+  /** Set while tutorial_camera has taken the recording off air. */
+  private heldOff = false
+  /** What the tutorial has asked to keep and to hide, shared by every browser. */
+  private veilOptions: VeilOptions = { hideText: [], hideCss: [], keepCss: [] }
+  private keepTargets: LocatedTarget[] = []
+  private hideTargets: LocatedTarget[] = []
   /** Total length of the stretches already closed. */
   private closedMs = 0
   private stoppedFrames = 0
@@ -190,6 +204,7 @@ export class RecordingSession {
     this.slug = slug
     this.outputDir = outputDir
     this.activeName = options.browserName ?? 'main'
+    this.veilOptions = { ...this.veilOptions, hideText: options.privacy?.hideText ?? [] }
   }
 
   /**
@@ -300,6 +315,67 @@ export class RecordingSession {
   }
 
   /**
+   * Take the recording off air until it is put back, across any number of tool calls -
+   * for a sign-in nobody needs to watch. The viewer sees the moment before and then
+   * the moment after, as with a cut wait. Returns false when nothing changed.
+   */
+  setLive(live: boolean): boolean {
+    if (live === !this.heldOff) return false
+    if (!live) {
+      this.releaseZoom()
+      if (this.offAirDepth++ === 0) this.goOffAir()
+      this.heldOff = true
+    } else {
+      this.heldOff = false
+      if (--this.offAirDepth === 0) this.onAirSince = Date.now()
+      this.noteLocation(this.page.url())
+    }
+    return true
+  }
+
+  /** False while tutorial_camera has taken the recording off air. */
+  get isLive(): boolean {
+    return !this.heldOff
+  }
+
+  /** The privacy layer of the browser on screen, or null when privacy is off. */
+  get privacy(): Privacy | null {
+    return this.active.privacy
+  }
+
+  /**
+   * Change what is kept and hidden, in every browser of the recording - and in any
+   * opened later.
+   */
+  async updatePrivacy(change: {
+    keepCss?: string[]
+    hideCss?: string[]
+    hideText?: string[]
+    keep?: LocatedTarget[]
+    hide?: LocatedTarget[]
+    reset?: boolean
+  }): Promise<void> {
+    const base = change.reset
+      ? { hideText: this.options.privacy?.hideText ?? [], hideCss: [], keepCss: [] }
+      : this.veilOptions
+    if (change.reset) {
+      this.keepTargets = []
+      this.hideTargets = []
+    }
+    const merge = (a: string[], b: string[] = []) => [...new Set([...a, ...b])]
+    this.veilOptions = {
+      hideText: merge(base.hideText, change.hideText),
+      hideCss: merge(base.hideCss, change.hideCss),
+      keepCss: merge(base.keepCss, change.keepCss),
+    }
+    this.keepTargets = [...this.keepTargets, ...(change.keep ?? [])]
+    this.hideTargets = [...this.hideTargets, ...(change.hide ?? [])]
+    for (const open of this.browsers.values()) {
+      await open.privacy?.update(this.veilOptions, this.keepTargets, this.hideTargets)
+    }
+  }
+
+  /**
    * Cut to another browser, opening it first if this is its first appearance.
    *
    * Launching and loading happen off camera, so the video goes straight from the last
@@ -321,6 +397,7 @@ export class RecordingSession {
         // Off camera, so waiting for the page to finish costs the video nothing.
         await target.page.waitForLoadState('load', { timeout: 15_000 }).catch(() => {})
         await target.page.waitForTimeout(800)
+        await target.privacy?.settle(target.page, { graceMs: 2000 })
       }
       await target.page.bringToFront().catch(() => {})
       this.activeName = name
@@ -387,9 +464,19 @@ export class RecordingSession {
       recorder,
       profile: fresh ? null : profile,
       disposableDir: launched.disposableDir,
+      privacy: null,
     }
     // Registered before the capture starts, so a failure to start still closes it.
     this.browsers.set(name, open)
+
+    // Before the first page is loaded, so nothing private is painted even once.
+    const settings = this.options.privacy
+    if (settings) {
+      open.privacy = await Privacy.install(launched.context, this.config, settings, this.veilOptions)
+      if (this.keepTargets.length || this.hideTargets.length) {
+        await open.privacy.update(this.veilOptions, this.keepTargets, this.hideTargets)
+      }
+    }
     // Only the browser on air moves the bar; one off air is noted when it is cut to.
     //
     // A new page also has to bring the camera back out, however it was reached. Only
@@ -408,6 +495,8 @@ export class RecordingSession {
       await launched.page.goto(launch.url, { waitUntil: 'domcontentloaded', timeout: 45_000 })
       await launched.page.waitForLoadState('load', { timeout: 15_000 }).catch(() => {})
       await launched.page.waitForTimeout(800)
+      // A cookie banner is answered before the first frame, not in it.
+      await open.privacy?.settle(launched.page, { graceMs: 2000 })
     }
     await recorder.start()
 
@@ -577,7 +666,11 @@ export class RecordingSession {
           title: this.title,
           slug: this.slug,
           recordedAt: new Date().toISOString(),
-          options: this.options,
+          // The words to hide are exactly what must not be kept lying around.
+          options: {
+            ...this.options,
+            privacy: this.options.privacy ? { ...this.options.privacy, hideText: [] } : null,
+          },
           segments,
           cues: this.cues,
           zoomEvents: this.zoomEvents,

@@ -23,6 +23,7 @@
     "doctor": "node dist/cli/doctor.js"
   },
   "dependencies": {
+    "@duckduckgo/autoconsent": "^16.42.0",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "playwright-core": "^1.62.1",
     "zod": "^3.25.76"

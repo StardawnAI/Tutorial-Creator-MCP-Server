@@ -20,6 +20,7 @@ import {
   type Box,
 } from '../lib/emphasis.js'
 import { raiseWindow } from '../lib/foreground.js'
+import { describePrivacy } from '../lib/privacy.js'
 import { currentCode } from '../lib/totp.js'
 import { log } from '../lib/logger.js'
 
@@ -34,7 +35,7 @@ function failure(body: string) {
 /** Settle time after an action so the viewer can register what changed. */
 const BEAT_MS = 600
 
-const TARGET_SHAPE = {
+export const TARGET_SHAPE = {
   selector: z
     .string()
     .optional()
@@ -48,7 +49,7 @@ const TARGET_SHAPE = {
   nth: z.number().int().min(0).optional().describe('Pick the nth match when several fit.'),
 }
 
-interface Target {
+export interface Target {
   selector?: string | undefined
   text?: string | undefined
   role?: string | undefined
@@ -57,7 +58,7 @@ interface Target {
 }
 
 /** Every element the target description matches. */
-function matchAll(page: Page, target: Target): Locator {
+export function matchAll(page: Page, target: Target): Locator {
   if (target.selector) return page.locator(target.selector)
   if (target.role) {
     return page.getByRole(target.role as Parameters<Page['getByRole']>[0], {
@@ -68,12 +69,12 @@ function matchAll(page: Page, target: Target): Locator {
   throw new Error('Say what to act on: selector, text, or role plus name.')
 }
 
-function resolveTarget(page: Page, target: Target): Locator {
+export function resolveTarget(page: Page, target: Target): Locator {
   const locator = matchAll(page, target)
   return target.nth === undefined ? locator.first() : locator.nth(target.nth)
 }
 
-function describeTarget(target: Target): string {
+export function describeTarget(target: Target): string {
   if (target.selector) return target.selector
   if (target.role) return `${target.role}${target.name ? ` "${target.name}"` : ''}`
   if (target.text) return `text "${target.text}"`
@@ -97,6 +98,9 @@ async function prepareTarget(
   instruction: string | undefined,
 ): Promise<Box | null> {
   const page = session.page
+  // Whatever the tutorial acts on is what it is about, so it comes out from under the
+  // privacy veil - the whole post or conversation, not only the button pressed in it.
+  await session.privacy?.keepAuto(locator)
   await locator.scrollIntoViewIfNeeded({ timeout: 10_000 }).catch(() => {})
 
   // Measure only after scrolling: a box read beforehand describes where the element
@@ -154,7 +158,15 @@ export function registerActionTools(server: McpServer): void {
         session.releaseZoom()
         await session.page.goto(args.url, { waitUntil: 'domcontentloaded', timeout: 45_000 })
         await session.page.waitForTimeout(args.waitForMs)
-        return text(`Opened ${args.url} (now at ${session.page.url()}).`)
+        // A cookie banner being answered is hidden meanwhile; wait until it is done,
+        // but not for a reload the answer might cause - that costs the video time.
+        await session.privacy?.settle(session.page, { reloadMs: 0 })
+        // What was kept out of the picture, so a decision to keep something visible
+        // can be made before the narration talks about it.
+        const privacy = session.privacy
+          ? `\n${describePrivacy(await session.privacy.report(session.page))}`
+          : ''
+        return text(`Opened ${args.url} (now at ${session.page.url()}).${privacy}`)
       } catch (err) {
         return failure(`Navigation failed: ${(err as Error).message}`)
       }
@@ -283,7 +295,8 @@ export function registerActionTools(server: McpServer): void {
       description:
         'Types text into a field, character by character so it reads naturally on video. ' +
         'Set sensitive when entering codes, passwords or personal data: the on-screen action ' +
-        'caption is suppressed so the value is not spelled out in the recording. ' +
+        'caption is suppressed and the field is greyed out, so the value is not readable in ' +
+        'the recording. Email, phone, name and address fields show dots anyway. ' +
         'For a two-factor field, use totpFrom instead of value.',
       inputSchema: {
         ...TARGET_SHAPE,
@@ -334,6 +347,13 @@ export function registerActionTools(server: McpServer): void {
 
         const locator = resolveTarget(page, args)
         await prepareTarget(session, locator, args.instruction)
+        // The field itself is greyed out too, not only the caption: a code or a
+        // password typed into it would otherwise be readable in the picture.
+        if (sensitive) {
+          await session.updatePrivacy({
+            hide: [{ label: describeTarget(args), locate: p => resolveTarget(p, args) }],
+          })
+        }
 
         // The action caption prints the typed value, which would put a verification
         // code or password on screen. Turn decorations off around sensitive input.
@@ -698,6 +718,8 @@ export function registerActionTools(server: McpServer): void {
         const session = requireSession()
         const page = session.page
         const locator = resolveTarget(page, args)
+        // Pointing something out makes it part of the tutorial, as acting on it does.
+        await session.privacy?.keepAuto(locator)
         await locator.scrollIntoViewIfNeeded({ timeout: 10_000 }).catch(() => {})
         const box = await locator.boundingBox({ timeout: 10_000 })
         if (!box) return failure(`${describeTarget(args)} is not visible on the page.`)

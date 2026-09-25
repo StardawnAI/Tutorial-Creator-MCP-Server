@@ -14,6 +14,7 @@ import { compose, verifyOutput, AVATAR_CORNER, AVATAR_SIZE } from '../lib/compos
 import { canGenerateMusic, generateMusic } from '../lib/music-gen.js'
 import { motionAvailability, renderCards } from '../lib/motion.js'
 import { stageComposition, stageLayout } from '../lib/stage.js'
+import { autoconsentScript, describePrivacy } from '../lib/privacy.js'
 import {
   canRenderAvatar,
   listLooks,
@@ -201,6 +202,28 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
               'animated card over the picture. Without HyperFrames installed the video is ' +
               'made as before, and the start message says so.',
           ),
+        privacy: z
+          .boolean()
+          .default(true)
+          .describe(
+            "Keep private data out of the picture: other people's messages, conversations, " +
+              'posts, comments, notifications and profile pictures greyed out (known platforms, ' +
+              'and any site that labels its lists for screen readers); email addresses, phone ' +
+              'numbers, IBANs, card numbers and API keys covered; personal form fields shown as ' +
+              "dots; Google's one-tap account chooser hidden. Done in the page before anything " +
+              'is painted, so it is not in the capture file either. Adjust with tutorial_privacy.',
+          ),
+        cookies: z
+          .boolean()
+          .default(true)
+          .describe('Answer cookie banners with "reject" before they are seen.'),
+        hideText: z
+          .array(z.string().min(2))
+          .optional()
+          .describe(
+            'Words to cover wherever they appear, from the first frame - the signed-in ' +
+              "account's name or handle, a customer's name.",
+          ),
       },
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
     },
@@ -322,6 +345,10 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           emphasis: args.emphasis,
           autoZoom: args.autoZoom,
           motion: motionOn,
+          privacy:
+            args.privacy || args.cookies || args.hideText?.length
+              ? { veil: args.privacy, cookies: args.cookies, hideText: args.hideText ?? [] }
+              : null,
         }, args.url)
         setSession(session)
 
@@ -338,7 +365,22 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
         if (args.motion && !motion.ok) {
           warnings.push(`No animated cards in this video - ${motion.reason}`)
         }
+        if (args.cookies && !autoconsentScript()) {
+          warnings.push('Cookie banners will not be answered: @duckduckgo/autoconsent is not installed.')
+        }
         warnings.push(...avatarNotes)
+
+        const privacyLines: string[] = []
+        if (args.privacy) {
+          privacyLines.push(
+            'Privacy: other people\'s content greyed out, personal data covered; what is clicked ' +
+              'or highlighted stays visible.',
+          )
+        }
+        if (args.cookies) privacyLines.push('Cookie banners: rejected automatically.')
+        if (args.url && session.privacy) {
+          privacyLines.push(describePrivacy(await session.privacy.report(session.page)))
+        }
 
         return text(
           [
@@ -356,6 +398,7 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
               ? [`Avatar: "${avatarLook.name}", ${args.avatarCorner}, rendered when finished.`]
               : []),
             ...(motionOn ? ['Cards: animated opening, chapters and closing, rendered when finished.'] : []),
+            ...privacyLines,
             `Output folder: ${session.outputDir}`,
             ...warnings.map(w => `Note: ${w}`),
           ].join('\n'),
@@ -392,6 +435,11 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
         session = requireSession()
       } catch (err) {
         return failure((err as Error).message)
+      }
+      // The clock stands still off camera, so a line spoken now would be laid over
+      // whatever comes after the camera is back on.
+      if (!session.isLive) {
+        return failure('The camera is off (tutorial_camera). Put it back on before narrating.')
       }
 
       const atMs = session.videoTimeMs
@@ -491,6 +539,9 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
     async args => {
       try {
         const session = requireSession()
+        if (!session.isLive) {
+          return failure('The camera is off (tutorial_camera). Put it back on before a chapter.')
+        }
         await session.showChapter(args.title, args.description, args.durationMs)
         await session.page.waitForTimeout(args.durationMs)
         return text(
