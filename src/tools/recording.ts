@@ -13,6 +13,7 @@ import { synthesise, estimateSpokenMs, listVoices } from '../lib/tts.js'
 import { compose, verifyOutput, AVATAR_CORNER, AVATAR_SIZE } from '../lib/compose.js'
 import { canGenerateMusic, generateMusic } from '../lib/music-gen.js'
 import { motionAvailability, renderCards } from '../lib/motion.js'
+import { stageComposition, stageLayout } from '../lib/stage.js'
 import {
   canRenderAvatar,
   listLooks,
@@ -182,6 +183,15 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
             'Move the camera in on whatever is being acted on, so small controls are legible. ' +
               'The move is applied after recording, so the app itself is never scaled.',
           ),
+        frame: z
+          .boolean()
+          .default(true)
+          .describe(
+            'Show the app as a window on the Stardawn ground - rounded corners, a soft ' +
+              'shadow, a slim bar naming the site - the way produced screen tutorials do. ' +
+              'The browser then records at the window\'s size (1600x900 in a 1080p ' +
+              'video), so the app stays sharp. Off: the capture fills the frame.',
+          ),
         motion: z
           .boolean()
           .default(true)
@@ -278,6 +288,8 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
 
       const motion = motionAvailability()
       const motionOn = args.motion && motion.ok
+      // Framed, the browser is the size of the window, not of the video.
+      const viewport = args.frame ? stageLayout(preset.width, preset.height).content : preset
 
       try {
         const session = await RecordingSession.start(config, {
@@ -286,8 +298,11 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           browserName: args.browser,
           fresh: args.fresh,
           locale: args.locale,
-          width: preset.width,
-          height: preset.height,
+          width: viewport.width,
+          height: viewport.height,
+          frame: args.frame,
+          outputWidth: preset.width,
+          outputHeight: preset.height,
           deviceScaleFactor: preset.deviceScaleFactor,
           headless: args.headless,
           voiceId: args.voiceId ?? config.defaultVoiceId,
@@ -307,12 +322,8 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           emphasis: args.emphasis,
           autoZoom: args.autoZoom,
           motion: motionOn,
-        })
+        }, args.url)
         setSession(session)
-
-        if (args.url) {
-          await session.page.goto(args.url, { waitUntil: 'domcontentloaded' })
-        }
 
         const warnings: string[] = []
         if (!config.elevenLabsApiKey) {
@@ -332,7 +343,7 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
         return text(
           [
             `Recording "${args.title}" at ${preset.width}x${preset.height}` +
-            `${preset.deviceScaleFactor > 1 ? ` (captured at ${preset.deviceScaleFactor}x)` : ''}.`,
+              (args.frame ? `, the app as a ${viewport.width}x${viewport.height} window on the stage.` : '.'),
             `Browser "${args.browser}": ` +
               (args.fresh ? 'empty throwaway profile.' : `profile "${args.profile}".`),
             args.url ? `Opened ${args.url}.` : 'No page opened yet - use tutorial_goto.',
@@ -653,13 +664,35 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           })
         }
 
+        // The stage is drawn now, when the sites that were on screen are known. If it
+        // cannot be, the window's picture is shown enlarged to the whole frame instead.
+        const outputWidth = session.options.outputWidth ?? session.options.width
+        const outputHeight = session.options.outputHeight ?? session.options.height
+        let stage: Awaited<ReturnType<typeof stageComposition>> | undefined
+        let stageNote: string | null = null
+        if (session.options.frame) {
+          try {
+            stage = await stageComposition(config, {
+              width: outputWidth,
+              height: outputHeight,
+              locations: session.locations,
+            })
+          } catch (err) {
+            stageNote = `The stage could not be drawn, so the app fills the frame: ${(err as Error).message}`
+            log.warn(stageNote)
+          }
+        }
+
         const result = await compose(config, {
           rawVideo: segments,
           cues: session.cues,
           zoomEvents: session.zoomEvents,
           outputDir: session.outputDir,
-          outputWidth: session.options.width,
-          outputHeight: session.options.height,
+          outputWidth,
+          outputHeight,
+          captureWidth: session.options.width,
+          captureHeight: session.options.height,
+          stage,
           music,
           musicGainDb: args.musicGainDb,
           subtitles: args.subtitles,
@@ -690,6 +723,7 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
             (segments.length > 1 ? `, joined from ${segments.length} segments.` : '.'),
           ...(musicNote ? [musicNote] : []),
           ...(avatarNote ? [avatarNote] : []),
+          ...(stageNote ? [stageNote] : []),
           ...(cards?.failures.length
             ? [`Left out, because they could not be rendered: ${cards.failures.join('; ')}`]
             : []),

@@ -26,6 +26,12 @@
  *                          add a chapter card at that moment of the recording; repeat
  *                          the flag for several. A recording made with motion on
  *                          already carries its chapters
+ *   --frame on|off         show the app as a window on the stage. A recording made
+ *                          framed is framed again by default; an older one, captured
+ *                          at the full size of the video, is scaled into the window
+ *   --location "<ms>|<host>"
+ *                          the site the bar names from that moment on; repeat for
+ *                          several. A framed recording already carries them
  *
  * Every recording keeps its captures, narration clips and timeline.json, so a fix to
  * the mix, different music, or an avatar added afterwards reaches an existing video in
@@ -41,6 +47,7 @@ import { compose, verifyOutput } from '../dist/lib/compose.js'
 import { generateMusic } from '../dist/lib/music-gen.js'
 import { renderAvatarClips, renderIdleClip, resolveLook } from '../dist/lib/avatar.js'
 import { motionAvailability, renderCards } from '../dist/lib/motion.js'
+import { stageComposition } from '../dist/lib/stage.js'
 
 /**
  * Find a file the timeline refers to, even though the recording has moved.
@@ -65,10 +72,11 @@ function locate(file, dir) {
  * may be given more than once, so its values are collected.
  */
 function parseArgs(argv) {
-  const flags = { chapter: [] }
+  const flags = { chapter: [], location: [] }
   const positional = []
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--chapter') flags.chapter.push(argv[++i])
+    else if (argv[i] === '--location') flags.location.push(argv[++i])
     else if (argv[i].startsWith('--')) flags[argv[i].slice(2)] = argv[++i]
     else positional.push(argv[i])
   }
@@ -187,13 +195,33 @@ async function main() {
     }
   }
 
+  // The video's size: a framed recording says so; an older one is its capture's size.
+  const outputWidth = timeline.options.outputWidth ?? timeline.options.width
+  const outputHeight = timeline.options.outputHeight ?? timeline.options.height
+  const framed = flags.frame ? flags.frame === 'on' : Boolean(timeline.options.frame)
+  let stage
+  if (framed) {
+    const locations = [
+      ...(timeline.locations ?? []),
+      ...flags.location.map(spec => {
+        const [atMs, host] = spec.split('|')
+        return { atMs: Number(atMs), host }
+      }),
+    ].sort((a, b) => a.atMs - b.atMs)
+    stage = await stageComposition(config, { width: outputWidth, height: outputHeight, locations })
+    process.stdout.write(`Stage: ${locations.map(l => l.host).join(' -> ') || 'bar without an address'}\n`)
+  }
+
   const result = await compose(config, {
     rawVideo: timeline.segments,
     cues: timeline.cues,
     zoomEvents: timeline.zoomEvents,
     outputDir: dir,
-    outputWidth: timeline.options.width,
-    outputHeight: timeline.options.height,
+    outputWidth,
+    outputHeight,
+    captureWidth: timeline.options.width,
+    captureHeight: timeline.options.height,
+    stage,
     music,
     musicGainDb: 0,
     subtitles: true,

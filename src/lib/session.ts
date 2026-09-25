@@ -33,6 +33,7 @@ import { launchBrowser } from './browser.js'
 import type { AvatarCorner } from './compose.js'
 import type { ChapterMark } from './motion.js'
 import { Recorder } from './recorder.js'
+import { hostOf, type LocationMark } from './stage.js'
 import { boxContains, zoomForBox, MIN_USEFUL_ZOOM, type ZoomEvent } from './zoom.js'
 import { log } from './logger.js'
 
@@ -97,6 +98,13 @@ export interface SessionOptions {
    * finished. Decided at the start, because it changes how a chapter is recorded.
    */
   motion?: boolean
+  /**
+   * Show the recording as a window on the stage. The browser is then the size of the
+   * window, and `outputWidth` x `outputHeight` the size of the finished video.
+   */
+  frame?: boolean
+  outputWidth?: number
+  outputHeight?: number
 }
 
 export interface SessionSummary {
@@ -153,6 +161,8 @@ export class RecordingSession {
   readonly zoomEvents: ZoomEvent[] = []
   /** Chapters to be laid over the video as animated cards, when motion is on. */
   readonly chapters: ChapterMark[] = []
+  /** Which site was on screen from when, for the bar above a staged recording. */
+  readonly locations: LocationMark[] = []
 
   /** The camera move currently held open, with the region it is showing. */
   private openZoom: {
@@ -182,7 +192,12 @@ export class RecordingSession {
     this.activeName = options.browserName ?? 'main'
   }
 
-  static async start(config: Config, options: SessionOptions): Promise<RecordingSession> {
+  /**
+   * `url` is loaded before the capture starts, so the video opens on the finished page
+   * rather than on a blank one filling in. Measured on the GitHub example: 25 seconds
+   * of loading were in the video before the first word.
+   */
+  static async start(config: Config, options: SessionOptions, url?: string): Promise<RecordingSession> {
     const slug = slugify(options.title)
     const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
     const outputDir = path.join(config.paths.recordings, `${stamp}_${slug}`)
@@ -193,6 +208,7 @@ export class RecordingSession {
       const first = await session.openBrowser(session.activeName, {
         profile: options.profile,
         fresh: options.fresh ?? false,
+        url,
       })
       // On air from the first frame exactly, so a recording without cuts is its
       // capture from start to finish, as it always was.
@@ -308,8 +324,19 @@ export class RecordingSession {
       }
       await target.page.bringToFront().catch(() => {})
       this.activeName = name
+      this.noteLocation(target.page.url())
     })
     return { opened }
+  }
+
+  /**
+   * The site now on screen, noted when it changes. Off camera the clock stands still,
+   * so a page loaded during a cut is noted at the moment the video resumes on it.
+   */
+  private noteLocation(url: string): void {
+    const host = hostOf(url)
+    if (!host || this.locations.at(-1)?.host === host) return
+    this.locations.push({ atMs: this.videoTimeMs, host })
   }
 
   /** Close the stretch that is on air, if one is. */
@@ -321,7 +348,7 @@ export class RecordingSession {
     this.onAirSince = null
   }
 
-  private async openBrowser(name: string, launch: BrowserLaunch): Promise<OpenBrowser> {
+  private async openBrowser(name: string, launch: BrowserLaunch & { url?: string }): Promise<OpenBrowser> {
     const fresh = launch.fresh ?? false
     const profile = launch.profile ?? 'default'
     if (!fresh) {
@@ -363,6 +390,25 @@ export class RecordingSession {
     }
     // Registered before the capture starts, so a failure to start still closes it.
     this.browsers.set(name, open)
+    // Only the browser on air moves the bar; one off air is noted when it is cut to.
+    //
+    // A new page also has to bring the camera back out, however it was reached. Only
+    // tutorial_goto and scrolling used to, so pressing Enter on a search box left the
+    // camera magnifying the results page at the spot where the box had been.
+    // Same-page changes - a dialog that only edits the query string - leave it be.
+    let lastPage = pageKey(launched.page.url())
+    launched.page.on('framenavigated', frame => {
+      if (frame !== launched.page.mainFrame() || name !== this.activeName) return
+      this.noteLocation(frame.url())
+      const key = pageKey(frame.url())
+      if (key !== lastPage) this.releaseZoom()
+      lastPage = key
+    })
+    if (launch.url) {
+      await launched.page.goto(launch.url, { waitUntil: 'domcontentloaded', timeout: 45_000 })
+      await launched.page.waitForLoadState('load', { timeout: 15_000 }).catch(() => {})
+      await launched.page.waitForTimeout(800)
+    }
     await recorder.start()
 
     log.info(`Browser "${name}" open (${fresh ? 'empty throwaway profile' : `profile "${profile}"`})`)
@@ -440,6 +486,11 @@ export class RecordingSession {
 
   get isZoomed(): boolean {
     return this.openZoom !== null
+  }
+
+  /** What the camera shows while it is in: the region of the page, and how far in. */
+  get cameraFrame(): { x: number; y: number; width: number; height: number; scale: number } | null {
+    return this.openZoom ? { ...this.openZoom.visible, scale: this.openZoom.event.scale } : null
   }
 
   /** Stop recording and return the stretches that make up the video, in order. */
@@ -531,12 +582,23 @@ export class RecordingSession {
           cues: this.cues,
           zoomEvents: this.zoomEvents,
           chapters: this.chapters,
+          locations: this.locations,
         },
         null,
         2,
       ),
     )
     return file
+  }
+}
+
+/** A page as far as the camera is concerned: its address without query or fragment. */
+function pageKey(url: string): string {
+  try {
+    const parsed = new URL(url)
+    return `${parsed.origin}${parsed.pathname}`
+  } catch {
+    return url
   }
 }
 

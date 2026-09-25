@@ -372,3 +372,46 @@ are opened with `-c:v libvpx-vp9`, and a build without libvpx gets ProRes.
 **Colours.** HyperFrames' mp4 is BT.709; the capture and the finished file are BT.601.
 The opening and closing are converted on the way in — a solid #01fff4 field comes out
 at (0, 254, 240). The transparent cards are untagged and measure as BT.601 already.
+
+---
+
+## 11. The stage
+
+The recording is shown as a window on the Stardawn ground (`src/lib/stage.ts`,
+`assets/motion/stage.html`) — the look of a produced screen tutorial rather than of a
+capture.
+
+**The browser records at the window's size.** The window's content area is five
+sixths of the video each way: 1600x900 in 1920x1080. Shrinking a full-size capture
+into it would soften every glyph; capturing at 1600x900 shows the app pixel for pixel.
+The zoom filter already told capture size and picture size apart, so camera moves
+work unchanged in the window's coordinates.
+
+**The stage is two stills, not video.** It never moves, so `stage.html` is
+photographed with the recorder's own Chromium: once whole (ground, shadow, window) and
+once masked down to what lies over the recording (the bar, the ground in the four
+rounded corners, a hairline edge). The composition lays the recording between the two
+with `overlay`. One top layer is made per site, switched with `enable` windows, which
+is how the bar follows the page. This needs no HyperFrames; cached, it costs nothing.
+
+**The bar names the host, and only the host.** A path or query can carry a sign-in
+code — an OAuth redirect does — and the bar is on screen throughout.
+
+**Order of layers**: capture → camera move → stage → chapter cards → avatar → opening
+and closing → captions. The camera moves inside the window; everything after the
+stage lies over the whole frame.
+
+**Also found while building it:**
+
+- A new page now releases the camera however it was reached. Pressing Enter on
+  GitHub's search box went to the results page with the camera still magnifying the
+  spot where the box had been. The session releases on any change of address other
+  than query and fragment, which leaves a dialog that only edits the query alone.
+- Playwright prints every call in the corner of the capture — `Type " loudness"`,
+  `Press "Enter"` — with no option to switch it off while keeping the pointer. The
+  caption and our overlays share one shadow root, so a style rule placed as a
+  permanent overlay hides it.
+- Keycaps drawn at the bottom of the page were outside the frame whenever the camera
+  was in. They are placed in the camera's region and shrunk by its magnification.
+- The first page used to load on camera: the GitHub example opened on 25 s of a page
+  filling in. It is now loaded before the capture starts.

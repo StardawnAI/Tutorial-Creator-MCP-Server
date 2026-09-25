@@ -10,15 +10,7 @@
     "autoZoom": true
   },
   "steps": [
-    { "tool": "tutorial_wait", "args": { "ms": 2000 } },
-    {
-      "tool": "tutorial_chapter",
-      "args": {
-        "title": "Searching one repository",
-        "description": "Instead of all of GitHub",
-        "durationMs": 2400
-      }
-    },
+    { "tool": "tutorial_wait", "args": { "ms": 1500 } },
     {
       "tool": "tutorial_say",
       "args": {
@@ -29,7 +21,7 @@
       "tool": "tutorial_click",
       "args": {
         "role": "button",
-        "name": "Open quick search dialog",
+        "name": "type / to search",
         "instruction": "Open the search from a repository page, not from the GitHub home page. That is what limits the results.",
         "waitForMs": 1600
       }
@@ -61,15 +53,33 @@
         "instruction": "Type what you are looking for after the filter - a word from the code, not a file name."
       }
     },
+    { "tool": "tutorial_press", "args": { "key": "Enter", "waitForMs": 2500 } },
     {
       "tool": "tutorial_say",
       "args": {
-        "text": "The results now come only from this project. The same trick works for issues and pull requests, and the shortcut to open it is simply the slash key.",
-        "pauseAfterMs": 1600
+        "text": "The results come only from this project. The same filter works for issues and pull requests.",
+        "pauseAfterMs": 800
+      }
+    },
+    {
+      "tool": "tutorial_chapter",
+      "args": {
+        "title": "Open it with one key",
+        "description": "On any repository page, the slash key opens the same search."
+      }
+    },
+    { "tool": "tutorial_press", "args": { "key": "/", "waitForMs": 1500 } },
+    {
+      "tool": "tutorial_say",
+      "args": {
+        "text": "Press slash on a repository page, and the search opens with the filter already in place.",
+        "pauseAfterMs": 1400
       }
     }
   ],
   "finish": {
-    "subtitles": true
+    "subtitles": true,
+    "openingSubtitle": "GitHub · code search in one project",
+    "closingText": "Every search you start from a repository now stays inside it."
   }
 }

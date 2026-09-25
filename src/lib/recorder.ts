@@ -65,9 +65,17 @@ export class Recorder {
     this.running = true
 
     if (this.options.showActions !== false) {
-      // The animated pointer plus a caption naming each action. Without a visible
-      // pointer a click-through tutorial cannot be followed.
+      // The animated pointer. Without a visible pointer a click-through tutorial
+      // cannot be followed.
       await this.page.screencast.showActions({ cursor: 'pointer', duration: 800 })
+      // Playwright also prints each call in the corner - 'Type " loudness"', 'Press
+      // "Enter"' - which reads as a debugging aid rather than as part of a tutorial,
+      // and says less than the instruction cards and keycaps already do. There is no
+      // switch for it, but the caption and our overlays share one shadow root, so a
+      // style rule placed as an overlay of its own reaches it.
+      await this.page.screencast
+        .showOverlay('<style>x-pw-title { display: none !important; }</style>')
+        .catch(err => log.warn('Could not hide the action captions', err))
     }
 
     await this.waitForFirstFrame()

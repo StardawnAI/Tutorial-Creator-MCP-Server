@@ -374,6 +374,45 @@ measured, and rebuilding it in HTML would cost render time for nothing.
         looked at. `recordings/.../instar-motion.subtitled.mp4`
 - [x] README, ARCHITECTURE, STATUS; commit and push
 
+## M17 - The recording itself looks produced
+
+Asked for as "what professional tutorials look like, with clean animations". The cards
+of M16 dress the start and the end; the other 90 % of the video was still a raw
+full-frame capture. What sets a produced screen tutorial apart (Screen Studio, Arcade,
+the launch videos of Linear or Stripe) is the recording itself: the app shown as a
+window floating on a branded ground, and every decoration arriving and leaving with
+motion rather than blinking on and off.
+
+- [x] A stage: the recording as a window with rounded corners, a soft shadow and a
+      slim browser bar naming the site, on the Stardawn ground. Captured at the
+      window's own size, so the app stays pixel for pixel sharp
+      -> verified: e2e samples the recording inside the window (Y 57), the navy ground
+        (Y 32), a rounded-off corner (Y 30, not 57), and a video no longer than before
+- [x] The bar follows the page: the host changes when the page navigates or the video
+      cuts to another browser - the host only, never a path, which can carry tokens
+      -> verified: e2e fingerprints the bar - identical within one site, different
+        after the switch; InStar re-rendered switching to instagram.com at the cut
+- [x] Decorations in the Stardawn palette, and with an exit as well as an entrance
+      -> verified: frames of the live GitHub recording show the cyan ring with its navy
+        keyline on a white page, and the instruction card with the cyan-magenta edge
+- [x] Keyboard shortcuts shown as keycaps when `tutorial_press` sends one
+      -> verified: "Enter ↵" inside the zoomed frame and "/" unzoomed, in the live run.
+        The first attempt drew them outside the camera's region
+- [x] Shorter cards: 3.5 s opening, 4 s closing
+- [x] `tutorial_start` `frame` (default on), `recompose.mjs --frame on|off`,
+      `--location`
+- [x] Real run: a new framed recording of a real site, and the InStar video framed,
+      frames looked at
+      -> `recordings/2026-09-25T13-53-25_search-inside-one-github-repository`, and
+        `instar-pro.subtitled.mp4` in the InStar folder (1880 frames = 88 + 1692 + 100)
+- [x] Found on the way and fixed: the camera stayed zoomed across a page change made
+      by a key or a click; Playwright's `Type "…"` captions; the first page loading on
+      camera; descenders cut off on the cards
+- [x] README, ARCHITECTURE, STATUS; commit and push
+- [ ] Pacing: stretches where nothing moves and nobody speaks - a page loading, the
+      pause before a click - could be shortened automatically. The GitHub example
+      runs 104 s where a produced version would be nearer 70
+
 ---
 
 ## Later

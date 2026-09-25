@@ -13,6 +13,7 @@ import { requireSession, type RecordingSession } from '../lib/session.js'
 import {
   clearHandoffBanner,
   instruct,
+  keystroke,
   ripple,
   showHandoffBanner,
   spotlight,
@@ -367,7 +368,9 @@ export function registerActionTools(server: McpServer): void {
     'tutorial_press',
     {
       title: 'Press a key',
-      description: 'Presses a keyboard key, e.g. "Enter", "Tab" or "Control+a".',
+      description:
+        'Presses a keyboard key, e.g. "Enter", "Tab" or "Control+a". With emphasis on, the ' +
+        'keys are shown on screen as keycaps, so a shortcut is visible in the video.',
       inputSchema: {
         key: z.string().describe('Key name in Playwright notation.'),
         waitForMs: z.number().int().min(0).max(30_000).default(BEAT_MS),
@@ -377,6 +380,11 @@ export function registerActionTools(server: McpServer): void {
     async args => {
       try {
         const session = requireSession()
+        if (session.options.emphasis) {
+          // Shown a moment before the press, so the keys are on screen when it lands.
+          await keystroke(session.page, args.key, { frame: session.cameraFrame ?? undefined })
+          await session.page.waitForTimeout(250)
+        }
         await session.page.keyboard.press(args.key)
         await session.page.waitForTimeout(args.waitForMs)
         return text(`Pressed ${args.key}.`)

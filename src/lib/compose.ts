@@ -76,6 +76,27 @@ export interface ComposeOptions {
    * moments - the chapter cards. Times are on the recording's own clock.
    */
   overlays?: MotionOverlay[]
+  /**
+   * Size the picture was captured at, where it is not the size of the video: a staged
+   * recording is captured at the size of its window. Camera moves are in these pixels.
+   */
+  captureWidth?: number
+  captureHeight?: number
+  /** Show the recording as a window on the stage rather than filling the frame. */
+  stage?: StageComposition
+}
+
+export interface StageComposition {
+  /** The ground, the shadow and the window, opaque. */
+  base: string
+  /**
+   * What lies over the recording - the bar and the rounded corners - one per stretch
+   * of the recording's clock, since the bar names the site on screen. The first is
+   * shown wherever no other one is.
+   */
+  tops: Array<{ file: string; fromMs: number; toMs: number }>
+  /** Where the recording goes: the window below its bar. */
+  content: { x: number; y: number; width: number; height: number }
 }
 
 export interface MotionOverlay {
@@ -803,6 +824,39 @@ export function bookendFilters(options: {
 }
 
 /**
+ * The recording set into its window on the stage - labelled `outLabel`.
+ *
+ * Three layers: the ground (still), the recording at the window's content area, and
+ * the top layer (still) with the bar and the ground in the rounded corners. The stills
+ * are looped inputs; the recording decides how long the result runs. Each top layer
+ * after the first covers only its own stretch, which is how the bar follows the page.
+ */
+export function stageFilters(options: {
+  baseInput: number
+  tops: Array<{ input: number; fromMs: number; toMs: number }>
+  content: { x: number; y: number }
+  inLabel: string
+  outLabel: string
+}): string[] {
+  const filters = [
+    `[${options.baseInput}:v][${options.inLabel}]overlay=${options.content.x}:${options.content.y}:` +
+      `shortest=1[stg0]`,
+  ]
+  let previous = 'stg0'
+  options.tops.forEach((top, i) => {
+    const next = i === options.tops.length - 1 ? options.outLabel : `stg${i + 1}`
+    const when =
+      i === 0
+        ? ''
+        : `:enable='between(t,${(top.fromMs / 1000).toFixed(3)},${(top.toMs / 1000).toFixed(3)})'`
+    filters.push(`[${previous}][${top.input}:v]overlay=0:0:shortest=1${when}[${next}]`)
+    previous = next
+  })
+  if (options.tops.length === 0) filters.push(`[${previous}]null[${options.outLabel}]`)
+  return filters
+}
+
+/**
  * Transparent full-frame cards laid over the picture at their moments - labelled
  * `outLabel`. Each is cut to its own length, so a card that came back a frame long
  * cannot linger.
@@ -924,6 +978,23 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
     closingInput = nextInput++
   }
 
+  // The stage's stills, looped: they are frames of video for as long as the picture is.
+  const still = (file: string) => {
+    args.push('-loop', '1', '-framerate', String(OUTPUT_FPS), '-i', file)
+    return nextInput++
+  }
+  const stage = options.stage
+    ? {
+        baseInput: still(options.stage.base),
+        tops: options.stage.tops.map(top => ({ ...top, input: still(top.file) })),
+        content: options.stage.content,
+      }
+    : null
+  // What the recording fills: the window on the stage, or the whole frame.
+  const picture = stage
+    ? { width: stage.content.width, height: stage.content.height }
+    : { width: options.outputWidth, height: options.outputHeight }
+
   const chain: string[] = []
 
   if (needsExtension) {
@@ -940,10 +1011,10 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
   chain.push(`fps=${OUTPUT_FPS}`)
 
   const zoomFilter = buildZoomFilter(options.zoomEvents ?? [], {
-    viewportWidth: options.outputWidth,
-    viewportHeight: options.outputHeight,
-    outputWidth: options.outputWidth,
-    outputHeight: options.outputHeight,
+    viewportWidth: options.captureWidth ?? options.outputWidth,
+    viewportHeight: options.captureHeight ?? options.outputHeight,
+    outputWidth: picture.width,
+    outputHeight: picture.height,
     fps: OUTPUT_FPS,
     rampMs: 700,
   })
@@ -953,9 +1024,7 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
     chain.push(zoomFilter)
     log.info(`Applying ${options.zoomEvents?.length ?? 0} camera move(s)`)
   } else {
-    chain.push(
-      `scale=${options.outputWidth}:${options.outputHeight}:flags=lanczos`,
-    )
+    chain.push(`scale=${picture.width}:${picture.height}:flags=lanczos`)
   }
 
   // Written to a file: a filtergraph with several camera moves comfortably exceeds
@@ -966,18 +1035,33 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
   // leave the picture with no route to the file.
   // The bubbles go on last, over the finished picture, so a camera move cannot crop
   // or magnify them. Chapter cards go on before them, so the presenter stays on
-  // screen through a chapter. The opening and closing are joined around the lot.
+  // screen through a chapter. The opening and closing are joined around the lot. The
+  // stage comes first of all: the camera moves inside the window, and everything
+  // after it lies over the whole frame.
   const hasAvatar = avatarClips.length > 0 || Boolean(idleClip)
   const hasBookends = Boolean(opening || closing)
   const mainLabel = hasBookends ? 'main' : 'vout'
   const carded = hasAvatar ? 'picture' : mainLabel
   const pictureLabel = overlays.length > 0 ? 'bare' : carded
+  const chainLabel = stage ? 'windowed' : pictureLabel
   const graph = [
     joined
       ? `${joinSegments(joined, OUTPUT_FPS, options.transitions === false ? 0 : TRANSITION_SECONDS)};` +
-        `\n[joined]${chain.join(',\n')}[${pictureLabel}]`
-      : `[0:v]${chain.join(',\n')}[${pictureLabel}]`,
+        `\n[joined]${chain.join(',\n')}[${chainLabel}]`
+      : `[0:v]${chain.join(',\n')}[${chainLabel}]`,
   ]
+  if (stage) {
+    log.info(`Setting the recording on the stage, ${stage.tops.length} bar(s)`)
+    graph.push(
+      ...stageFilters({
+        baseInput: stage.baseInput,
+        tops: stage.tops,
+        content: stage.content,
+        inLabel: chainLabel,
+        outLabel: pictureLabel,
+      }),
+    )
+  }
   if (overlays.length > 0) {
     log.info(`Laying ${overlays.length} chapter card(s) over the recording`)
     graph.push(

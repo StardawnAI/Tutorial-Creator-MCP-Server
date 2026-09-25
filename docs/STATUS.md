@@ -5,6 +5,58 @@ Newest entry on top.
 
 ---
 
+## 2026-09-25 - The recording itself looks produced (M17)
+
+Asked for as "what professional tutorials look like, with clean animations". The cards
+of M16 only dressed the start and the end; this is about the other 90 %.
+
+### Built
+
+- **The stage**: the app as a window on the Stardawn ground - rounded corners, shadow,
+  a bar naming the site - with the browser recording at the window's size (1600x900
+  in 1080p) so nothing is scaled down. Two stills photographed with the recorder's own
+  Chromium, the recording laid between them; no HyperFrames needed.
+- **The bar follows the site**, host only, switching at navigations and browser cuts.
+- **Decorations in the palette**, cyan with a navy keyline (the bare cyan all but
+  disappears on a white page), and a 240 ms fade on the way out instead of vanishing
+  between two frames.
+- **Keycaps** for `tutorial_press`, placed inside what the camera shows.
+- **Shorter cards**: 3.5 s opening, 4 s closing.
+
+### Found on the way, all fixed
+
+- The camera stayed zoomed across a page change made by Enter or a click, magnifying
+  an empty spot of the new page. Any change of address now releases it.
+- Playwright prints every call in the corner (`Type " loudness"`); hidden by a style
+  rule in the overlay layer, since it shares a shadow root with ours.
+- Keycaps at the bottom of the page were outside the frame while zoomed in.
+- The first page loaded on camera: the GitHub example opened on 25 s of loading. It
+  is now loaded before the capture starts.
+- Descenders were cut off on the cards ("key" lost the tail of its y).
+- GitHub renamed its search button; the example was updated.
+
+### Verified
+
+- `node scripts/e2e.mjs` 81/81 (8 new: the window's geometry, the recording inside,
+  the ground, the rounded corner, the bar switching, no time added, host-only bar,
+  keycap labels), `node scripts/handshake.mjs` 11/11
+- A live recording of the GitHub example, framed:
+  `recordings/2026-09-25T13-53-25_search-inside-one-github-repository`; frames looked
+  at for the stage, ring, card, keycaps inside and outside a zoom, the released camera
+  and the chapter card
+- The InStar video framed after the fact: `instar-pro.subtitled.mp4`, 1880 frames =
+  88 + 1692 + 100, picture and sound 75.20 s
+
+### Known, not yet solved
+
+- **Pacing.** The GitHub example runs 104 s. Most of it is deliberate - each
+  instruction card stays up for its reading time - but pages loading and the pause
+  Playwright takes before a click add dead stretches a produced video would not have.
+  Cutting them automatically needs the moments where overlays are on screen to be
+  known, or it would cut reading time too.
+
+---
+
 ## 2026-09-24 - Motion cards with HyperFrames (M16)
 
 Asked for by name: HeyGen's open-source HTML-to-video renderer, to make the tutorials

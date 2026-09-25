@@ -245,8 +245,12 @@ export interface ChapterMark {
   description?: string
 }
 
-/** Length of the opening and the closing card. */
-export const CARD_SECONDS = 4.5
+/**
+ * Length of the opening and the closing card. Short on purpose: 4.5 s each made a
+ * one-minute tutorial 13 % longer, and the title has fully arrived by 1.8 s.
+ */
+export const OPENING_SECONDS = 3.5
+export const CLOSING_SECONDS = 4
 
 export interface CardPlan {
   title: string
@@ -288,11 +292,11 @@ export async function renderCards(config: Config, plan: CardPlan): Promise<Rende
   if (plan.opening) {
     // The whole video, cards included, to the nearest minute - what a viewer wants to
     // know before they commit to watching. Rounded, not up: 77 seconds is "about 1".
-    const minutes = Math.max(1, Math.round((plan.recordingSec + 2 * CARD_SECONDS) / 60))
+    const minutes = Math.max(1, Math.round((plan.recordingSec + OPENING_SECONDS + CLOSING_SECONDS) / 60))
     result.opening = await attempt('opening', () =>
       renderMotion(config, {
         template: 'opening',
-        durationSec: CARD_SECONDS,
+        durationSec: OPENING_SECONDS,
         values: {
           eyebrow: 'Tutorial',
           title: plan.title,
@@ -324,7 +328,7 @@ export async function renderCards(config: Config, plan: CardPlan): Promise<Rende
     result.closing = await attempt('closing', () =>
       renderMotion(config, {
         template: 'closing',
-        durationSec: CARD_SECONDS,
+        durationSec: CLOSING_SECONDS,
         values: {
           eyebrow: 'Done',
           title: plan.closing?.title ?? "That's all it takes",

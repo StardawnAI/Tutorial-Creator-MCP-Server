@@ -28,7 +28,8 @@ import {
 } from '../dist/lib/compose.js'
 import { estimateTimings } from '../dist/lib/words.js'
 import { fillTemplate, motionAvailability, renderMotion } from '../dist/lib/motion.js'
-import { spotlight, ripple, instruct, instructionLayout } from '../dist/lib/emphasis.js'
+import { hostOf, stageComposition, stageLayout } from '../dist/lib/stage.js'
+import { spotlight, ripple, instruct, instructionLayout, keycaps } from '../dist/lib/emphasis.js'
 import { probeVideo, run } from '../dist/lib/ffmpeg.js'
 import { musicPrompt } from '../dist/lib/music-gen.js'
 import { launchBrowser } from '../dist/lib/browser.js'
@@ -646,6 +647,121 @@ async function motionCards(config) {
 }
 
 /**
+ * The stage: the recording set into a window on the Stardawn ground.
+ *
+ * Checked on a flat grey stand-in capture at the window's size, so every pixel says
+ * which layer it came from: grey is the recording, navy the ground. The bar is checked
+ * by its fingerprint - identical while one site is on screen, different once the next
+ * one is - because its text is too small for a colour average to tell apart.
+ */
+async function stageCheck(config) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'e2e-stage-'))
+  const layout = stageLayout(OUT_W, OUT_H)
+  const { content } = layout
+  // Centred to within a pixel: positions are kept even, so the chroma of a 4:2:0
+  // picture lines up with the stage's.
+  check(
+    'the window is five sixths of the frame, and centred',
+    content.width === 1066 && content.height === 600 && Math.abs(content.x - (OUT_W - 1066) / 2) <= 1,
+    `${content.width}x${content.height} at ${content.x},${content.y}`,
+  )
+
+  const base = path.join(dir, 'base.mp4')
+  await run(config.ffmpegPath, [
+    '-hide_banner', '-loglevel', 'error', '-y',
+    '-f', 'lavfi', '-i', `color=c=0x303030:s=${content.width}x${content.height}:r=25:d=4`,
+    '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p', base,
+  ])
+  const stage = await stageComposition(config, {
+    width: OUT_W,
+    height: OUT_H,
+    locations: [
+      { atMs: 0, host: 'first.example' },
+      { atMs: 2000, host: 'second.example' },
+    ],
+  })
+  const result = await compose(config, {
+    rawVideo: base,
+    cues: [],
+    outputDir: dir,
+    music: null,
+    musicGainDb: 0,
+    subtitles: false,
+    outputWidth: OUT_W,
+    outputHeight: OUT_H,
+    captureWidth: content.width,
+    captureHeight: content.height,
+    stage,
+  })
+
+  const statsAt = async (seconds, crop) => {
+    const { stderr } = await run(config.ffmpegPath, [
+      '-hide_banner', '-nostats', '-i', result.outputFile,
+      '-vf', `trim=start=${seconds.toFixed(3)},crop=${crop},signalstats,metadata=print`,
+      '-frames:v', '1', '-f', 'null', '-',
+    ])
+    const read = key => Number(stderr.match(new RegExp(`signalstats\\.${key}=([0-9.]+)`))?.[1] ?? NaN)
+    return { y: read('YAVG'), u: read('UAVG'), v: read('VAVG') }
+  }
+  const fingerprint = async (seconds, crop) => {
+    const { stdout } = await run(config.ffmpegPath, [
+      '-hide_banner', '-loglevel', 'error', '-i', result.outputFile,
+      '-vf', `trim=start=${seconds.toFixed(3)},crop=${crop}`, '-frames:v', '1', '-f', 'md5', '-',
+    ])
+    return stdout.trim()
+  }
+
+  const inside = `40:40:${content.x + content.width / 2 - 20}:${content.y + content.height / 2 - 20}`
+  // Bottom left: the two soft lights sit top left and bottom right.
+  const ground = `24:24:8:${OUT_H - 32}`
+  const corner = `3:3:${content.x}:${content.y + content.height - 3}`
+  const bar = `${content.width}:${layout.bar}:${content.x}:${layout.window.y}`
+  const [windowStats, groundStats, cornerStats] = await Promise.all([
+    statsAt(1.0, inside),
+    statsAt(1.0, ground),
+    statsAt(1.0, corner),
+  ])
+  check('the recording fills the window', Math.abs(windowStats.y - 57) < 3, `Y ${windowStats.y.toFixed(1)}`)
+  check(
+    'the ground around it is the Stardawn navy',
+    groundStats.y < 45 && groundStats.u > 128,
+    `Y ${groundStats.y.toFixed(1)} U ${groundStats.u.toFixed(1)}`,
+  )
+  check(
+    "the window's corner is rounded off, not square",
+    Math.abs(cornerStats.y - 57) > 8,
+    `corner Y ${cornerStats.y.toFixed(1)} against the recording's 57`,
+  )
+
+  const [first, stillFirst, second] = await Promise.all([
+    fingerprint(0.5, bar),
+    fingerprint(1.5, bar),
+    fingerprint(3.0, bar),
+  ])
+  check(
+    'the bar holds while one site is on screen and changes with the next',
+    first === stillFirst && first !== second,
+    `${first.slice(-6)} ${stillFirst.slice(-6)} ${second.slice(-6)}`,
+  )
+  check('the stage costs the video no time', Math.abs(result.durationSec - 4) < 0.05, `${result.durationSec.toFixed(2)}s`)
+
+  check(
+    'the bar names the host and nothing after it',
+    hostOf('https://www.example.com/oauth/callback?code=secret#x') === 'example.com' && hostOf('about:blank') === null,
+    hostOf('https://www.example.com/oauth/callback?code=secret#x'),
+  )
+  check(
+    'a shortcut is written as keycaps',
+    JSON.stringify(keycaps('Control+Shift+k')) === '["Ctrl","Shift","K"]' &&
+      JSON.stringify(keycaps('Control++')) === '["Ctrl","+"]' &&
+      JSON.stringify(keycaps('Enter')) === '["Enter ↵"]',
+    `${keycaps('Control+Shift+k').join(' ')} | ${keycaps('Control++').join(' ')} | ${keycaps('Enter').join(' ')}`,
+  )
+
+  fs.rmSync(dir, { recursive: true, force: true })
+}
+
+/**
  * What a bot check reads, and the two-factor codes typed into one.
  *
  * Both are things that silently stop working: a Playwright release that puts the
@@ -1144,6 +1260,7 @@ async function main() {
   await twoBrowsers(config)
   await avatarBubble(config)
   await motionCards(config)
+  await stageCheck(config)
   await botAndTwoFactor(config)
 
   const failed = results.filter(r => !r.ok)

@@ -21,10 +21,26 @@ export interface Box {
   height: number
 }
 
-/** Colours shared by every decoration, so the video looks like one piece of work. */
-const ACCENT = '#38bdf8'
-const ACCENT_SOFT = 'rgba(56,189,248,.28)'
-const SCRIM = 'rgba(8,15,30,.46)'
+/**
+ * Colours shared by every decoration, so the video looks like one piece of work - the
+ * Stardawn cyan of the cards and the stage. That cyan all but vanishes on a white
+ * page, so everything drawn in it carries a thin navy keyline as well.
+ */
+const ACCENT = '#01fff4'
+const ACCENT_SOFT = 'rgba(1,255,244,.26)'
+const KEYLINE = 'rgba(4,20,34,.62)'
+const SCRIM = 'rgba(4,20,34,.5)'
+
+/**
+ * How a decoration leaves: a short fade, timed to end as its overlay is removed. It
+ * used to vanish from one frame to the next, which reads as a glitch rather than as
+ * something finishing. `forwards` only - a backwards fill would hold it at full
+ * opacity through the delay and cancel the way it came in.
+ */
+const LEAVE_MS = 240
+const leaveCss = `@keyframes tc-leave { to { opacity: 0 } }`
+const leave = (durationMs: number) =>
+  `tc-leave ${LEAVE_MS}ms ${Math.max(0, durationMs - LEAVE_MS)}ms ease-in forwards`
 
 /** Keep a decoration inside the frame, and give it a little breathing room. */
 function padded(box: Box, pad: number, viewport: { width: number; height: number }): Box {
@@ -39,23 +55,26 @@ function padded(box: Box, pad: number, viewport: { width: number; height: number
 }
 
 /** The ring itself, plus the keyframes every decoration shares. */
-function ringMarkup(r: Box, dim: boolean): { css: string; html: string } {
+function ringMarkup(r: Box, dim: boolean, durationMs: number): { css: string; html: string } {
   const radius = Math.min(14, Math.max(8, Math.round(Math.min(r.width, r.height) * 0.18)))
+  const scrim = dim ? `, 0 0 0 9999px ${SCRIM}` : ''
   const css = `
+    ${leaveCss}
     @keyframes tc-settle {
       from { opacity: 0; transform: scale(1.06); }
       to   { opacity: 1; transform: scale(1); }
     }
     @keyframes tc-breathe {
-      0%,100% { box-shadow: 0 0 0 4px ${ACCENT_SOFT}${dim ? `, 0 0 0 9999px ${SCRIM}` : ''}; }
-      50%     { box-shadow: 0 0 0 9px rgba(56,189,248,.16)${dim ? `, 0 0 0 9999px ${SCRIM}` : ''}; }
+      0%,100% { box-shadow: 0 0 0 1.5px ${KEYLINE}, 0 0 0 5px ${ACCENT_SOFT}${scrim}; }
+      50%     { box-shadow: 0 0 0 1.5px ${KEYLINE}, 0 0 0 10px rgba(1,255,244,.14)${scrim}; }
     }
     @keyframes tc-rise { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
     .tc-ring {
       position: fixed; pointer-events: none;
       border: 2.5px solid ${ACCENT}; border-radius: ${radius}px;
       animation: tc-settle .26s cubic-bezier(.22,1,.36,1) both,
-                 tc-breathe 2.1s ease-in-out .26s infinite;
+                 tc-breathe 2.1s ease-in-out .26s infinite,
+                 ${leave(durationMs)};
     }`
   const html =
     `<div class="tc-ring" style="left:${Math.round(r.x)}px;top:${Math.round(r.y)}px;` +
@@ -76,7 +95,7 @@ export async function spotlight(
   options: { durationMs: number; dim?: boolean } = { durationMs: 1400 },
 ): Promise<void> {
   const viewport = page.viewportSize() ?? { width: 1920, height: 1080 }
-  const { css, html } = ringMarkup(padded(box, 8, viewport), options.dim !== false)
+  const { css, html } = ringMarkup(padded(box, 8, viewport), options.dim !== false, options.durationMs)
 
   await page.screencast
     .showOverlay(`<style>${css}</style>${html}`, { duration: options.durationMs })
@@ -167,19 +186,24 @@ export async function instruct(
   const length = Math.round(Math.hypot(toX - fromX, toY - fromY))
   const angle = (Math.atan2(toY - fromY, toX - fromX) * 180) / Math.PI
 
-  const { css, html: ring } = ringMarkup(r, options.dim !== false)
+  const { css, html: ring } = ringMarkup(r, options.dim !== false, durationMs)
 
   const overlay =
     `<style>${css}
       .tc-card {
         position: fixed; pointer-events: none; box-sizing: border-box;
         width: ${cardWidth}px;
-        font: 500 17px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-        color: #f1f5f9; background: rgba(12,20,36,.94);
-        border: 1px solid rgba(56,189,248,.42); border-left: 3px solid ${ACCENT};
-        border-radius: 12px; padding: 15px 18px;
-        box-shadow: 0 18px 44px rgba(0,0,0,.5);
-        animation: tc-rise .34s cubic-bezier(.22,1,.36,1) both;
+        font: 500 17px/1.45 "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
+        color: #f4f7fa; background: rgba(6,22,36,.95);
+        border: 1px solid rgba(1,255,244,.26);
+        border-radius: 12px; padding: 15px 18px 15px 22px;
+        box-shadow: 0 18px 44px rgba(0,0,0,.45), 0 0 0 1px ${KEYLINE};
+        animation: tc-rise .34s cubic-bezier(.22,1,.36,1) both, ${leave(durationMs)};
+      }
+      /* The accent down the card's edge runs cyan to magenta, as on the cards. */
+      .tc-card::before {
+        content: ''; position: absolute; left: 8px; top: 12px; bottom: 12px; width: 3px;
+        border-radius: 2px; background: linear-gradient(180deg, ${ACCENT}, #ff1178);
       }
       /* A rotated div rather than an SVG line. SVG markup handed to showOverlay does
          not render in the screencast's overlay layer - the connector was simply
@@ -191,14 +215,14 @@ export async function instruct(
       @keyframes tc-fade { from { opacity: 0 } to { opacity: 1 } }
       .tc-line {
         position: fixed; pointer-events: none; height: 2.5px; border-radius: 2px;
-        background: ${ACCENT}; transform-origin: 0 50%;
-        animation: tc-draw .5s .2s cubic-bezier(.4,0,.2,1) both;
+        background: ${ACCENT}; transform-origin: 0 50%; box-shadow: 0 0 0 1px ${KEYLINE};
+        animation: tc-draw .5s .2s cubic-bezier(.4,0,.2,1) both, ${leave(durationMs)};
       }
       .tc-dot {
         position: fixed; pointer-events: none;
         width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px;
-        border-radius: 50%; background: ${ACCENT};
-        animation: tc-fade .3s .55s both;
+        border-radius: 50%; background: ${ACCENT}; box-shadow: 0 0 0 1.5px ${KEYLINE};
+        animation: tc-fade .3s .55s both, ${leave(durationMs)};
       }
     </style>` +
     `<div class="tc-line" style="left:${Math.round(fromX)}px;top:${Math.round(fromY)}px;` +
@@ -283,7 +307,8 @@ export async function ripple(page: Page, x: number, y: number, durationMs = 700)
       .tc-ripple {
         position: fixed; pointer-events: none;
         width: 108px; height: 108px; margin: -54px 0 0 -54px; border-radius: 50%;
-        border: 3px solid ${ACCENT}; background: rgba(56,189,248,.18);
+        border: 3px solid ${ACCENT}; background: rgba(1,255,244,.16);
+        box-shadow: 0 0 0 1.5px ${KEYLINE};
         animation: tc-ripple ${durationMs}ms cubic-bezier(.16,.8,.35,1) both;
       }
     </style>` +
@@ -292,6 +317,89 @@ export async function ripple(page: Page, x: number, y: number, durationMs = 700)
   await page.screencast
     .showOverlay(html, { duration: durationMs })
     .catch(err => log.warn('Could not draw the click ripple', err))
+}
+
+/** How a Playwright key name is written on a keycap. */
+const KEY_LABELS: Record<string, string> = {
+  Control: 'Ctrl',
+  ControlOrMeta: 'Ctrl',
+  Meta: 'Win',
+  Escape: 'Esc',
+  Enter: 'Enter ↵',
+  Backspace: '⌫',
+  Delete: 'Del',
+  ArrowUp: '↑',
+  ArrowDown: '↓',
+  ArrowLeft: '←',
+  ArrowRight: '→',
+  PageUp: 'Page Up',
+  PageDown: 'Page Down',
+  ' ': 'Space',
+}
+
+/** "Control+Shift+k" becomes the caps Ctrl, Shift, K. */
+export function keycaps(key: string): string[] {
+  // A lone "+" is a key of its own; split only on a "+" that joins two names.
+  return key
+    .split(/(?<=.)\+(?=.)/)
+    .map(part => KEY_LABELS[part] ?? (part.length === 1 ? part.toUpperCase() : part))
+}
+
+/**
+ * The keys being pressed, as keycaps near the bottom of what the viewer sees.
+ *
+ * A shortcut is otherwise invisible on video: nothing moves until the app reacts, and
+ * the viewer cannot tell what made it happen. Set high enough to stay clear of the
+ * captions, which sit at the bottom of the finished frame.
+ *
+ * "What the viewer sees" is the camera's frame when it is in. Placed at the bottom of
+ * the page instead, the keys for pressing Enter in a search box at the top were drawn
+ * well outside the magnified region, and never appeared in the video. Inside the
+ * frame they are shrunk by the magnification, so they come out the same size at any
+ * zoom.
+ */
+export async function keystroke(
+  page: Page,
+  key: string,
+  options: { frame?: Box & { scale: number } } = {},
+  durationMs = 1300,
+): Promise<void> {
+  const caps = keycaps(key)
+  const viewport = page.viewportSize() ?? { width: 1920, height: 1080 }
+  const frame = options.frame ?? { x: 0, y: 0, ...viewport, scale: 1 }
+  const anchorX = Math.round(frame.x + frame.width / 2)
+  const anchorY = Math.round(frame.y + frame.height * 0.82)
+  const html =
+    `<style>${leaveCss}
+      @keyframes tc-pop {
+        from { opacity: 0; transform: translateY(12px) scale(.96) }
+        to   { opacity: 1; transform: none }
+      }
+      .tc-anchor {
+        position: fixed; pointer-events: none; left: ${anchorX}px; top: ${anchorY}px;
+        transform: translate(-50%, -100%) scale(${(1 / frame.scale).toFixed(4)});
+        transform-origin: 50% 100%;
+      }
+      .tc-keys {
+        display: flex; align-items: center; gap: 12px;
+        padding: 12px 14px; border-radius: 18px;
+        background: rgba(6,22,36,.92); box-shadow: 0 16px 40px rgba(0,0,0,.4), 0 0 0 1px ${KEYLINE};
+        font: 600 27px/1 "Segoe UI", ui-sans-serif, system-ui, sans-serif; color: #f4f7fa;
+        animation: tc-pop .28s cubic-bezier(.22,1,.36,1) both, ${leave(durationMs)};
+      }
+      .tc-keys kbd {
+        font: inherit; min-width: 54px; padding: 12px 17px; text-align: center; box-sizing: border-box;
+        border-radius: 10px; background: linear-gradient(180deg, #16324a, #0e2334);
+        border: 1px solid rgba(1,255,244,.3); box-shadow: 0 3px 0 rgba(0,0,0,.45);
+      }
+      .tc-keys span { color: #9fb3c2; font-weight: 500; }
+    </style>` +
+    `<div class="tc-anchor"><div class="tc-keys">` +
+    `${caps.map(c => `<kbd>${escapeHtml(c)}</kbd>`).join('<span>+</span>')}</div></div>`
+
+  await page.screencast
+    .showOverlay(html, { duration: durationMs })
+    .catch(err => log.warn('Could not draw the keystroke', err))
 }
 
 function escapeHtml(value: string): string {

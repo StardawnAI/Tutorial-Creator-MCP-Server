@@ -299,17 +299,40 @@ exactly the frame the session clock gives it and the narration stays on its pict
 `tutorial_finish` with `transitions: false`, or `recompose.mjs --transitions off`,
 gives hard cuts.
 
+### The stage
+
+With `frame` on in `tutorial_start` (the default), the app is not a capture filling
+the frame but a window on the Stardawn ground: rounded corners, a soft shadow, and a
+slim bar that names the site on screen, the way produced screen tutorials present an
+app. The browser records at the window's own size — 1600x900 in a 1080p video — so
+the app is shown pixel for pixel, not scaled down to make room.
+
+The bar shows the host only (`github.com`), never the path: an address can carry a
+sign-in code, and the bar is on screen the whole time. It changes when the page moves
+to another site or the video cuts to another browser. The camera moves inside the
+window; captions, chapter cards and the avatar lie over the whole frame.
+
+`frame: false` gives the old full-frame capture. An older recording can be put on the
+stage afterwards with `scripts/recompose.mjs <folder> --frame on`, and
+`--location "<ms>|<host>"` names the sites for its bar.
+
+Around it, everything that is drawn during the recording follows the same palette and
+arrives and leaves with motion: the ring round a target, the instruction card, the
+click pulse, and — new — the keys of every `tutorial_press`, shown as keycaps inside
+whatever the camera is showing. The first page is loaded before the capture starts,
+so a video no longer opens on a blank page filling in.
+
 ### Opening, chapter and closing cards
 
 With `motion` on in `tutorial_start` (the default), the video gets animated cards in
 the Stardawn look — the navy, cyan and magenta of stardawnai.com, set in Satoshi:
 
-- an **opening** with the title and a line under it (`openingSubtitle` in
+- an **opening** of 3.5 s with the title and a line under it (`openingSubtitle` in
   `tutorial_finish`; left out, it gives the running time),
 - every **`tutorial_chapter`** as an animated card laid over the picture, numbered
   "02 / 04" when there are several, with the page still faintly visible under it,
-- a **closing** that confirms what was done (`closingTitle`, `closingText`) and
-  fades to black.
+- a **closing** of 4 s that confirms what was done (`closingTitle`, `closingText`)
+  and fades to black.
 
 They are rendered with [HyperFrames](https://github.com/heygen-com/hyperframes),
 HeyGen's open-source HTML-to-video renderer (Apache-2.0), from the templates in

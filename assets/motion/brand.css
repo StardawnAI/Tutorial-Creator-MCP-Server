@@ -112,10 +112,15 @@ body {
   transform-origin: left center;
 }
 
-/* A line of text revealed by sliding up from behind its own lower edge. */
+/*
+ * A line of text revealed by sliding up from behind its own lower edge. The padding
+ * leaves room for descenders - at 0.08em the tail of a "y" was cut off - and the
+ * negative margin takes that room back out of the layout.
+ */
 .mask {
   overflow: hidden;
-  padding-bottom: 0.08em;
+  padding-bottom: 0.22em;
+  margin-bottom: -0.14em;
 }
 
 .logo {
