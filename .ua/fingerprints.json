@@ -1,0 +1,3173 @@
+{
+  "version": "1.0.0",
+  "gitCommitHash": "adcfe0954db49345fb1125f436c5df761782fdf6",
+  "generatedAt": "2026-09-25T13:19:33.104Z",
+  "files": {
+    "README.md": {
+      "filePath": "README.md",
+      "contentHash": "74c87f81fd26aa226c043d59f72f7bbe34f3d5ea59f7635b9db29046591d2936",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 385,
+      "hasStructuralAnalysis": false
+    },
+    "assets/chapters.json": {
+      "filePath": "assets/chapters.json",
+      "contentHash": "6634e73823718109493efe9784d90a95173ea1ffc2c5aee8b411304dfa3bc8e4",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 23,
+      "hasStructuralAnalysis": false
+    },
+    "assets/motion/brand.css": {
+      "filePath": "assets/motion/brand.css",
+      "contentHash": "e951ab9d8be6241290769d2431976f701520f782820feaccde620d66fff64669",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 126,
+      "hasStructuralAnalysis": false
+    },
+    "assets/motion/chapter.html": {
+      "filePath": "assets/motion/chapter.html",
+      "contentHash": "d109896bc12a5e3cee7b5c85afd1f952a1912be657f0c71f665716db30d7eb1d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 98,
+      "hasStructuralAnalysis": false
+    },
+    "assets/motion/closing.html": {
+      "filePath": "assets/motion/closing.html",
+      "contentHash": "3ee53f8343218e4658f7f57c6265f56a1312bc3e5ad1863c56867844bbfd71d6",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 140,
+      "hasStructuralAnalysis": false
+    },
+    "assets/motion/opening.html": {
+      "filePath": "assets/motion/opening.html",
+      "contentHash": "6f766c3d315914c6d289b9bbeaf4355223e63e8fc2b0fdc78b6108e1a3cde9b9",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 117,
+      "hasStructuralAnalysis": false
+    },
+    "docs/ARCHITECTURE.md": {
+      "filePath": "docs/ARCHITECTURE.md",
+      "contentHash": "32a494977b1714594c8f3bb2acfd38e3325e5ca64cdef34d283740eb0ddd5a00",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 375,
+      "hasStructuralAnalysis": false
+    },
+    "docs/PLAN.md": {
+      "filePath": "docs/PLAN.md",
+      "contentHash": "ceded7a19a27f24deac5e6af2d0fe1b612ab3cfbc00117a28150c40e2ba8f640",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 419,
+      "hasStructuralAnalysis": false
+    },
+    "docs/STATUS.md": {
+      "filePath": "docs/STATUS.md",
+      "contentHash": "3c62f0c26af040d71daaf2224d08b8565a05f9b515723f31de547d08afc6723b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 862,
+      "hasStructuralAnalysis": false
+    },
+    "examples/find-code-on-github.json": {
+      "filePath": "examples/find-code-on-github.json",
+      "contentHash": "d1b30fca6d6e9166eb95ba8d104708931fe2c8e989192b5b42d430cf3263e3ef",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 76,
+      "hasStructuralAnalysis": false
+    },
+    "examples/overview.json": {
+      "filePath": "examples/overview.json",
+      "contentHash": "88fd97b90a9d53bc4118715f9a330bd29568869a6bd73450ddc3b9aadb294af5",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 84,
+      "hasStructuralAnalysis": false
+    },
+    "examples/signed-in.json": {
+      "filePath": "examples/signed-in.json",
+      "contentHash": "aa67f2f27c92049e683ea34ccdfdff9be0808c85bb362d6e0dba1d722f47bd37",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 56,
+      "hasStructuralAnalysis": false
+    },
+    "package.json": {
+      "filePath": "package.json",
+      "contentHash": "e1676242253362e62f25edfdaff1e615ab424cd592708fff5f5378e811711005",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 49,
+      "hasStructuralAnalysis": false
+    },
+    "scripts/e2e.mjs": {
+      "filePath": "scripts/e2e.mjs",
+      "contentHash": "e4b70813b06826e504c81ad973cf58cc3ae680f25d3d61d9fe6c7196ed2dfd31",
+      "functions": [
+        {
+          "name": "speechStandIn",
+          "params": [
+            "config",
+            "file",
+            "seconds"
+          ],
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "loudnessOf",
+          "params": [
+            "config",
+            "file",
+            "startSec",
+            "lengthSec"
+          ],
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "frameAndMark",
+          "params": [
+            "session",
+            "selector",
+            "instruction"
+          ],
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "overlaps",
+          "params": [
+            "a",
+            "b"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "check",
+          "params": [
+            "label",
+            "ok"
+          ],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "twoBrowsers",
+          "params": [
+            "config"
+          ],
+          "exported": false,
+          "lineCount": 149
+        },
+        {
+          "name": "avatarBubble",
+          "params": [
+            "config"
+          ],
+          "exported": false,
+          "lineCount": 147
+        },
+        {
+          "name": "motionCards",
+          "params": [
+            "config"
+          ],
+          "exported": false,
+          "lineCount": 165
+        },
+        {
+          "name": "botAndTwoFactor",
+          "params": [
+            "config"
+          ],
+          "exported": false,
+          "lineCount": 66
+        },
+        {
+          "name": "main",
+          "params": [],
+          "exported": false,
+          "lineCount": 433
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:fs",
+          "specifiers": [
+            "fs"
+          ]
+        },
+        {
+          "source": "node:http",
+          "specifiers": [
+            "http"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "node:os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "node:url",
+          "specifiers": [
+            "pathToFileURL"
+          ]
+        },
+        {
+          "source": "../dist/lib/env.js",
+          "specifiers": [
+            "loadConfig"
+          ]
+        },
+        {
+          "source": "../dist/lib/session.js",
+          "specifiers": [
+            "RecordingSession"
+          ]
+        },
+        {
+          "source": "../dist/lib/compose.js",
+          "specifiers": [
+            "AVATAR_SIZE",
+            "TRANSITION_SECONDS",
+            "avatarOverlayFilters",
+            "buildAss",
+            "compose",
+            "karaokeText",
+            "narrationChain",
+            "verifyOutput"
+          ]
+        },
+        {
+          "source": "../dist/lib/words.js",
+          "specifiers": [
+            "estimateTimings"
+          ]
+        },
+        {
+          "source": "../dist/lib/motion.js",
+          "specifiers": [
+            "fillTemplate",
+            "motionAvailability",
+            "renderMotion"
+          ]
+        },
+        {
+          "source": "../dist/lib/emphasis.js",
+          "specifiers": [
+            "spotlight",
+            "ripple",
+            "instruct",
+            "instructionLayout"
+          ]
+        },
+        {
+          "source": "../dist/lib/ffmpeg.js",
+          "specifiers": [
+            "probeVideo",
+            "run"
+          ]
+        },
+        {
+          "source": "../dist/lib/music-gen.js",
+          "specifiers": [
+            "musicPrompt"
+          ]
+        },
+        {
+          "source": "../dist/lib/browser.js",
+          "specifiers": [
+            "launchBrowser"
+          ]
+        },
+        {
+          "source": "../dist/lib/totp.js",
+          "specifiers": [
+            "currentCode",
+            "secondsLeft",
+            "totp"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 1160,
+      "hasStructuralAnalysis": true
+    },
+    "scripts/handshake.mjs": {
+      "filePath": "scripts/handshake.mjs",
+      "contentHash": "17147844977ca586dcf4239b0f2569c63e8d77c8c2c8124e599219ccf6e51913",
+      "functions": [
+        {
+          "name": "send",
+          "params": [],
+          "exported": false,
+          "lineCount": 1
+        },
+        {
+          "name": "request",
+          "params": [
+            "id",
+            "method"
+          ],
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "waitForReady",
+          "params": [],
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "check",
+          "params": [
+            "label",
+            "ok"
+          ],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "main",
+          "params": [],
+          "exported": false,
+          "lineCount": 72
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:child_process",
+          "specifiers": [
+            "spawn"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "node:url",
+          "specifiers": [
+            "fileURLToPath"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 168,
+      "hasStructuralAnalysis": true
+    },
+    "scripts/live-run.mjs": {
+      "filePath": "scripts/live-run.mjs",
+      "contentHash": "220034e781cd65924e512f435f237be03d9c624b2eff5a82177e2428b3149f70",
+      "functions": [
+        {
+          "name": "rpc",
+          "params": [
+            "method"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "call",
+          "params": [
+            "name"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "waitForReady",
+          "params": [],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "main",
+          "params": [],
+          "exported": false,
+          "lineCount": 54
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:child_process",
+          "specifiers": [
+            "spawn"
+          ]
+        },
+        {
+          "source": "node:fs",
+          "specifiers": [
+            "fs"
+          ]
+        },
+        {
+          "source": "node:os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "node:url",
+          "specifiers": [
+            "fileURLToPath",
+            "pathToFileURL"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 169,
+      "hasStructuralAnalysis": true
+    },
+    "scripts/recompose.mjs": {
+      "filePath": "scripts/recompose.mjs",
+      "contentHash": "2906fed39b374e5992009381bb0729516e8aac18f3a098ae3682504e58c7470e",
+      "functions": [
+        {
+          "name": "locate",
+          "params": [
+            "file",
+            "dir"
+          ],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "parseArgs",
+          "params": [
+            "argv"
+          ],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "main",
+          "params": [],
+          "exported": false,
+          "lineCount": 142
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:fs",
+          "specifiers": [
+            "fs"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "../dist/lib/env.js",
+          "specifiers": [
+            "loadConfig",
+            "resolveMusicTrack"
+          ]
+        },
+        {
+          "source": "../dist/lib/compose.js",
+          "specifiers": [
+            "compose",
+            "verifyOutput"
+          ]
+        },
+        {
+          "source": "../dist/lib/music-gen.js",
+          "specifiers": [
+            "generateMusic"
+          ]
+        },
+        {
+          "source": "../dist/lib/avatar.js",
+          "specifiers": [
+            "renderAvatarClips",
+            "renderIdleClip",
+            "resolveLook"
+          ]
+        },
+        {
+          "source": "../dist/lib/motion.js",
+          "specifiers": [
+            "motionAvailability",
+            "renderCards"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 225,
+      "hasStructuralAnalysis": true
+    },
+    "scripts/record.mjs": {
+      "filePath": "scripts/record.mjs",
+      "contentHash": "eafb87afd52af71cdbd9ba79bc5f0903f99f989eff5e92756e700a6459872d3a",
+      "functions": [
+        {
+          "name": "rpc",
+          "params": [
+            "method"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "call",
+          "params": [
+            "name"
+          ],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "waitForReady",
+          "params": [],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "main",
+          "params": [],
+          "exported": false,
+          "lineCount": 33
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:child_process",
+          "specifiers": [
+            "spawn"
+          ]
+        },
+        {
+          "source": "node:fs",
+          "specifiers": [
+            "fs"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "node:url",
+          "specifiers": [
+            "fileURLToPath"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 136,
+      "hasStructuralAnalysis": true
+    },
+    "scripts/split-music.mjs": {
+      "filePath": "scripts/split-music.mjs",
+      "contentHash": "c351de87b5177250f597f03598c1a33a9a17d8756a873bdffb65eda53465777d",
+      "functions": [
+        {
+          "name": "toSeconds",
+          "params": [
+            "stamp"
+          ],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "main",
+          "params": [],
+          "exported": false,
+          "lineCount": 77
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:fs",
+          "specifiers": [
+            "fs"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "node:url",
+          "specifiers": [
+            "fileURLToPath"
+          ]
+        },
+        {
+          "source": "../dist/lib/env.js",
+          "specifiers": [
+            "loadConfig"
+          ]
+        },
+        {
+          "source": "../dist/lib/ffmpeg.js",
+          "specifiers": [
+            "run"
+          ]
+        },
+        {
+          "source": "../dist/lib/env.js",
+          "specifiers": [
+            "slugify"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 113,
+      "hasStructuralAnalysis": true
+    },
+    "src/cli/doctor.ts": {
+      "filePath": "src/cli/doctor.ts",
+      "contentHash": "dba73ae285415df4d554faa83e3f016366b647860e65816dae7b8879b9ad380c",
+      "functions": [
+        {
+          "name": "main",
+          "params": [],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 170
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:fs",
+          "specifiers": [
+            "fs"
+          ]
+        },
+        {
+          "source": "../lib/env.js",
+          "specifiers": [
+            "loadConfig"
+          ]
+        },
+        {
+          "source": "../lib/ffmpeg.js",
+          "specifiers": [
+            "probeDuration",
+            "run"
+          ]
+        },
+        {
+          "source": "../lib/tts.js",
+          "specifiers": [
+            "listVoices",
+            "looksLikeApiKey"
+          ]
+        },
+        {
+          "source": "../lib/avatar.js",
+          "specifiers": [
+            "remainingBalance"
+          ]
+        },
+        {
+          "source": "../lib/motion.js",
+          "specifiers": [
+            "motionAvailability",
+            "transparentCardFormat"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 193,
+      "hasStructuralAnalysis": true
+    },
+    "src/cli/login.ts": {
+      "filePath": "src/cli/login.ts",
+      "contentHash": "7b5f52dc79edeed3e793a33d7b2684ab8d222249a22e1f65c9257ff139a51d5f",
+      "functions": [
+        {
+          "name": "parseArgs",
+          "params": [
+            "argv"
+          ],
+          "returnType": "{ url: string | null; profile: string }",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "waitForEnter",
+          "params": [
+            "prompt"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "main",
+          "params": [],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 39
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:path",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "node:readline",
+          "specifiers": [
+            "readline"
+          ]
+        },
+        {
+          "source": "../lib/env.js",
+          "specifiers": [
+            "loadConfig"
+          ]
+        },
+        {
+          "source": "../lib/browser.js",
+          "specifiers": [
+            "launchBrowser"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 84,
+      "hasStructuralAnalysis": true
+    },
+    "src/index.ts": {
+      "filePath": "src/index.ts",
+      "contentHash": "ccd523eacb37e609baf95cbd762e14828c6bfe7081d1ce540d72e136840549d1",
+      "functions": [
+        {
+          "name": "main",
+          "params": [],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 67
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@modelcontextprotocol/sdk/server/mcp.js",
+          "specifiers": [
+            "McpServer"
+          ]
+        },
+        {
+          "source": "@modelcontextprotocol/sdk/server/stdio.js",
+          "specifiers": [
+            "StdioServerTransport"
+          ]
+        },
+        {
+          "source": "./lib/env.js",
+          "specifiers": [
+            "loadConfig"
+          ]
+        },
+        {
+          "source": "./lib/session.js",
+          "specifiers": [
+            "getSession",
+            "setSession"
+          ]
+        },
+        {
+          "source": "./tools/recording.js",
+          "specifiers": [
+            "registerRecordingTools"
+          ]
+        },
+        {
+          "source": "./tools/actions.js",
+          "specifiers": [
+            "registerActionTools"
+          ]
+        },
+        {
+          "source": "./tools/setup.js",
+          "specifiers": [
+            "registerSetupTools"
+          ]
+        },
+        {
+          "source": "./lib/logger.js",
+          "specifiers": [
+            "log"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 93,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/avatar.ts": {
+      "filePath": "src/lib/avatar.ts",
+      "contentHash": "b439e1f8aa0fd96c3874ea0f001599ada4a38db3f5f3ae4c4cdc2a7d34534eaa",
+      "functions": [
+        {
+          "name": "canRenderAvatar",
+          "params": [
+            "config"
+          ],
+          "returnType": "boolean",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "looksLikeId",
+          "params": [
+            "value"
+          ],
+          "returnType": "boolean",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "call",
+          "params": [
+            "config",
+            "url",
+            "init",
+            "attempts"
+          ],
+          "returnType": "Promise<{ status: number; body: any; text: string }>",
+          "exported": false,
+          "lineCount": 32
+        },
+        {
+          "name": "describeError",
+          "params": [
+            "status",
+            "body",
+            "action"
+          ],
+          "returnType": "Error",
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "toLook",
+          "params": [
+            "entry"
+          ],
+          "returnType": "AvatarLook",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "listLooks",
+          "params": [
+            "config",
+            "options"
+          ],
+          "returnType": "Promise<AvatarLook[]>",
+          "exported": true,
+          "lineCount": 28
+        },
+        {
+          "name": "resolveLook",
+          "params": [
+            "config",
+            "query"
+          ],
+          "returnType": "Promise<AvatarLook>",
+          "exported": true,
+          "lineCount": 33
+        },
+        {
+          "name": "remainingBalance",
+          "params": [
+            "config"
+          ],
+          "returnType": "Promise<number | null>",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "uploadAudio",
+          "params": [
+            "config",
+            "file"
+          ],
+          "returnType": "Promise<string>",
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "findVideoUrl",
+          "params": [
+            "node"
+          ],
+          "returnType": "string | null",
+          "exported": false,
+          "lineCount": 16
+        },
+        {
+          "name": "engineFor",
+          "params": [
+            "look"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "renderClip",
+          "params": [
+            "config",
+            "options"
+          ],
+          "returnType": "Promise<string>",
+          "exported": true,
+          "lineCount": 55
+        },
+        {
+          "name": "renderIdleClip",
+          "params": [
+            "config",
+            "options"
+          ],
+          "returnType": "Promise<string>",
+          "exported": true,
+          "lineCount": 36
+        },
+        {
+          "name": "speakWithHeyGen",
+          "params": [
+            "config",
+            "request"
+          ],
+          "returnType": "Promise<{ file: string; durationMs: number; cached: boolean }>",
+          "exported": true,
+          "lineCount": 39
+        },
+        {
+          "name": "listSpeechVoices",
+          "params": [
+            "config",
+            "options"
+          ],
+          "returnType": "Promise<Array<{ voiceId: string; name: string; language: string; gender: string }>>",
+          "exported": true,
+          "lineCount": 32
+        },
+        {
+          "name": "cacheKey",
+          "params": [
+            "audioFile",
+            "look"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "renderAvatarClips",
+          "params": [
+            "config",
+            "lines",
+            "options"
+          ],
+          "returnType": "Promise<{ clips: AvatarClip[]; failures: string[] }>",
+          "exported": true,
+          "lineCount": 51
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:crypto",
+          "specifiers": [
+            "crypto"
+          ]
+        },
+        {
+          "source": "node:fs",
+          "specifiers": [
+            "fs"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "./env.js",
+          "specifiers": [
+            "Config"
+          ]
+        },
+        {
+          "source": "./env.js",
+          "specifiers": [
+            "requireFfmpeg",
+            "requireFfprobe",
+            "requireHeyGenKey"
+          ]
+        },
+        {
+          "source": "./ffmpeg.js",
+          "specifiers": [
+            "probeDuration",
+            "run"
+          ]
+        },
+        {
+          "source": "./logger.js",
+          "specifiers": [
+            "log"
+          ]
+        }
+      ],
+      "exports": [
+        "canRenderAvatar",
+        "listLooks",
+        "resolveLook",
+        "remainingBalance",
+        "renderClip",
+        "renderIdleClip",
+        "speakWithHeyGen",
+        "listSpeechVoices",
+        "renderAvatarClips"
+      ],
+      "totalLines": 524,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/browser.ts": {
+      "filePath": "src/lib/browser.ts",
+      "contentHash": "75e0683cfcaa19db63869512efd71571fee0cd5f16bf6e71e1332fd77bf5c614",
+      "functions": [
+        {
+          "name": "disguiseScript",
+          "params": [
+            "locale"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "hideHeadlessUserAgent",
+          "params": [
+            "page"
+          ],
+          "returnType": "Promise<void>",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "assertNotRealChromeProfile",
+          "params": [
+            "profileDir"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 18
+        },
+        {
+          "name": "launchBrowser",
+          "params": [
+            "config",
+            "options"
+          ],
+          "returnType": "Promise<LaunchedBrowser>",
+          "exported": true,
+          "lineCount": 49
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:fs",
+          "specifiers": [
+            "fs"
+          ]
+        },
+        {
+          "source": "node:os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "playwright-core",
+          "specifiers": [
+            "chromium",
+            "BrowserContext",
+            "Page"
+          ]
+        },
+        {
+          "source": "./env.js",
+          "specifiers": [
+            "Config"
+          ]
+        },
+        {
+          "source": "./heartbeat.js",
+          "specifiers": [
+            "installHeartbeat"
+          ]
+        },
+        {
+          "source": "./logger.js",
+          "specifiers": [
+            "log"
+          ]
+        }
+      ],
+      "exports": [
+        "launchBrowser"
+      ],
+      "totalLines": 181,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/compose.ts": {
+      "filePath": "src/lib/compose.ts",
+      "contentHash": "0ffcfda4bbf4f88676affb9381c9934c44506797e57ab2da4fa0159c2bc71d1c",
+      "functions": [
+        {
+          "name": "srtTime",
+          "params": [
+            "ms"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "buildSrt",
+          "params": [
+            "cues"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 16
+        },
+        {
+          "name": "assTime",
+          "params": [
+            "ms"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "buildAss",
+          "params": [
+            "cues",
+            "options"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 62
+        },
+        {
+          "name": "assEscape",
+          "params": [
+            "word"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "karaokeText",
+          "params": [
+            "words",
+            "wrapAt"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 18
+        },
+        {
+          "name": "canBurnSubtitles",
+          "params": [
+            "ffmpeg"
+          ],
+          "returnType": "Promise<boolean>",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "measureLoudness",
+          "params": [
+            "ffmpeg",
+            "file"
+          ],
+          "returnType": "Promise<{ integrated: number; truePeak: number } | null>",
+          "exported": false,
+          "lineCount": 18
+        },
+        {
+          "name": "narrationChain",
+          "params": [
+            "seconds"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "buildAudio",
+          "params": [
+            "config",
+            "options",
+            "targetSec"
+          ],
+          "returnType": "Promise<string | null>",
+          "exported": false,
+          "lineCount": 146
+        },
+        {
+          "name": "joinSegments",
+          "params": [
+            "segments",
+            "fps",
+            "transitionSec"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 60
+        },
+        {
+          "name": "avatarOverlayFilters",
+          "params": [
+            "clips",
+            "options"
+          ],
+          "returnType": "string[]",
+          "exported": true,
+          "lineCount": 76
+        },
+        {
+          "name": "bookendFilters",
+          "params": [
+            "options"
+          ],
+          "returnType": "string[]",
+          "exported": true,
+          "lineCount": 56
+        },
+        {
+          "name": "overlayFilters",
+          "params": [
+            "overlays",
+            "options"
+          ],
+          "returnType": "string[]",
+          "exported": true,
+          "lineCount": 19
+        },
+        {
+          "name": "compose",
+          "params": [
+            "config",
+            "options"
+          ],
+          "returnType": "Promise<ComposeResult>",
+          "exported": true,
+          "lineCount": 314
+        },
+        {
+          "name": "verifyOutput",
+          "params": [
+            "config",
+            "file"
+          ],
+          "returnType": "Promise<{ ok: boolean; problems: string[] }>",
+          "exported": true,
+          "lineCount": 51
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:fs",
+          "specifiers": [
+            "fs"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "./env.js",
+          "specifiers": [
+            "Config"
+          ]
+        },
+        {
+          "source": "./env.js",
+          "specifiers": [
+            "requireFfmpeg",
+            "requireFfprobe"
+          ]
+        },
+        {
+          "source": "./ffmpeg.js",
+          "specifiers": [
+            "probeDuration",
+            "probeVideo",
+            "run"
+          ]
+        },
+        {
+          "source": "./avatar.js",
+          "specifiers": [
+            "AvatarClip"
+          ]
+        },
+        {
+          "source": "./session.js",
+          "specifiers": [
+            "NarrationCue"
+          ]
+        },
+        {
+          "source": "./words.js",
+          "specifiers": [
+            "wordTimings",
+            "WordTiming"
+          ]
+        },
+        {
+          "source": "./zoom.js",
+          "specifiers": [
+            "buildZoomFilter",
+            "ZoomEvent"
+          ]
+        },
+        {
+          "source": "./logger.js",
+          "specifiers": [
+            "log"
+          ]
+        }
+      ],
+      "exports": [
+        "AVATAR_SIZE",
+        "AVATAR_CORNER",
+        "buildSrt",
+        "buildAss",
+        "karaokeText",
+        "narrationChain",
+        "TRANSITION_SECONDS",
+        "CARD_DISSOLVE_SECONDS",
+        "avatarOverlayFilters",
+        "bookendFilters",
+        "overlayFilters",
+        "compose",
+        "verifyOutput"
+      ],
+      "totalLines": 1201,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/emphasis.ts": {
+      "filePath": "src/lib/emphasis.ts",
+      "contentHash": "12a95f692ab8b8709e6c17c6a0e3440487a51a3edb97b0c8dd60650b8ad2b874",
+      "functions": [
+        {
+          "name": "padded",
+          "params": [
+            "box",
+            "pad",
+            "viewport"
+          ],
+          "returnType": "Box",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "ringMarkup",
+          "params": [
+            "r",
+            "dim"
+          ],
+          "returnType": "{ css: string; html: string }",
+          "exported": false,
+          "lineCount": 23
+        },
+        {
+          "name": "spotlight",
+          "params": [
+            "page",
+            "box",
+            "options"
+          ],
+          "returnType": "Promise<void>",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "readingTimeMs",
+          "params": [
+            "text"
+          ],
+          "returnType": "number",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "instructionLayout",
+          "params": [
+            "box",
+            "viewport",
+            "text"
+          ],
+          "returnType": "InstructionLayout",
+          "exported": true,
+          "lineCount": 32
+        },
+        {
+          "name": "instruct",
+          "params": [
+            "page",
+            "box",
+            "text",
+            "options"
+          ],
+          "returnType": "Promise<number>",
+          "exported": true,
+          "lineCount": 62
+        },
+        {
+          "name": "showHandoffBanner",
+          "params": [
+            "page",
+            "instruction"
+          ],
+          "returnType": "Promise<void>",
+          "exported": true,
+          "lineCount": 28
+        },
+        {
+          "name": "clearHandoffBanner",
+          "params": [
+            "page"
+          ],
+          "returnType": "Promise<void>",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "ripple",
+          "params": [
+            "page",
+            "x",
+            "y",
+            "durationMs"
+          ],
+          "returnType": "Promise<void>",
+          "exported": true,
+          "lineCount": 20
+        },
+        {
+          "name": "escapeHtml",
+          "params": [
+            "value"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 7
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "playwright-core",
+          "specifiers": [
+            "Page"
+          ]
+        },
+        {
+          "source": "./logger.js",
+          "specifiers": [
+            "log"
+          ]
+        }
+      ],
+      "exports": [
+        "spotlight",
+        "readingTimeMs",
+        "instructionLayout",
+        "instruct",
+        "showHandoffBanner",
+        "clearHandoffBanner",
+        "ripple"
+      ],
+      "totalLines": 304,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/env.ts": {
+      "filePath": "src/lib/env.ts",
+      "contentHash": "d5d823fa112f68804348fc7dd27644003f52c9f52b761b82fe174e0310aa72c2",
+      "functions": [
+        {
+          "name": "which",
+          "params": [
+            "binary"
+          ],
+          "returnType": "string | null",
+          "exported": false,
+          "lineCount": 19
+        },
+        {
+          "name": "findPlaywrightBrowser",
+          "params": [],
+          "returnType": "string | null",
+          "exported": false,
+          "lineCount": 28
+        },
+        {
+          "name": "loadDotEnv",
+          "params": [],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 29
+        },
+        {
+          "name": "listMusicTracks",
+          "params": [
+            "musicDir"
+          ],
+          "returnType": "Array<{ name: string; file: string }>",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "resolveMusicTrack",
+          "params": [
+            "musicDir",
+            "query"
+          ],
+          "returnType": "string | null",
+          "exported": true,
+          "lineCount": 16
+        },
+        {
+          "name": "loadConfig",
+          "params": [],
+          "returnType": "Config",
+          "exported": true,
+          "lineCount": 49
+        },
+        {
+          "name": "requireFfmpeg",
+          "params": [
+            "config"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "requireFfprobe",
+          "params": [
+            "config"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "requireElevenLabsKey",
+          "params": [
+            "config"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "requireHeyGenKey",
+          "params": [
+            "config"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "slugify",
+          "params": [
+            "input"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 10
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:fs",
+          "specifiers": [
+            "fs"
+          ]
+        },
+        {
+          "source": "node:os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "node:url",
+          "specifiers": [
+            "fileURLToPath"
+          ]
+        }
+      ],
+      "exports": [
+        "PROJECT_ROOT",
+        "listMusicTracks",
+        "resolveMusicTrack",
+        "loadConfig",
+        "requireFfmpeg",
+        "requireFfprobe",
+        "requireElevenLabsKey",
+        "requireHeyGenKey",
+        "slugify"
+      ],
+      "totalLines": 292,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/ffmpeg.ts": {
+      "filePath": "src/lib/ffmpeg.ts",
+      "contentHash": "08a8494fd1f3a3c9b04be6b7e9fc16f1d6bbfe0b3ac67cd0884d6440b48cd4e5",
+      "functions": [
+        {
+          "name": "run",
+          "params": [
+            "binary",
+            "args",
+            "timeoutMs",
+            "cwd",
+            "env"
+          ],
+          "returnType": "Promise<RunResult>",
+          "exported": true,
+          "lineCount": 44
+        },
+        {
+          "name": "probeDuration",
+          "params": [
+            "ffprobePath",
+            "file"
+          ],
+          "returnType": "Promise<number | null>",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "probeVideo",
+          "params": [
+            "ffprobePath",
+            "file"
+          ],
+          "returnType": "Promise<VideoInfo>",
+          "exported": true,
+          "lineCount": 32
+        },
+        {
+          "name": "escapeFilterValue",
+          "params": [
+            "value"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:child_process",
+          "specifiers": [
+            "spawn"
+          ]
+        },
+        {
+          "source": "./logger.js",
+          "specifiers": [
+            "log"
+          ]
+        }
+      ],
+      "exports": [
+        "run",
+        "probeDuration",
+        "probeVideo",
+        "escapeFilterValue"
+      ],
+      "totalLines": 125,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/foreground.ts": {
+      "filePath": "src/lib/foreground.ts",
+      "contentHash": "67a145451e9d5c29ec3355c64d7bfedf2d8b5ec6c5ff9c4d31705111188d83bc",
+      "functions": [
+        {
+          "name": "raiseScript",
+          "params": [],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "raiseWindow",
+          "params": [
+            "titleFragment"
+          ],
+          "returnType": "Promise<string>",
+          "exported": true,
+          "lineCount": 17
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:fs",
+          "specifiers": [
+            "fs"
+          ]
+        },
+        {
+          "source": "node:os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "node:child_process",
+          "specifiers": [
+            "execFile"
+          ]
+        },
+        {
+          "source": "node:util",
+          "specifiers": [
+            "promisify"
+          ]
+        },
+        {
+          "source": "./logger.js",
+          "specifiers": [
+            "log"
+          ]
+        }
+      ],
+      "exports": [
+        "raiseWindow"
+      ],
+      "totalLines": 92,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/heartbeat.ts": {
+      "filePath": "src/lib/heartbeat.ts",
+      "contentHash": "9e2462cbb4e0911ca5d9a0dbbc14973603854c4680f0b965e23e7b4c20e20d4f",
+      "functions": [
+        {
+          "name": "installHeartbeat",
+          "params": [
+            "page"
+          ],
+          "returnType": "Promise<void>",
+          "exported": true,
+          "lineCount": 7
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "playwright-core",
+          "specifiers": [
+            "Page"
+          ]
+        },
+        {
+          "source": "./logger.js",
+          "specifiers": [
+            "log"
+          ]
+        }
+      ],
+      "exports": [
+        "installHeartbeat"
+      ],
+      "totalLines": 59,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/logger.ts": {
+      "filePath": "src/lib/logger.ts",
+      "contentHash": "b8ed488fea9819e98e518a0b8018ac509f3a38653c9c7f09da6d60ff954371ba",
+      "functions": [
+        {
+          "name": "emit",
+          "params": [
+            "level",
+            "message",
+            "extra"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "format",
+          "params": [
+            "value"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 9
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "log"
+      ],
+      "totalLines": 37,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/motion.ts": {
+      "filePath": "src/lib/motion.ts",
+      "contentHash": "2554753850a31f4726bd2257ba71fc5f8f7254fe479ff3c93ab858b660a09731",
+      "functions": [
+        {
+          "name": "findHyperFrames",
+          "params": [],
+          "returnType": "HyperFrames | null",
+          "exported": true,
+          "lineCount": 17
+        },
+        {
+          "name": "motionAvailability",
+          "params": [],
+          "returnType": "{ ok: true; version: string } | { ok: false; reason: string }",
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "escapeHtml",
+          "params": [
+            "value"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "fillTemplate",
+          "params": [
+            "html",
+            "values"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "transparentCardFormat",
+          "params": [
+            "config"
+          ],
+          "returnType": "Promise<'webm' | 'mov'>",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "renderMotion",
+          "params": [
+            "config",
+            "request"
+          ],
+          "returnType": "Promise<string>",
+          "exported": true,
+          "lineCount": 93
+        },
+        {
+          "name": "renderCards",
+          "params": [
+            "config",
+            "plan"
+          ],
+          "returnType": "Promise<RenderedCards>",
+          "exported": true,
+          "lineCount": 65
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:crypto",
+          "specifiers": [
+            "crypto"
+          ]
+        },
+        {
+          "source": "node:fs",
+          "specifiers": [
+            "fs"
+          ]
+        },
+        {
+          "source": "node:module",
+          "specifiers": [
+            "createRequire"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "./env.js",
+          "specifiers": [
+            "Config"
+          ]
+        },
+        {
+          "source": "./env.js",
+          "specifiers": [
+            "requireFfprobe"
+          ]
+        },
+        {
+          "source": "./ffmpeg.js",
+          "specifiers": [
+            "probeDuration",
+            "run"
+          ]
+        },
+        {
+          "source": "./logger.js",
+          "specifiers": [
+            "log"
+          ]
+        }
+      ],
+      "exports": [
+        "findHyperFrames",
+        "motionAvailability",
+        "fillTemplate",
+        "transparentCardFormat",
+        "renderMotion",
+        "CARD_SECONDS",
+        "renderCards"
+      ],
+      "totalLines": 340,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/music-gen.ts": {
+      "filePath": "src/lib/music-gen.ts",
+      "contentHash": "e934db4afdee4b7229aa9ef4b3857b684b9f7dcfffd925d4f27a8f6ea309b4db",
+      "functions": [
+        {
+          "name": "clock",
+          "params": [
+            "seconds"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "musicPrompt",
+          "params": [
+            "seconds",
+            "palette"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 16
+        },
+        {
+          "name": "canGenerateMusic",
+          "params": [
+            "config"
+          ],
+          "returnType": "boolean",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "authHeaders",
+          "params": [
+            "config"
+          ],
+          "returnType": "Promise<Record<string, string>>",
+          "exported": false,
+          "lineCount": 28
+        },
+        {
+          "name": "findAudio",
+          "params": [
+            "node"
+          ],
+          "returnType": "string | null",
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "generateMusic",
+          "params": [
+            "config",
+            "options"
+          ],
+          "returnType": "Promise<GeneratedMusic>",
+          "exported": true,
+          "lineCount": 26
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:fs",
+          "specifiers": [
+            "fs"
+          ]
+        },
+        {
+          "source": "./env.js",
+          "specifiers": [
+            "Config"
+          ]
+        },
+        {
+          "source": "./logger.js",
+          "specifiers": [
+            "log"
+          ]
+        }
+      ],
+      "exports": [
+        "musicPrompt",
+        "canGenerateMusic",
+        "generateMusic"
+      ],
+      "totalLines": 146,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/recorder.ts": {
+      "filePath": "src/lib/recorder.ts",
+      "contentHash": "bb7f2620564526d88a1502e557119e973dc96124cc86a306b936ce2fd4268ae2",
+      "functions": [],
+      "classes": [
+        {
+          "name": "Recorder",
+          "methods": [
+            "constructor",
+            "start",
+            "waitForFirstFrame",
+            "videoTimeMs",
+            "firstFrameWallMs",
+            "msSinceLastFrame",
+            "frames",
+            "isRunning",
+            "showChapter",
+            "stop"
+          ],
+          "properties": [
+            "page",
+            "options",
+            "firstFrameAt",
+            "lastFrameAt",
+            "frameCount",
+            "running"
+          ],
+          "exported": true,
+          "lineCount": 104
+        }
+      ],
+      "imports": [
+        {
+          "source": "node:fs",
+          "specifiers": [
+            "fs"
+          ]
+        },
+        {
+          "source": "playwright-core",
+          "specifiers": [
+            "Page"
+          ]
+        },
+        {
+          "source": "./logger.js",
+          "specifiers": [
+            "log"
+          ]
+        }
+      ],
+      "exports": [
+        "Recorder"
+      ],
+      "totalLines": 135,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/session-import.ts": {
+      "filePath": "src/lib/session-import.ts",
+      "contentHash": "0e7e712e6f6a436901fd4ebe301b2f64baf6c142ed2d38a8a50e5a64c8880607",
+      "functions": [
+        {
+          "name": "domainMatches",
+          "params": [
+            "cookieDomain",
+            "host"
+          ],
+          "returnType": "boolean",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "toHost",
+          "params": [
+            "value"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "importSession",
+          "params": [
+            "config",
+            "options"
+          ],
+          "returnType": "Promise<ImportResult>",
+          "exported": true,
+          "lineCount": 166
+        },
+        {
+          "name": "listProfiles",
+          "params": [
+            "config"
+          ],
+          "returnType": "Array<{ name: string; hasData: boolean }>",
+          "exported": true,
+          "lineCount": 11
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:fs",
+          "specifiers": [
+            "fs"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "playwright-core",
+          "specifiers": [
+            "Cookie"
+          ]
+        },
+        {
+          "source": "./env.js",
+          "specifiers": [
+            "Config"
+          ]
+        },
+        {
+          "source": "./browser.js",
+          "specifiers": [
+            "launchBrowser"
+          ]
+        },
+        {
+          "source": "./logger.js",
+          "specifiers": [
+            "log"
+          ]
+        }
+      ],
+      "exports": [
+        "importSession",
+        "listProfiles"
+      ],
+      "totalLines": 268,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/session.ts": {
+      "filePath": "src/lib/session.ts",
+      "contentHash": "ce977144d39ae16271085aa10aef8c5abdf40b907f38d53510b59f52e2f1101d",
+      "functions": [
+        {
+          "name": "getSession",
+          "params": [],
+          "returnType": "RecordingSession | null",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "requireSession",
+          "params": [],
+          "returnType": "RecordingSession",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "setSession",
+          "params": [
+            "session"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [
+        {
+          "name": "RecordingSession",
+          "methods": [
+            "constructor",
+            "start",
+            "active",
+            "page",
+            "setActivePage",
+            "activeBrowser",
+            "browserNames",
+            "videoTimeMs",
+            "isFinished",
+            "frameCount",
+            "showChapter",
+            "addCue",
+            "offCamera",
+            "switchTo",
+            "goOffAir",
+            "openBrowser",
+            "focusOn",
+            "releaseZoom",
+            "isZoomed",
+            "stopRecording",
+            "closeBrowsers",
+            "cancel",
+            "summary",
+            "writeTimeline"
+          ],
+          "properties": [
+            "title",
+            "slug",
+            "outputDir",
+            "options",
+            "cues",
+            "zoomEvents",
+            "chapters",
+            "openZoom",
+            "config",
+            "browsers",
+            "activeName",
+            "onAir",
+            "onAirSince",
+            "offAirDepth",
+            "closedMs",
+            "stoppedFrames",
+            "finished"
+          ],
+          "exported": true,
+          "lineCount": 395
+        }
+      ],
+      "imports": [
+        {
+          "source": "node:fs",
+          "specifiers": [
+            "fs"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "playwright-core",
+          "specifiers": [
+            "BrowserContext",
+            "Page"
+          ]
+        },
+        {
+          "source": "./env.js",
+          "specifiers": [
+            "Config"
+          ]
+        },
+        {
+          "source": "./env.js",
+          "specifiers": [
+            "slugify"
+          ]
+        },
+        {
+          "source": "./browser.js",
+          "specifiers": [
+            "launchBrowser"
+          ]
+        },
+        {
+          "source": "./compose.js",
+          "specifiers": [
+            "AvatarCorner"
+          ]
+        },
+        {
+          "source": "./motion.js",
+          "specifiers": [
+            "ChapterMark"
+          ]
+        },
+        {
+          "source": "./recorder.js",
+          "specifiers": [
+            "Recorder"
+          ]
+        },
+        {
+          "source": "./zoom.js",
+          "specifiers": [
+            "boxContains",
+            "zoomForBox",
+            "MIN_USEFUL_ZOOM",
+            "ZoomEvent"
+          ]
+        },
+        {
+          "source": "./logger.js",
+          "specifiers": [
+            "log"
+          ]
+        }
+      ],
+      "exports": [
+        "RecordingSession",
+        "getSession",
+        "requireSession",
+        "setSession"
+      ],
+      "totalLines": 560,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/totp.ts": {
+      "filePath": "src/lib/totp.ts",
+      "contentHash": "d93864876b862dd3134a6d3da049f4113758fb22cd124353eb3e2f86391cbcbb",
+      "functions": [
+        {
+          "name": "decodeBase32",
+          "params": [
+            "secret"
+          ],
+          "returnType": "Buffer",
+          "exported": true,
+          "lineCount": 19
+        },
+        {
+          "name": "totp",
+          "params": [
+            "secret",
+            "options"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 23
+        },
+        {
+          "name": "secondsLeft",
+          "params": [
+            "atMs",
+            "stepSeconds"
+          ],
+          "returnType": "number",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "currentCode",
+          "params": [
+            "variable"
+          ],
+          "returnType": "Promise<string>",
+          "exported": true,
+          "lineCount": 13
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:crypto",
+          "specifiers": [
+            "crypto"
+          ]
+        }
+      ],
+      "exports": [
+        "decodeBase32",
+        "totp",
+        "secondsLeft",
+        "currentCode"
+      ],
+      "totalLines": 88,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/tts.ts": {
+      "filePath": "src/lib/tts.ts",
+      "contentHash": "24e9e5fe5222c8dbe00fcb20c5128fe62c175dd27f613409aad58d3344082735",
+      "functions": [
+        {
+          "name": "describeApiError",
+          "params": [
+            "response",
+            "action"
+          ],
+          "returnType": "Promise<Error>",
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "looksLikeApiKey",
+          "params": [
+            "key"
+          ],
+          "returnType": "boolean",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "cacheKey",
+          "params": [
+            "request"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "estimateSpokenMs",
+          "params": [
+            "text"
+          ],
+          "returnType": "number",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "synthesise",
+          "params": [
+            "config",
+            "request"
+          ],
+          "returnType": "Promise<SynthesisResult>",
+          "exported": true,
+          "lineCount": 46
+        },
+        {
+          "name": "listVoices",
+          "params": [
+            "config"
+          ],
+          "returnType": "Promise<Voice[]>",
+          "exported": true,
+          "lineCount": 21
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:crypto",
+          "specifiers": [
+            "crypto"
+          ]
+        },
+        {
+          "source": "node:fs",
+          "specifiers": [
+            "fs"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "./env.js",
+          "specifiers": [
+            "Config"
+          ]
+        },
+        {
+          "source": "./env.js",
+          "specifiers": [
+            "requireElevenLabsKey",
+            "requireFfprobe"
+          ]
+        },
+        {
+          "source": "./ffmpeg.js",
+          "specifiers": [
+            "probeDuration"
+          ]
+        },
+        {
+          "source": "./logger.js",
+          "specifiers": [
+            "log"
+          ]
+        }
+      ],
+      "exports": [
+        "looksLikeApiKey",
+        "TUTORIAL_VOICE_SETTINGS",
+        "estimateSpokenMs",
+        "synthesise",
+        "listVoices"
+      ],
+      "totalLines": 178,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/words.ts": {
+      "filePath": "src/lib/words.ts",
+      "contentHash": "651f3c656476dc3ba795b53d05b8dffa45f6a41246052ad23dfa7de06bac6ec2",
+      "functions": [
+        {
+          "name": "tokens",
+          "params": [
+            "text"
+          ],
+          "returnType": "string[]",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "estimateTimings",
+          "params": [
+            "text",
+            "durationMs"
+          ],
+          "returnType": "WordTiming[]",
+          "exported": true,
+          "lineCount": 17
+        },
+        {
+          "name": "align",
+          "params": [
+            "config",
+            "audioFile",
+            "text"
+          ],
+          "returnType": "Promise<WordTiming[] | null>",
+          "exported": false,
+          "lineCount": 46
+        },
+        {
+          "name": "wordTimings",
+          "params": [
+            "config",
+            "line"
+          ],
+          "returnType": "Promise<LineTimings>",
+          "exported": true,
+          "lineCount": 31
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:crypto",
+          "specifiers": [
+            "crypto"
+          ]
+        },
+        {
+          "source": "node:fs",
+          "specifiers": [
+            "fs"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "./env.js",
+          "specifiers": [
+            "Config"
+          ]
+        },
+        {
+          "source": "./logger.js",
+          "specifiers": [
+            "log"
+          ]
+        }
+      ],
+      "exports": [
+        "tokens",
+        "estimateTimings",
+        "wordTimings"
+      ],
+      "totalLines": 152,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/zoom.ts": {
+      "filePath": "src/lib/zoom.ts",
+      "contentHash": "b7e45aab2d6f992cded21bd3d113e114e4b78bdb538c262e052dd1814655b6d7",
+      "functions": [
+        {
+          "name": "zoomForBox",
+          "params": [
+            "box",
+            "viewport"
+          ],
+          "returnType": "number",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "boxContains",
+          "params": [
+            "rect",
+            "point",
+            "margin"
+          ],
+          "returnType": "boolean",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "n",
+          "params": [
+            "value"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 1
+        },
+        {
+          "name": "ease",
+          "params": [
+            "progress"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "piecewise",
+          "params": [
+            "clauses",
+            "fallback"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "buildZoomFilter",
+          "params": [
+            "events",
+            "options"
+          ],
+          "returnType": "string | null",
+          "exported": true,
+          "lineCount": 67
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "MAX_ZOOM",
+        "MIN_USEFUL_ZOOM",
+        "zoomForBox",
+        "boxContains",
+        "buildZoomFilter"
+      ],
+      "totalLines": 196,
+      "hasStructuralAnalysis": true
+    },
+    "src/tools/actions.ts": {
+      "filePath": "src/tools/actions.ts",
+      "contentHash": "7549053fb0ab53b85175e3f09545c14a13f7dd42135eac67d32b2792717570f2",
+      "functions": [
+        {
+          "name": "text",
+          "params": [
+            "body"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "failure",
+          "params": [
+            "body"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "matchAll",
+          "params": [
+            "page",
+            "target"
+          ],
+          "returnType": "Locator",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "resolveTarget",
+          "params": [
+            "page",
+            "target"
+          ],
+          "returnType": "Locator",
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "describeTarget",
+          "params": [
+            "target"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "prepareTarget",
+          "params": [
+            "session",
+            "locator",
+            "instruction"
+          ],
+          "returnType": "Promise<Box | null>",
+          "exported": false,
+          "lineCount": 35
+        },
+        {
+          "name": "registerActionTools",
+          "params": [
+            "server"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 640
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "zod",
+          "specifiers": [
+            "z"
+          ]
+        },
+        {
+          "source": "@modelcontextprotocol/sdk/server/mcp.js",
+          "specifiers": [
+            "McpServer"
+          ]
+        },
+        {
+          "source": "playwright-core",
+          "specifiers": [
+            "Locator",
+            "Page"
+          ]
+        },
+        {
+          "source": "../lib/session.js",
+          "specifiers": [
+            "requireSession",
+            "RecordingSession"
+          ]
+        },
+        {
+          "source": "../lib/emphasis.js",
+          "specifiers": [
+            "clearHandoffBanner",
+            "instruct",
+            "ripple",
+            "showHandoffBanner",
+            "spotlight",
+            "Box"
+          ]
+        },
+        {
+          "source": "../lib/foreground.js",
+          "specifiers": [
+            "raiseWindow"
+          ]
+        },
+        {
+          "source": "../lib/totp.js",
+          "specifiers": [
+            "currentCode"
+          ]
+        },
+        {
+          "source": "../lib/logger.js",
+          "specifiers": [
+            "log"
+          ]
+        }
+      ],
+      "exports": [
+        "registerActionTools"
+      ],
+      "totalLines": 769,
+      "hasStructuralAnalysis": true
+    },
+    "src/tools/recording.ts": {
+      "filePath": "src/tools/recording.ts",
+      "contentHash": "d66d5bf7456703ea0d6ca004b20451f2d9cd790f615b61566e27052125932102",
+      "functions": [
+        {
+          "name": "text",
+          "params": [
+            "body"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "failure",
+          "params": [
+            "body"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "registerRecordingTools",
+          "params": [
+            "server",
+            "config"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 807
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:fs",
+          "specifiers": [
+            "fs"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "zod",
+          "specifiers": [
+            "z"
+          ]
+        },
+        {
+          "source": "@modelcontextprotocol/sdk/server/mcp.js",
+          "specifiers": [
+            "McpServer"
+          ]
+        },
+        {
+          "source": "node:url",
+          "specifiers": [
+            "pathToFileURL"
+          ]
+        },
+        {
+          "source": "../lib/env.js",
+          "specifiers": [
+            "listMusicTracks",
+            "resolveMusicTrack",
+            "Config"
+          ]
+        },
+        {
+          "source": "../lib/session.js",
+          "specifiers": [
+            "RecordingSession",
+            "getSession",
+            "requireSession",
+            "setSession"
+          ]
+        },
+        {
+          "source": "../lib/tts.js",
+          "specifiers": [
+            "synthesise",
+            "estimateSpokenMs",
+            "listVoices"
+          ]
+        },
+        {
+          "source": "../lib/compose.js",
+          "specifiers": [
+            "compose",
+            "verifyOutput",
+            "AVATAR_CORNER",
+            "AVATAR_SIZE"
+          ]
+        },
+        {
+          "source": "../lib/music-gen.js",
+          "specifiers": [
+            "canGenerateMusic",
+            "generateMusic"
+          ]
+        },
+        {
+          "source": "../lib/motion.js",
+          "specifiers": [
+            "motionAvailability",
+            "renderCards"
+          ]
+        },
+        {
+          "source": "../lib/avatar.js",
+          "specifiers": [
+            "canRenderAvatar",
+            "listLooks",
+            "listSpeechVoices",
+            "remainingBalance",
+            "renderAvatarClips",
+            "renderIdleClip",
+            "resolveLook",
+            "speakWithHeyGen"
+          ]
+        },
+        {
+          "source": "../lib/logger.js",
+          "specifiers": [
+            "log"
+          ]
+        }
+      ],
+      "exports": [
+        "registerRecordingTools"
+      ],
+      "totalLines": 871,
+      "hasStructuralAnalysis": true
+    },
+    "src/tools/setup.ts": {
+      "filePath": "src/tools/setup.ts",
+      "contentHash": "9e9d71de898125d81fe1f6414ce2ce53d2e44e85ad1b4c3102ef9cd184870a42",
+      "functions": [
+        {
+          "name": "text",
+          "params": [
+            "body"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "failure",
+          "params": [
+            "body"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "suggestedExportPath",
+          "params": [],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "registerSetupTools",
+          "params": [
+            "server",
+            "config"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 141
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "zod",
+          "specifiers": [
+            "z"
+          ]
+        },
+        {
+          "source": "@modelcontextprotocol/sdk/server/mcp.js",
+          "specifiers": [
+            "McpServer"
+          ]
+        },
+        {
+          "source": "../lib/env.js",
+          "specifiers": [
+            "Config"
+          ]
+        },
+        {
+          "source": "../lib/session-import.js",
+          "specifiers": [
+            "importSession",
+            "listProfiles"
+          ]
+        }
+      ],
+      "exports": [
+        "registerSetupTools"
+      ],
+      "totalLines": 166,
+      "hasStructuralAnalysis": true
+    },
+    "src/types/global.d.ts": {
+      "filePath": "src/types/global.d.ts",
+      "contentHash": "4bb5fd1f8d69a937499dca0b84a0fcf162f7e0f833d3e3efc20085078fb355dc",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 5,
+      "hasStructuralAnalysis": true
+    },
+    "tsconfig.json": {
+      "filePath": "tsconfig.json",
+      "contentHash": "b2257597f34c5f6a72c475eccbe73ef79a0685122196966e21cbbf67ecf84b6b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 22,
+      "hasStructuralAnalysis": false
+    }
+  }
+}

@@ -20,6 +20,7 @@
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "login": "node dist/cli/login.js",
+    "autologin": "node dist/cli/autologin.js",
     "heygen-login": "node dist/cli/heygen-login.js",
     "doctor": "node dist/cli/doctor.js"
   },
