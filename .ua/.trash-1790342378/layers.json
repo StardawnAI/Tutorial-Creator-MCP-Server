@@ -1,0 +1,110 @@
+[
+  {
+    "id": "layer:mcp-server",
+    "name": "MCP Server & Tools",
+    "description": "The stdio MCP server entry point and the tool handlers it registers for recording lifecycle, browser actions, and session setup, which orchestrate everything below them.",
+    "nodeIds": [
+      "file:src/index.ts",
+      "file:src/tools/recording.ts",
+      "file:src/tools/actions.ts",
+      "file:src/tools/setup.ts"
+    ]
+  },
+  {
+    "id": "layer:browser-capture",
+    "name": "Browser & Capture",
+    "description": "The logged-in headless Playwright browser, the recording session state, screencast capture with heartbeat frames, on-page emphasis overlays, TOTP login support, and profile/session import.",
+    "nodeIds": [
+      "file:src/lib/session.ts",
+      "file:src/lib/browser.ts",
+      "file:src/lib/recorder.ts",
+      "file:src/lib/heartbeat.ts",
+      "file:src/lib/session-import.ts",
+      "file:src/lib/emphasis.ts",
+      "file:src/lib/foreground.ts",
+      "file:src/lib/totp.ts",
+      "file:src/types/global.d.ts"
+    ]
+  },
+  {
+    "id": "layer:media-production",
+    "name": "Media Production",
+    "description": "Turns captured footage into the finished tutorial: ElevenLabs narration, word-level caption alignment, HeyGen avatar, generated music, HyperFrames motion cards, camera zoom, and the ffmpeg compositing pipeline.",
+    "nodeIds": [
+      "file:src/lib/compose.ts",
+      "file:src/lib/tts.ts",
+      "file:src/lib/words.ts",
+      "file:src/lib/avatar.ts",
+      "file:src/lib/music-gen.ts",
+      "file:src/lib/motion.ts",
+      "file:src/lib/zoom.ts",
+      "file:src/lib/ffmpeg.ts"
+    ]
+  },
+  {
+    "id": "layer:foundation",
+    "name": "Foundation Utilities",
+    "description": "Environment/configuration loading and the shared logger, imported by nearly every other module in the server.",
+    "nodeIds": [
+      "file:src/lib/env.ts",
+      "file:src/lib/logger.ts"
+    ]
+  },
+  {
+    "id": "layer:motion-assets",
+    "name": "Motion Assets",
+    "description": "Brand stylesheet and GSAP/HyperFrames HTML templates for the opening, chapter, and closing cards, plus the music chapter definitions used when splitting background tracks.",
+    "nodeIds": [
+      "file:assets/motion/brand.css",
+      "file:assets/motion/opening.html",
+      "file:assets/motion/chapter.html",
+      "file:assets/motion/closing.html",
+      "config:assets/chapters.json"
+    ]
+  },
+  {
+    "id": "layer:cli-scripts",
+    "name": "CLI & Operator Scripts",
+    "description": "Command-line entry points for operators: the doctor environment check, interactive browser login, and scripts that record from an example script, recompose a finished run, or split music tracks.",
+    "nodeIds": [
+      "file:src/cli/doctor.ts",
+      "file:src/cli/login.ts",
+      "file:scripts/record.mjs",
+      "file:scripts/recompose.mjs",
+      "file:scripts/split-music.mjs"
+    ]
+  },
+  {
+    "id": "layer:test",
+    "name": "Test & Smoke Scripts",
+    "description": "End-to-end pipeline run, JSON-RPC handshake smoke test, and live MCP run that exercise the server and its video pipeline.",
+    "nodeIds": [
+      "file:scripts/e2e.mjs",
+      "file:scripts/handshake.mjs",
+      "file:scripts/live-run.mjs"
+    ]
+  },
+  {
+    "id": "layer:config",
+    "name": "Configuration & Examples",
+    "description": "npm package and TypeScript build configuration, plus example tutorial scripts that drive the recording and action tools.",
+    "nodeIds": [
+      "config:package.json",
+      "config:tsconfig.json",
+      "config:examples/overview.json",
+      "config:examples/find-code-on-github.json",
+      "config:examples/signed-in.json"
+    ]
+  },
+  {
+    "id": "layer:documentation",
+    "name": "Documentation",
+    "description": "README setup guide, architecture and design decisions for the capture/compose pipeline, and the project's plan and status logs.",
+    "nodeIds": [
+      "document:README.md",
+      "document:docs/ARCHITECTURE.md",
+      "document:docs/PLAN.md",
+      "document:docs/STATUS.md"
+    ]
+  }
+]

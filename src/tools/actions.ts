@@ -20,6 +20,7 @@ import {
   type Box,
 } from '../lib/emphasis.js'
 import { raiseWindow } from '../lib/foreground.js'
+import { framingBox, openOverlays, settleCamera, settleLastAction } from '../lib/scene.js'
 import { describePrivacy } from '../lib/privacy.js'
 import { currentCode } from '../lib/totp.js'
 import { log } from '../lib/logger.js'
@@ -108,8 +109,13 @@ async function prepareTarget(
   const box = await locator.boundingBox({ timeout: 10_000 }).catch(() => null)
   if (!box) return null
 
+  // Whatever the previous click changed since its own beat ends the shot before this
+  // one is framed, and a button in a dialog is framed with the whole dialog.
+  await settleLastAction(session)
+  const frame = await framingBox(locator, box)
+
   if (!session.options.emphasis) {
-    const plainScale = session.focusOn(box, instruction ?? 'action')
+    const plainScale = session.focusOn(frame, instruction ?? 'action')
     if (plainScale > 1) await page.waitForTimeout(750)
     return box
   }
@@ -121,7 +127,7 @@ async function prepareTarget(
     await page.waitForTimeout(shown)
   }
 
-  const scale = session.focusOn(box, instruction ?? 'action')
+  const scale = session.focusOn(frame, instruction ?? 'action')
   // Long enough to register, and long enough for the camera to arrive: the push-in
   // takes 700 ms, so acting sooner would click in the middle of the move.
   const dwell = scale > 1 ? 1000 : 640
@@ -274,13 +280,21 @@ export function registerActionTools(server: McpServer): void {
           if (!present) return text(`${describeTarget(args)} did not appear - skipped.`)
         }
         const box = await prepareTarget(session, locator, args.instruction)
+        const before = { overlays: (await openOverlays(session.page)).length, acted: locator }
 
         await locator.click({ timeout: 20_000 })
 
         if (box && session.options.emphasis) {
           await ripple(session.page, box.x + box.width / 2, box.y + box.height / 2)
         }
-        await session.page.waitForTimeout(args.waitForMs)
+        // A dialog that opens across the page is there within a frame or two; waiting
+        // out the whole beat first would show it cropped before the camera pulls out.
+        const glance = Math.min(300, args.waitForMs)
+        await session.page.waitForTimeout(glance)
+        await settleCamera(session, before)
+        await session.page.waitForTimeout(args.waitForMs - glance)
+        await settleCamera(session, before)
+        session.lastAction = session.isZoomed ? before : null
         return text(`Clicked ${describeTarget(args)}.`)
       } catch (err) {
         return failure(`Could not click ${describeTarget(args)}: ${(err as Error).message}`)
@@ -405,8 +419,11 @@ export function registerActionTools(server: McpServer): void {
           await keystroke(session.page, args.key, { frame: session.cameraFrame ?? undefined })
           await session.page.waitForTimeout(250)
         }
+        const before = { overlays: (await openOverlays(session.page)).length }
         await session.page.keyboard.press(args.key)
         await session.page.waitForTimeout(args.waitForMs)
+        // Enter submitting a dialog, Escape closing a menu: the scene changed.
+        await settleCamera(session, before)
         return text(`Pressed ${args.key}.`)
       } catch (err) {
         return failure(`Could not press ${args.key}: ${(err as Error).message}`)
@@ -532,6 +549,9 @@ export function registerActionTools(server: McpServer): void {
         const started = Date.now()
         if (args.cut) await session.offCamera(wait)
         else await wait()
+        // A wait is usually for what the last click caused - a badge, a reply, a closed
+        // dialog. If that changed the scene beyond the frame, pull out to show it.
+        await settleLastAction(session)
 
         const took = `${((Date.now() - started) / 1000).toFixed(1)}s`
         const what = hasTarget ? `${describeTarget(args)} is ${args.state} after ${took}` : `Waited ${took}`

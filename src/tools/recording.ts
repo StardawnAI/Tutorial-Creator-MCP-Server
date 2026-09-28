@@ -15,6 +15,7 @@ import { canGenerateMusic, generateMusic } from '../lib/music-gen.js'
 import { motionAvailability, renderCards } from '../lib/motion.js'
 import { stageComposition, stageLayout } from '../lib/stage.js'
 import { autoconsentScript, describePrivacy } from '../lib/privacy.js'
+import { settleLastAction } from '../lib/scene.js'
 import {
   canRenderAvatar,
   listLooks,
@@ -493,6 +494,9 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
       if (!session.isLive) {
         return failure('The camera is off (tutorial_camera). Put it back on before narrating.')
       }
+      // A line talks about what the last click caused; if that is outside the frame by
+      // now, pull out before the line is spoken, not after.
+      await settleLastAction(session)
 
       const atMs = session.videoTimeMs
       const index = session.cues.length

@@ -267,7 +267,10 @@ function findVideoUrl(node: unknown): string | null {
   return null
 }
 
-function engineFor(look: AvatarLook): string {
+function engineFor(look: AvatarLook, prefer?: string): string {
+  // An explicit choice wins when the look supports it - Avatar III is far cheaper for a
+  // digital twin ($0.0167/s against $0.0667/s), which matters on a small wallet.
+  if (prefer && (look.engines.length === 0 || look.engines.includes(prefer))) return prefer
   const supported = ENGINE_PREFERENCE.find(engine => look.engines.includes(engine))
   return supported ?? ENGINE_PREFERENCE[0]!
 }
@@ -280,7 +283,7 @@ function engineFor(look: AvatarLook): string {
  */
 export async function renderClip(
   config: Config,
-  options: { audioFile: string; look: AvatarLook; outFile: string; title?: string },
+  options: { audioFile: string; look: AvatarLook; outFile: string; title?: string; engine?: string },
 ): Promise<string> {
   const assetId = await uploadAudio(config, options.audioFile)
 
@@ -291,7 +294,7 @@ export async function renderClip(
       type: 'avatar',
       avatar_id: options.look.id,
       audio_asset_id: assetId,
-      engine: { type: engineFor(options.look) },
+      engine: { type: engineFor(options.look, options.engine) },
       resolution: '720p',
       aspect_ratio: '1:1',
       // Fill the square from whatever shape the look is, rather than letterboxing it.
@@ -344,7 +347,7 @@ export async function renderClip(
  */
 export async function renderIdleClip(
   config: Config,
-  options: { look: AvatarLook; outFile: string; seconds?: number },
+  options: { look: AvatarLook; outFile: string; seconds?: number; engine?: string },
 ): Promise<string> {
   const seconds = options.seconds ?? 10
   const silence = path.join(config.paths.avatarCache, `silence-${seconds}s.wav`)
@@ -359,7 +362,7 @@ export async function renderIdleClip(
 
   const cached = path.join(
     config.paths.avatarCache,
-    `idle-${options.look.id}-${engineFor(options.look)}-${seconds}s.mp4`,
+    `idle-${options.look.id}-${engineFor(options.look, options.engine)}-${seconds}s.mp4`,
   )
   if (fs.existsSync(cached) && fs.statSync(cached).size > 0) {
     fs.mkdirSync(path.dirname(options.outFile), { recursive: true })
@@ -373,6 +376,7 @@ export async function renderIdleClip(
     look: options.look,
     outFile: cached,
     title: 'Idle',
+    engine: options.engine,
   })
   fs.mkdirSync(path.dirname(options.outFile), { recursive: true })
   fs.copyFileSync(cached, options.outFile)
@@ -463,11 +467,11 @@ export async function listSpeechVoices(
 }
 
 /** Cache key: the audio, the look and the engine - everything that shapes the clip. */
-function cacheKey(audioFile: string, look: AvatarLook): string {
+function cacheKey(audioFile: string, look: AvatarLook, engine?: string): string {
   const audio = crypto.createHash('sha256').update(fs.readFileSync(audioFile)).digest('hex')
   return crypto
     .createHash('sha256')
-    .update([audio, look.id, engineFor(look), '720p', '1:1'].join('|'))
+    .update([audio, look.id, engineFor(look, engine), '720p', '1:1'].join('|'))
     .digest('hex')
     .slice(0, 32)
 }
@@ -490,7 +494,7 @@ export interface AvatarLine {
 export async function renderAvatarClips(
   config: Config,
   lines: AvatarLine[],
-  options: { look: AvatarLook; outDir: string },
+  options: { look: AvatarLook; outDir: string; engine?: string },
 ): Promise<{ clips: AvatarClip[]; failures: string[] }> {
   fs.mkdirSync(options.outDir, { recursive: true })
   fs.mkdirSync(config.paths.avatarCache, { recursive: true })
@@ -505,7 +509,10 @@ export async function renderAvatarClips(
       if (!next) return
       const [index, line] = next
 
-      const cached = path.join(config.paths.avatarCache, `${cacheKey(line.audioFile, options.look)}.mp4`)
+      const cached = path.join(
+        config.paths.avatarCache,
+        `${cacheKey(line.audioFile, options.look, options.engine)}.mp4`,
+      )
       const local = path.join(options.outDir, `${String(index).padStart(3, '0')}.mp4`)
       try {
         if (!fs.existsSync(cached) || fs.statSync(cached).size === 0) {
@@ -515,6 +522,7 @@ export async function renderAvatarClips(
             look: options.look,
             outFile: cached,
             title: line.text.slice(0, 60),
+            engine: options.engine,
           })
         } else {
           log.info(`Avatar ${index + 1}/${lines.length}: already rendered`)

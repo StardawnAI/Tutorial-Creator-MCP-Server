@@ -268,7 +268,8 @@ sign-in is preferred over the key whenever there is one. `npm run doctor` says w
 of the two is in use.
 
 `scripts/recompose.mjs <folder> --avatar <look>` adds one to a recording that is
-already finished.
+already finished. `--engine avatar_iii` renders a digital twin at a quarter of Avatar
+IV's price ($0.0167/s against $0.0667/s), which decides whether a small wallet is enough.
 
 ### Sign-ins that fight back
 
@@ -297,6 +298,22 @@ in the order to reach for it:
    video. It requires `headless: false`, because otherwise there is no window for
    anyone to act in. This is the tool for "I'm not a robot", for approving a login on
    a phone, and for a code that arrived by SMS.
+
+**Signing a profile in with nobody there.** `npm run autologin -- --site instagram
+--profile <name>` fills in the site's own login form and leaves the session in the
+profile, so a recording started right after begins signed in. It does nothing if the
+profile already is. It reads `IG_USERNAME_<PROFILE>` from `.env` (the profile name upper-cased,
+`-` as `_`) and the password from the encrypted store - never from a plain `.env` line:
+
+```
+powershell -File scripts\set-secret.ps1 -Name IG_PASSWORD_INSTAGRAM_CUSTOMER
+```
+
+That prompt is masked and encrypts the answer with Windows DPAPI before anything is
+written (`profiles\secrets\<NAME>.dpapi`): readable by this Windows account on this
+machine, useless anywhere else. `IG_TOTP_SECRET_<PROFILE>` goes the same way for an
+account with an authenticator. Chrome's own saved passwords cannot stand in: they are
+sealed against every other process, on purpose.
 
 ### Captions
 

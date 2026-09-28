@@ -1,0 +1,95 @@
+{
+  "nodes": [
+    {
+      "id": "file:assets/motion/brand.css",
+      "type": "file",
+      "name": "brand.css",
+      "filePath": "assets/motion/brand.css",
+      "summary": "Shared Stardawn brand stylesheet for the HyperFrames motion cards: navy/cyan/magenta color tokens, Satoshi typeface, a fixed 1920x1080 canvas, and reusable ground, glow, grain, line, eyebrow, rule, mask and logo classes.",
+      "tags": ["stylesheet", "design-tokens", "branding", "motion-graphics", "template"],
+      "complexity": "moderate",
+      "languageNotes": "Uses CSS custom properties on :root as design tokens and an inline SVG feTurbulence data URI as film grain, which prevents banding rings when soft gradients are encoded at 8 bits."
+    },
+    {
+      "id": "file:assets/motion/chapter.html",
+      "type": "file",
+      "name": "chapter.html",
+      "filePath": "assets/motion/chapter.html",
+      "summary": "HyperFrames chapter-card template laid over the recording with a translucent navy veil when tutorial_chapter is called; shows an optional counter, a title that auto-shrinks to fit two lines, a gradient rule and an optional description, animated in and out with a paused GSAP timeline.",
+      "tags": ["template", "motion-graphics", "gsap-animation", "chapter-card", "hyperframes"],
+      "complexity": "moderate",
+      "languageNotes": "The {{title}}, {{description}}, {{counter}} and {{duration}} placeholders are substituted before render; the paused GSAP timeline is registered on window.__timelines so the renderer can seek it frame by frame."
+    },
+    {
+      "id": "file:assets/motion/closing.html",
+      "type": "file",
+      "name": "closing.html",
+      "filePath": "assets/motion/closing.html",
+      "summary": "HyperFrames closing-card template played after the recording: branded gradient ground with drifting glows, a self-drawing check-mark ring, eyebrow, title, subtitle and Stardawn logo footer, fading to black at the end.",
+      "tags": ["template", "motion-graphics", "gsap-animation", "closing-card", "hyperframes"],
+      "complexity": "moderate",
+      "languageNotes": "SVG stroke draw-on is done by setting strokeDasharray/strokeDashoffset to getTotalLength() and tweening the offset to 0."
+    },
+    {
+      "id": "file:assets/motion/opening.html",
+      "type": "file",
+      "name": "opening.html",
+      "filePath": "assets/motion/opening.html",
+      "summary": "HyperFrames opening-card template played before the recording: branded ground with glows and self-drawing angular lines, logo, eyebrow, auto-fitting title, gradient rule and subtitle, with a slow push-in and a still final half second for the dissolve into the recording.",
+      "tags": ["template", "motion-graphics", "gsap-animation", "opening-card", "hyperframes"],
+      "complexity": "moderate",
+      "languageNotes": "Title size is stepped down in a loop until scrollHeight fits two lines, so long titles never overflow the fixed 1920x1080 frame."
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:assets/motion/chapter.html",
+      "target": "file:assets/motion/brand.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:assets/motion/closing.html",
+      "target": "file:assets/motion/brand.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:assets/motion/opening.html",
+      "target": "file:assets/motion/brand.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:assets/motion/chapter.html",
+      "target": "file:src/lib/motion.ts",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:assets/motion/closing.html",
+      "target": "file:src/lib/motion.ts",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:assets/motion/opening.html",
+      "target": "file:src/lib/motion.ts",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:assets/motion/brand.css",
+      "target": "file:src/lib/motion.ts",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ]
+}

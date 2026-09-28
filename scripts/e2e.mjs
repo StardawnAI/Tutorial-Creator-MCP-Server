@@ -35,6 +35,7 @@ import { musicPrompt } from '../dist/lib/music-gen.js'
 import { launchBrowser } from '../dist/lib/browser.js'
 import { createDetector, describePrivacy } from '../dist/lib/privacy.js'
 import { currentCode, secondsLeft, totp } from '../dist/lib/totp.js'
+import { framingBox, openOverlays, settleCamera, settleLastAction } from '../dist/lib/scene.js'
 
 const OUT_W = 1280
 const OUT_H = 720
@@ -1086,6 +1087,121 @@ async function overlaysUnderTrustedTypes(config) {
 }
 
 /**
+ * The camera follows the scene, not just the next button.
+ *
+ * Rebuilds the case that cut a confirmation in half in a real recording: a menu at the
+ * right edge of a post, whose "Delete post" opens a dialog in the middle of the page.
+ * The dialog's own Delete button lands inside the frame the camera took for the menu,
+ * so a camera that only asks "is the next button in frame?" stays put and crops the
+ * dialog. Driven through the same scene.ts calls tutorial_click makes.
+ */
+const SCENE_PAGE = `<!doctype html><meta charset="utf-8"><title>Posts</title>
+<style>
+ body{margin:0;font:16px system-ui,sans-serif;background:#0f172a;color:#e2e8f0}
+ .post{position:absolute;left:40px;right:40px;top:120px;height:180px;background:#1e293b;border-radius:12px;padding:24px}
+ #more{position:absolute;right:60px;top:140px;width:80px;height:36px}
+ [role=menu]{position:absolute;right:60px;top:182px;width:170px;background:#334155;border-radius:8px;padding:6px}
+ [role=menuitem]{display:block;width:100%;padding:8px;background:none;color:#fff;border:0;text-align:left}
+ [role=dialog]{position:absolute;left:440px;top:180px;width:400px;height:180px;background:#1e293b;border:1px solid #475569;border-radius:12px;padding:20px}
+ #keep{position:absolute;right:120px;bottom:20px} #confirm{position:absolute;right:20px;bottom:20px}
+ [hidden]{display:none!important}
+</style>
+<div class="post">InStar now answers our Messenger and Instagram messages, day and night.</div>
+<button id="more">More</button>
+<div role="menu" hidden><button role="menuitem" id="del">Delete post</button></div>
+<div role="dialog" hidden><h2>Delete this post?</h2><p>It disappears for everyone.</p>
+ <button id="keep">Keep it</button><button id="confirm">Delete</button></div>
+<script>
+ const menu = document.querySelector('[role=menu]'), dialog = document.querySelector('[role=dialog]')
+ more.onclick = () => { menu.hidden = false }
+ del.onclick = () => { menu.hidden = true; dialog.hidden = false }
+ // Not the bare id: "confirm" is window.confirm, so the handler would never reach the button.
+ document.getElementById('confirm').onclick = () => { dialog.hidden = true; document.querySelector('.post').remove() }
+</script>`
+
+async function cameraFollowsTheScene(config) {
+  process.stdout.write('\nThe camera follows the scene...\n')
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'tutorial-scene-'))
+  const pageFile = path.join(tmp, 'posts.html')
+  fs.writeFileSync(pageFile, SCENE_PAGE)
+  const session = await RecordingSession.start(config, {
+    title: 'E2E Scene',
+    profile: 'e2e-scene',
+    fresh: true,
+    width: 1280,
+    height: 720,
+    headless: true,
+    deviceScaleFactor: 1,
+    voiceId: config.defaultVoiceId,
+    modelId: config.defaultModelId,
+    music: null,
+    musicGainDb: 0,
+    showActions: false,
+    quality: 90,
+    emphasis: false,
+    autoZoom: true,
+  }, pathToFileURL(pageFile).href)
+
+  const inside = (outer, box) =>
+    box.x >= outer.x && box.y >= outer.y &&
+    box.x + box.width <= outer.x + outer.width && box.y + box.height <= outer.y + outer.height
+
+  /** tutorial_click's camera handling, without the MCP server around it. */
+  async function click(selector) {
+    const page = session.page
+    const locator = page.locator(selector)
+    const box = await locator.boundingBox()
+    await settleLastAction(session)
+    session.focusOn(await framingBox(locator, box), selector)
+    const before = { overlays: (await openOverlays(page)).length, acted: locator }
+    await locator.click()
+    await page.waitForTimeout(300)
+    await settleCamera(session, before)
+    await page.waitForTimeout(300)
+    await settleCamera(session, before)
+    session.lastAction = session.isZoomed ? before : null
+  }
+
+  try {
+    await click('#more')
+    check('the camera moved in on a small button at the edge', session.isZoomed, `${session.cameraFrame?.scale.toFixed(2)}x`)
+    check('a menu dropping open under its button keeps the shot', session.isZoomed)
+
+    const menuFrame = session.cameraFrame
+    await click('#del')
+    const dialog = await session.page.locator('[role=dialog]').boundingBox()
+    const confirmBox = await session.page.locator('#confirm').boundingBox()
+    // The trap this rebuilds: the next button is inside the old frame, the dialog is not.
+    check(
+      'the test page reproduces the crop',
+      menuFrame !== null && inside(menuFrame, confirmBox) && !inside(menuFrame, dialog),
+      menuFrame ? `frame x ${Math.round(menuFrame.x)}-${Math.round(menuFrame.x + menuFrame.width)}, dialog x ${Math.round(dialog.x)}-${Math.round(dialog.x + dialog.width)}` : 'no frame',
+    )
+    check('a confirmation opening mid-page pulls the camera out', !session.isZoomed)
+
+    const frameForConfirm = await framingBox(session.page.locator('#confirm'), confirmBox)
+    check(
+      "a button in a dialog is framed with the whole dialog",
+      inside(frameForConfirm, dialog),
+      `${Math.round(frameForConfirm.width)}x${Math.round(frameForConfirm.height)} framed for a ${Math.round(confirmBox.width)}px button`,
+    )
+    session.focusOn(frameForConfirm, '#confirm')
+    check(
+      'the camera shows all of that dialog',
+      session.cameraFrame === null || inside(session.cameraFrame, dialog),
+      session.cameraFrame ? `${session.cameraFrame.scale.toFixed(2)}x` : 'stayed wide',
+    )
+
+    await click('#confirm')
+    check('closing the dialog pulls the camera out', !session.isZoomed)
+  } finally {
+    if (!session.isFinished) await session.cancel().catch(() => {})
+    fs.rmSync(session.outputDir, { recursive: true, force: true })
+    fs.rmSync(tmp, { recursive: true, force: true })
+  }
+}
+
+/**
  * What a bot check reads, and the two-factor codes typed into one.
  *
  * Both are things that silently stop working: a Playwright release that puts the
@@ -1168,6 +1284,7 @@ const SECTIONS = {
   privacy: privacyCheck,
   'trusted-types': overlaysUnderTrustedTypes,
   bot: botAndTwoFactor,
+  scene: cameraFollowsTheScene,
 }
 
 async function main() {
@@ -1608,6 +1725,7 @@ async function main() {
   await privacyCheck(config)
   await overlaysUnderTrustedTypes(config)
   await botAndTwoFactor(config)
+  await cameraFollowsTheScene(config)
 
   const failed = results.filter(r => !r.ok)
   process.stdout.write(`\n${results.length - failed.length}/${results.length} checks passed\n`)
