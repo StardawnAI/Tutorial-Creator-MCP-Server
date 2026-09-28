@@ -5,6 +5,53 @@ Newest entry on top.
 
 ---
 
+## 2026-09-28 - The twin in its own voice, and HeyGen without the API wallet (M19)
+
+Asked for as: the digital twin speaks the tutorial with the voice it is built on, and
+getting there must not hang on someone clicking "allow" - sessions and sign-ins the
+server holds itself.
+
+### Built
+
+- `voiceSource: "avatar"` (and `TUTORIAL_MCP_VOICE_SOURCE`): every line in the look's
+  paired voice - for the twin "JIM Quick Test", Jim's cloned voice.
+- `src/lib/heygen-auth.ts`: OAuth sign-in as the account's owner, answered by the
+  server's own headless browser in `profiles/heygen` - from `HEYGEN_EMAIL`,
+  `HEYGEN_PASSWORD`, `HEYGEN_TOTP_SECRET`, or a session a person left there once via
+  `npm run heygen-login`. Refresh, and re-consent when refresh stops working, with
+  nobody present. Tokens preferred over the API key in every HeyGen call.
+- doctor reports which of the two pays.
+
+### Decided
+
+- **Sign in rather than top up.** The key's API wallet is $0; the same account's
+  subscription holds 1,058 credits, and only a sign-in reaches them (HeyGen's docs:
+  OAuth "bills subscription credits"). Topping up the wallet would also work and is
+  the owner's decision, not the code's.
+- **The server's own profile, not the user's Chrome.** The real profiles are locked
+  while Chrome runs and their cookies are bound to Chrome's app-bound encryption;
+  the refresh token and a dedicated profile are what a server can keep.
+- **No `resource` on the token request.** It had named HeyGen's MCP server, which
+  would scope the token to that server; the token is spent on api.heygen.com, which
+  is where HeyGen's own CLI sends its OAuth token (read from the v0.8.1 binary: one
+  API base, `https://api.heygen.com`, and a Bearer header).
+
+### Known problems
+
+- Not yet signed in for real: no browser here holds the media@ke.nf session and its
+  password is not in `.env`. Until then renders still go to the empty wallet.
+- Whether api.heygen.com accepts a token without `resource` is inferred from the CLI,
+  not seen. The doctor shows it on the first sign-in.
+
+### Verified
+
+- Unattended sign-in against the live page, headless: without credentials it stops in
+  6.6 s and frees the port; with a made-up example.com account it drives the form and
+  reports HeyGen's "Invalid username/password" - no bot check appeared.
+- `npm run build` clean; handshake 11/11; e2e 98/98.
+
+---
+
 ## 2026-09-25 - Nothing private on camera (M18)
 
 Asked for as: cookie banners, the sign-in business, and personal data that has

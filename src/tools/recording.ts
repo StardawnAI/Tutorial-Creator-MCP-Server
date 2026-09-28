@@ -25,6 +25,7 @@ import {
   resolveLook,
   speakWithHeyGen,
 } from '../lib/avatar.js'
+import { canSignInToHeyGen } from '../lib/heygen-auth.js'
 import { log } from '../lib/logger.js'
 
 /**
@@ -115,14 +116,16 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           .optional()
           .describe('Voice id for the narration, in whichever service voiceSource names.'),
         voiceSource: z
-          .enum(['elevenlabs', 'heygen'])
-          .default('elevenlabs')
+          .enum(['elevenlabs', 'heygen', 'avatar'])
+          .optional()
           .describe(
-            'Who speaks the narration. ElevenLabs by default - it is where the cloned ' +
-              'voices are. "heygen" uses HeyGen\'s own speech endpoint instead, which needs ' +
-              'voiceId to be one of its voices (tutorial_voices with source: "heygen"). ' +
-              'Either way the avatar is lip-synced to the result, so the choice is only ' +
-              'about which voice is heard.',
+            'Who speaks the narration.\n' +
+              '"avatar": the avatar speaks with its own voice - the one its HeyGen look was ' +
+              'made with, so a digital twin sounds like the person it is. Needs an avatar.\n' +
+              '"heygen": a HeyGen voice named by voiceId (tutorial_voices, source "heygen").\n' +
+              '"elevenlabs": an ElevenLabs voice, by default the configured one.\n' +
+              'Left out, TUTORIAL_MCP_VOICE_SOURCE decides, else ElevenLabs. The avatar is ' +
+              'always lip-synced to whatever was spoken.',
           ),
         music: z
           .union([z.boolean(), z.string()])
@@ -270,43 +273,89 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
        * is unknown, or that the account cannot pay for a render, is worth knowing
        * now rather than after a tutorial has been talked through.
        */
-      if (args.voiceSource === 'heygen') {
-        if (!canRenderAvatar(config)) {
-          return failure(
-            'A HeyGen voice needs a HeyGen API key. Set HEYGEN_API_KEY, or leave voiceSource ' +
-              'at "elevenlabs".',
-          )
-        }
-        if (!args.voiceId) {
-          return failure(
-            'voiceSource "heygen" needs a voiceId from HeyGen - the default voice is an ' +
-              'ElevenLabs one. List them with tutorial_voices, source: "heygen".',
-          )
-        }
+      const voiceSource = args.voiceSource ?? config.defaultVoiceSource
+      if (voiceSource !== 'elevenlabs' && !canRenderAvatar(config)) {
+        return failure(
+          `voiceSource "${voiceSource}" speaks through HeyGen, which needs HEYGEN_API_KEY or a ` +
+            'sign-in with `npm run heygen-login`.',
+        )
       }
 
       let avatarLook: { id: string; name: string } | null = null
+      let avatarVoice: string | null = null
       const avatarNotes: string[] = []
+      /** HeyGen can be asked for nothing: no sign-in, and an empty API wallet. */
+      let heygenUnpaid = false
       const wantedAvatar = args.avatar === false ? null : (args.avatar ?? config.defaultAvatar)
       if (wantedAvatar) {
         if (!canRenderAvatar(config)) {
           return failure(
-            'An avatar needs a HeyGen API key. Set HEYGEN_API_KEY in the server environment.',
+            'An avatar needs HeyGen: HEYGEN_API_KEY, or a sign-in with `npm run heygen-login`.',
           )
         }
         try {
           const look = await resolveLook(config, wantedAvatar)
           avatarLook = { id: look.id, name: look.name }
-          const balance = await remainingBalance(config)
-          if (balance !== null && balance <= 0) {
-            avatarNotes.push(
-              'the HeyGen account has no credit left, so the bubbles will be missing from the ' +
-                'finished video unless it is topped up before it is rendered',
-            )
+          avatarVoice = look.defaultVoiceId
+          // Signed in, renders come out of the subscription; only the API wallet can
+          // be read here, so it is only a warning when there is no sign-in.
+          if (!canSignInToHeyGen(config)) {
+            const balance = await remainingBalance(config)
+            if (balance !== null && balance <= 0) {
+              heygenUnpaid = true
+              avatarNotes.push(
+                'the HeyGen API wallet is empty and there is no HeyGen sign-in, so the avatar ' +
+                  'will be missing from the finished video. Signing in bills the ' +
+                  "subscription's credits instead: set HEYGEN_EMAIL and HEYGEN_PASSWORD, or " +
+                  'run `npm run heygen-login` once',
+              )
+            }
           }
         } catch (err) {
           return failure((err as Error).message)
         }
+      }
+
+      /**
+       * Who actually speaks. "avatar" is HeyGen speaking with the look's own voice.
+       * When HeyGen cannot be paid, the recording falls back to ElevenLabs for every
+       * line rather than going silent - one voice throughout, and a video to show.
+       */
+      let narrator: { source: 'elevenlabs' | 'heygen'; voiceId: string } = {
+        source: 'elevenlabs',
+        voiceId: args.voiceId ?? config.defaultVoiceId,
+      }
+      if (voiceSource === 'avatar') {
+        if (!avatarLook) {
+          return failure(
+            'voiceSource "avatar" has the avatar speak with its own voice, so it needs an avatar: ' +
+              'pass avatar, or set TUTORIAL_MCP_AVATAR.',
+          )
+        }
+        const voice = args.voiceId ?? avatarVoice
+        if (!voice) {
+          return failure(
+            `"${avatarLook.name}" has no voice of its own on HeyGen. Pass voiceId with one of ` +
+              'the voices from tutorial_voices, source: "heygen".',
+          )
+        }
+        narrator = { source: 'heygen', voiceId: voice }
+      } else if (voiceSource === 'heygen') {
+        const voice = args.voiceId ?? avatarVoice
+        if (!voice) {
+          return failure(
+            'voiceSource "heygen" needs a voiceId from HeyGen - the default voice is an ' +
+              'ElevenLabs one. List them with tutorial_voices, source: "heygen".',
+          )
+        }
+        narrator = { source: 'heygen', voiceId: voice }
+      }
+      if (narrator.source === 'heygen' && heygenUnpaid) {
+        avatarNotes.push(
+          'the narration falls back to ElevenLabs for the same reason - HeyGen would refuse to ' +
+            'speak every line',
+        )
+        narrator = { source: 'elevenlabs', voiceId: config.defaultVoiceId }
       }
 
       const motion = motionAvailability()
@@ -328,9 +377,9 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
           outputHeight: preset.height,
           deviceScaleFactor: preset.deviceScaleFactor,
           headless: args.headless,
-          voiceId: args.voiceId ?? config.defaultVoiceId,
+          voiceId: narrator.voiceId,
           modelId: config.defaultModelId,
-          voiceSource: args.voiceSource,
+          voiceSource: narrator.source,
           music,
           generateMusic: generate,
           avatarLook,
@@ -397,6 +446,9 @@ export function registerRecordingTools(server: McpServer, config: Config): void 
             ...(avatarLook
               ? [`Avatar: "${avatarLook.name}", ${args.avatarCorner}, rendered when finished.`]
               : []),
+            narrator.source === 'heygen'
+              ? `Narration: HeyGen, ${narrator.voiceId === avatarVoice ? "the avatar's own voice" : `voice ${narrator.voiceId}`}.`
+              : 'Narration: ElevenLabs.',
             ...(motionOn ? ['Cards: animated opening, chapters and closing, rendered when finished.'] : []),
             ...privacyLines,
             `Output folder: ${session.outputDir}`,

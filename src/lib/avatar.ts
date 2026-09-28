@@ -23,6 +23,7 @@ import path from 'node:path'
 import type { Config } from './env.js'
 import { requireFfmpeg, requireFfprobe, requireHeyGenKey } from './env.js'
 import { probeDuration, run } from './ffmpeg.js'
+import { canSignInToHeyGen, heygenAccessToken } from './heygen-auth.js'
 import { log } from './logger.js'
 
 const API_ROOT = 'https://api.heygen.com/v3'
@@ -48,6 +49,8 @@ export interface AvatarLook {
   /** `photo_avatar`, `digital_twin`, ... */
   type: string
   engines: string[]
+  /** The voice the look was made with - for a digital twin, its owner's own. */
+  defaultVoiceId: string | null
 }
 
 /** One rendered line: the avatar saying it, and where it belongs in the video. */
@@ -58,7 +61,20 @@ export interface AvatarClip {
 }
 
 export function canRenderAvatar(config: Config): boolean {
-  return Boolean(config.heygenApiKey)
+  return Boolean(config.heygenApiKey) || canSignInToHeyGen(config)
+}
+
+/**
+ * How this server identifies itself to HeyGen.
+ *
+ * The owner's sign-in comes first when there is one: it is billed to the web
+ * subscription's credits, while the API key is billed to a separate API wallet
+ * that can stand empty with the subscription full - see heygen-auth.ts.
+ */
+async function authHeaders(config: Config): Promise<Record<string, string>> {
+  const token = await heygenAccessToken(config)
+  if (token) return { authorization: `Bearer ${token}` }
+  return { 'X-Api-Key': requireHeyGenKey(config) }
 }
 
 /** 32 hex characters - a look id, a group id, or an asset id. */
@@ -79,14 +95,14 @@ async function call(
   init: RequestInit = {},
   attempts = 3,
 ): Promise<{ status: number; body: any; text: string }> {
-  const apiKey = requireHeyGenKey(config)
+  const auth = await authHeaders(config)
   let lastError: Error | null = null
 
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
       const response = await fetch(url, {
         ...init,
-        headers: { 'X-Api-Key': apiKey, accept: 'application/json', ...(init.headers ?? {}) },
+        headers: { ...auth, accept: 'application/json', ...(init.headers ?? {}) },
         signal: AbortSignal.timeout(120_000),
       })
       const text = await response.text()
@@ -130,6 +146,7 @@ function toLook(entry: any): AvatarLook {
     groupId: entry.group_id ?? null,
     type: String(entry.avatar_type ?? 'avatar'),
     engines: Array.isArray(entry.supported_api_engines) ? entry.supported_api_engines : [],
+    defaultVoiceId: entry.default_voice_id ? String(entry.default_voice_id) : null,
   }
 }
 

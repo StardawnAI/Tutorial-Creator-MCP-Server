@@ -9,6 +9,7 @@ import { loadConfig } from '../lib/env.js'
 import { probeDuration, run } from '../lib/ffmpeg.js'
 import { listVoices, looksLikeApiKey } from '../lib/tts.js'
 import { remainingBalance } from '../lib/avatar.js'
+import { canSignInToHeyGen, hasHeyGenLogin, heygenAccessToken } from '../lib/heygen-auth.js'
 import { motionAvailability, transparentCardFormat } from '../lib/motion.js'
 import { autoconsentScript, autoconsentVersion, loadPlatformSchema } from '../lib/privacy.js'
 
@@ -120,19 +121,35 @@ async function main(): Promise<void> {
         lines.push(`[${TICK}] avatar    HeyGen key works`)
       } else if (balance > 0) {
         lines.push(`[${TICK}] avatar    HeyGen key works, balance ${balance}`)
+      } else if (canSignInToHeyGen(config)) {
+        lines.push(`[${TICK}] avatar    HeyGen key works; its API wallet is empty, so renders go through the sign-in`)
       } else {
         lines.push(`[${WARN}] avatar    HeyGen key works but the account has no credit`)
         warnings.push(
-          'HeyGen will refuse to render an avatar until the account is topped up. Everything ' +
-            'else about a recording is unaffected - it simply has no bubble.',
+          'HeyGen will refuse to render an avatar until the API wallet is topped up, or the ' +
+            "server signs in and uses the subscription's credits: set HEYGEN_EMAIL and " +
+            'HEYGEN_PASSWORD, or run `npm run heygen-login` once.',
         )
       }
     } catch (err) {
       lines.push(`[${WARN}] avatar    HeyGen key rejected`)
       warnings.push(`No avatar will be rendered: ${(err as Error).message}`)
     }
-  } else {
-    lines.push(`[${WARN}] avatar    no HEYGEN_API_KEY - recordings have no avatar`)
+  } else if (!canSignInToHeyGen(config)) {
+    lines.push(`[${WARN}] avatar    no HEYGEN_API_KEY and no sign-in - recordings have no avatar`)
+  }
+
+  // The sign-in as the account's owner, which bills the subscription.
+  if (hasHeyGenLogin(config)) {
+    try {
+      await heygenAccessToken(config)
+      lines.push(`[${TICK}] avatar    signed in to HeyGen - renders use the subscription's credits`)
+    } catch (err) {
+      lines.push(`[${WARN}] avatar    the HeyGen sign-in could not be renewed`)
+      warnings.push((err as Error).message)
+    }
+  } else if (config.heygenLogin) {
+    lines.push(`[${TICK}] avatar    HEYGEN_EMAIL is set - the server signs in to HeyGen when it first needs to`)
   }
 
   // HyperFrames, for the animated opening, chapter and closing cards. Optional.

@@ -232,6 +232,9 @@ re-render costs nothing at HeyGen.
   paired with (`default_voice_id`), so the face and the voice can both be the same
   person's. `tutorial_voices` with `source: "heygen"` lists what it offers; a private
   voice of your own can be passed by id even when the listing leaves it out.
+- `avatar` — the avatar speaks with the voice its look is paired with. For a digital
+  twin that is the person's own cloned voice, so nothing in the video is anyone else's.
+  `TUTORIAL_MCP_VOICE_SOURCE=avatar` makes it the default.
 
 Both answer in about a second, which is what matters: the recording waits out every
 line in real time, so the speech has to be there immediately. The avatar render,
@@ -242,10 +245,27 @@ the group id out of the HeyGen app URL (`app.heygen.com/avatar/my-avatars/<id>`)
 part of a look's name. `tutorial_avatars` lists what the account has. An unknown name
 and a missing key both fail at `tutorial_start`, before anything is recorded.
 
-It needs `HEYGEN_API_KEY` in `.env` and credit on that HeyGen account — a wallet at
-zero is refused with `insufficient_credit`, and the video is then delivered with
-voice and music but no bubble. That applies to HeyGen's speech endpoint as well, so
-`voiceSource: "heygen"` needs credit where ElevenLabs needs only its own key.
+**Paying for it.** HeyGen bills an API key and a sign-in differently. A key draws on
+a separate API wallet; a sign-in as the account's owner draws on the web
+subscription's credits. The two are independent — one account here had 1,058
+subscription credits and an API wallet at $0, and every render with the key was
+refused with `insufficient_credit` (a video is then delivered with voice and music
+but no bubble, and HeyGen voices fall back to ElevenLabs).
+
+So the server signs in, and does it by itself:
+
+- With `HEYGEN_EMAIL` and `HEYGEN_PASSWORD` in `.env` (and `HEYGEN_TOTP_SECRET` if the
+  account has two-factor), it signs in to HeyGen in its own headless browser the first
+  time it needs to, grants itself access, and keeps the tokens in
+  `profiles/heygen-oauth.json`. Nobody has to be there.
+- Without them, `npm run heygen-login` opens the server's browser once for a person to
+  sign in by hand (Google, Apple, SSO — whatever the account uses). The window's
+  profile, `profiles/heygen`, keeps that session.
+
+After that the refresh token renews the sign-in, and when HeyGen stops honouring it
+the browser grants access again from the stored session or the credentials. The
+sign-in is preferred over the key whenever there is one. `npm run doctor` says which
+of the two is in use.
 
 `scripts/recompose.mjs <folder> --avatar <look>` adds one to a recording that is
 already finished.
@@ -411,8 +431,11 @@ All optional; sensible defaults apply.
 | Variable | Meaning |
 |---|---|
 | `ELEVENLABS_API_KEY` | Enables spoken narration |
-| `HEYGEN_API_KEY` | Enables the avatar that speaks the narration |
+| `HEYGEN_API_KEY` | Enables the avatar that speaks the narration, billed to the API wallet |
+| `HEYGEN_EMAIL` / `HEYGEN_PASSWORD` | The HeyGen account's sign-in, so the server signs in by itself and bills the subscription |
+| `HEYGEN_TOTP_SECRET` | The account's two-factor secret, if it has one |
 | `TUTORIAL_MCP_AVATAR` | Default avatar look, so every recording gets one without asking |
+| `TUTORIAL_MCP_VOICE_SOURCE` | Default narrator: `elevenlabs`, `heygen`, or `avatar` (the look's own voice) |
 | `TUTORIAL_MCP_MUSIC` | Default music track - a path, or part of a title |
 | `TUTORIAL_MCP_VOICE_ID` | Default narration voice |
 | `TUTORIAL_MCP_MODEL_ID` | Default TTS model (`eleven_multilingual_v2`) |

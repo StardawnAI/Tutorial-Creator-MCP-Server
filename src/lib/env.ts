@@ -49,8 +49,16 @@ export interface Config {
   googleOAuth: { clientFile: string; refreshToken: string } | null
   /** HeyGen, for an avatar that speaks the narration. */
   heygenApiKey: string | null
+  /**
+   * The HeyGen account's own sign-in, so the server can sign in to the web app by
+   * itself - and so bill the subscription - with nobody present. A two-factor secret,
+   * if the account has one, is read from HEYGEN_TOTP_SECRET when it is needed.
+   */
+  heygenLogin: { email: string; password: string } | null
   /** The avatar look used when a recording does not name one. */
   defaultAvatar: string | null
+  /** Who narrates when a recording does not say: ElevenLabs, a HeyGen voice, or the avatar's own. */
+  defaultVoiceSource: 'elevenlabs' | 'heygen' | 'avatar'
 }
 
 /**
@@ -234,8 +242,15 @@ export function loadConfig(): Config {
           }
         : null,
     heygenApiKey: process.env.HEYGEN_API_KEY ?? null,
+    heygenLogin:
+      process.env.HEYGEN_EMAIL && process.env.HEYGEN_PASSWORD
+        ? { email: process.env.HEYGEN_EMAIL, password: process.env.HEYGEN_PASSWORD }
+        : null,
     // A look id, a group id, or part of a name - the same three things the tool takes.
     defaultAvatar: process.env.TUTORIAL_MCP_AVATAR ?? null,
+    defaultVoiceSource: (['heygen', 'avatar'] as const).find(
+      s => s === process.env.TUTORIAL_MCP_VOICE_SOURCE,
+    ) ?? 'elevenlabs',
   }
   return cached
 }

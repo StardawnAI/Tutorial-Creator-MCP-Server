@@ -249,7 +249,38 @@ a person in the corner saying the lines, instead of a disembodied voice.
       -> blocked: the HeyGen account (media@ke.nf) has a wallet balance of 0, so
         every render is refused with `insufficient_credit`. Everything up to the
         render is verified against the live API; the compositing is verified with
-        stand-in clips
+        stand-in clips. The way round it is M19
+
+## M19 - The digital twin speaks in its own voice, billed to the subscription
+
+Asked for as: the clone says the tutorial with the voice it is built on, not an
+ElevenLabs voice - and it has to work autonomously, through sessions and sign-ins the
+server holds itself, not by waiting for someone to click.
+
+- [x] `voiceSource: "avatar"`: the look's own paired voice speaks every line, through
+      HeyGen's speech endpoint; `TUTORIAL_MCP_VOICE_SOURCE` sets the default
+- [x] Sign in as the account's owner (OAuth with PKCE, dynamic client registration,
+      loopback redirect) - billed to the web subscription instead of the API wallet
+- [x] The server answers the consent itself, in its own browser profile
+      (`profiles/heygen`): signs in from `HEYGEN_EMAIL` / `HEYGEN_PASSWORD` /
+      `HEYGEN_TOTP_SECRET`, grants access, stores the tokens
+      -> verified headless against the live sign-in page: with no credentials it stops
+        in 6.6 s with a clear message and frees the port; with a made-up example.com
+        account it fills email and password, submits, and reports HeyGen's own
+        "Invalid username/password" - no bot check in the way
+- [x] Renewal with nobody present: refresh token, then a fresh consent from the
+      stored session or the credentials; concurrent renders share one renewal
+- [x] `npm run heygen-login` for an account without a password (Google, SSO): the
+      server's window, signed into once by hand, remembered in the profile
+- [x] doctor reports the sign-in, and warns about the empty wallet only without one
+- [!] First real sign-in, and the digital twin rendered lip-synced in its own voice
+      -> blocked: no browser on this machine is signed in to the HeyGen account
+        media@ke.nf (checked: Chrome's three profiles, Brave, Edge; the Google
+        account chooser offers three other accounts), and its password is not in
+        `.env`. Needs `HEYGEN_EMAIL` / `HEYGEN_PASSWORD` or one `npm run heygen-login`
+- [ ] With the first token: confirm api.heygen.com accepts it (HeyGen's CLI, signed
+      in the same way, sends its token there and nowhere else - read from the v0.8.1
+      binary), then record a short tutorial with the twin and check it frame by frame
 
 ## M14 - Bot checks and two-factor
 
