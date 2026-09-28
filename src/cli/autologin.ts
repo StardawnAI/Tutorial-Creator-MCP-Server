@@ -12,15 +12,19 @@
  * the same profile directory `npm run login` and the recorder use, so a recording
  * started right after finds itself already signed in.
  *
- * The credentials are asked for once and kept in .env, exactly like ADMIN_PASSWORD
- * and the HeyGen key already are - never printed, never committed. From then on every
- * future recording signs itself in with no one present, including recovering on its
- * own if a Windows account change or a cleared profile wipes the session again.
+ * The password (and a two-factor secret, if there is one) is asked for once and never
+ * typed anywhere this process reads directly: `npm run set-secret -- <Name>` opens its own
+ * masked prompt and encrypts the answer with Windows' own DPAPI before anything is written
+ * to disk, so the plain value never sits in a file, a chat or this tool's own memory beyond
+ * the moment it decrypts it to sign in. See src/lib/secrets.ts. From then on every future
+ * recording signs itself in with no one present, including recovering on its own if a
+ * Windows account change or a cleared profile wipes the session again.
  *
- * Several accounts on the same site each get their own profile and their own
- * variables, named after the profile: a profile "instagram-customer" reads
- * IG_USERNAME_INSTAGRAM_CUSTOMER and IG_PASSWORD_INSTAGRAM_CUSTOMER (and
- * IG_TOTP_SECRET_INSTAGRAM_CUSTOMER if that account has two-factor).
+ * Several accounts on the same site each get their own profile and their own secret name,
+ * built from the profile: a profile "instagram-customer" needs IG_PASSWORD_INSTAGRAM_CUSTOMER
+ * (and IG_TOTP_SECRET_INSTAGRAM_CUSTOMER if that account has two-factor). The username is
+ * not a secret - it is the public handle already shown on the profile - and stays a plain
+ * IG_USERNAME_INSTAGRAM_CUSTOMER in .env.
  *
  * Idempotent: if the profile is already signed in (its session cookie is present
  * and the page does not show a login form), this verifies that and exits at once -
@@ -34,8 +38,9 @@
 
 import { loadConfig } from '../lib/env.js'
 import { launchBrowser } from '../lib/browser.js'
-import { currentCode } from '../lib/totp.js'
+import { currentCodeForSecret } from '../lib/totp.js'
 import { autoconsentScript } from '../lib/privacy.js'
+import { readSecret, hasEncryptedSecret } from '../lib/secrets.js'
 import type { Page } from 'playwright-core'
 
 interface SiteLogin {
@@ -123,11 +128,20 @@ async function main(): Promise<void> {
   const env = envVarNames(site.envPrefix, profile)
 
   const username = process.env[env.username]
-  const password = process.env[env.password]
+  const password = readSecret(env.password)
   if (!username || !password) {
-    out(`${env.username} and ${env.password} must be set in .env (once - never asked again after that).`)
+    out(
+      `${env.username} must be set in .env, and ${env.password} must be set once with:\n` +
+        `  powershell -File scripts\\set-secret.ps1 -Name ${env.password}\n` +
+        '(masked input, encrypted with Windows DPAPI - never typed into a file or a chat).',
+    )
     process.exit(1)
   }
+  out(
+    hasEncryptedSecret(env.password)
+      ? `Using the encrypted ${env.password}.`
+      : `${env.password} is a plain .env value - move it to set-secret.ps1 when you can.`,
+  )
 
   const config = loadConfig()
   const { context, page } = await launchBrowser(config, {
@@ -168,13 +182,14 @@ async function main(): Promise<void> {
       const totpField = page.locator(site.totpSelector).first()
       try {
         await totpField.waitFor({ state: 'visible', timeout: 15_000 })
-        if (!process.env[env.totpSecret]) {
+        const totpSecret = readSecret(env.totpSecret)
+        if (!totpSecret) {
           throw new Error(
             `${siteName} is asking for a two-factor code, but no ${env.totpSecret} is ` +
-              'configured to answer it.',
+              'configured to answer it (set it with set-secret.ps1, same as the password).',
           )
         }
-        const code = await currentCode(env.totpSecret)
+        const code = await currentCodeForSecret(totpSecret)
         out('Two-factor code requested - typing the current one.')
         await totpField.pressSequentially(code, { delay: 40 })
         if (site.totpSubmitSelector) {

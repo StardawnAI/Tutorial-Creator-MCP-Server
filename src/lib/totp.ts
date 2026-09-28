@@ -67,11 +67,19 @@ export function secondsLeft(atMs: number = Date.now(), stepSeconds = 30): number
 }
 
 /**
- * The current code for the secret held in an environment variable.
+ * The current code for a secret already in hand.
  *
  * A code with two seconds left on it is typed, submitted and rejected, which in a
  * recording looks like the tutorial not working - so the next one is waited for.
  */
+export async function currentCodeForSecret(secret: string): Promise<string> {
+  if (secondsLeft() < 5) {
+    await new Promise(resolve => setTimeout(resolve, (secondsLeft() + 1) * 1000))
+  }
+  return totp(secret)
+}
+
+/** The current code for the secret held in an environment variable. */
 export async function currentCode(variable: string): Promise<string> {
   const secret = process.env[variable]
   if (!secret) {
@@ -80,8 +88,5 @@ export async function currentCode(variable: string): Promise<string> {
         'secret the site showed when two-factor was switched on.',
     )
   }
-  if (secondsLeft() < 5) {
-    await new Promise(resolve => setTimeout(resolve, (secondsLeft() + 1) * 1000))
-  }
-  return totp(secret)
+  return currentCodeForSecret(secret)
 }
