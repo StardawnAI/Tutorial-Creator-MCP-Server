@@ -9,6 +9,8 @@
  *
  *   --avatar <look>        have a HeyGen look speak the narration, as a bubble in the
  *                          corner: a look id, a group id, or part of a name
+ *   --engine <e>           HeyGen engine for the avatar: avatar_iv (default, richest),
+ *                          avatar_iii (cheapest for a digital twin), avatar_v
  *   --corner <c>           bottom-right (default), bottom-left, top-right, top-left
  *   --presence speaking    show the bubble only while a line is spoken; by default the
  *                          avatar idles on screen between the lines as well
@@ -143,6 +145,7 @@ async function main() {
         avatarIdle = await renderIdleClip(config, {
           look,
           outFile: path.join(dir, 'avatar', 'idle.mp4'),
+          engine: flags.engine,
         })
       } catch (err) {
         process.stdout.write(`No idle clip (${err.message}); the bubble will only show while speaking\n`)
@@ -156,7 +159,7 @@ async function main() {
         durationMs: c.durationMs,
         text: c.text,
       })),
-      { look, outDir: path.join(dir, 'avatar') },
+      { look, outDir: path.join(dir, 'avatar'), engine: flags.engine },
     )
     avatarClips = rendered.clips
     process.stdout.write(
