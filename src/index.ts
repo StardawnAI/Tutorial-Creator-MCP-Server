@@ -39,7 +39,8 @@ async function main(): Promise<void> {
         '"Open the settings menu" - and it is shown beside the ring. Reach for tutorial_zoom ' +
         'only to frame something you are talking about but not acting on, or to pull back out ' +
         'early; the camera holds its framing while actions stay in one area and releases by ' +
-        'itself on scrolling and navigation.\n\n' +
+        'itself on scrolling, navigation, a dialog opening or closing, and a clicked element ' +
+        'disappearing. A button inside a dialog is framed with the whole dialog.\n\n' +
         'Private data is kept out of the picture on its own: cookie banners are rejected, ' +
         "other people's messages, posts and profile pictures are greyed out, and addresses, " +
         'phone numbers and keys are covered. What is clicked or highlighted stays visible. ' +
