@@ -49,8 +49,8 @@ interface SiteLogin {
   /** A cookie that only exists once signed in - the fast, idempotent check. */
   sessionCookie: { name: string; domain: string }
   usernameSelector: string
+  /** The form is sent with Enter from this field: submit buttons change shape and language. */
   passwordSelector: string
-  submitSelector: string
   /** Prefix for this site's per-profile .env variables, e.g. "IG" -> IG_USERNAME_<PROFILE>. */
   envPrefix: string
   /** Shown after a password is submitted, only if the site asks for it. */
@@ -65,13 +65,18 @@ const SITES: Record<string, SiteLogin> = {
     loginUrl: 'https://www.instagram.com/accounts/login/',
     sessionCookie: { name: 'sessionid', domain: 'instagram.com' },
     usernameSelector: 'input[name="email"]',
-    passwordSelector: 'input[name="password"]',
-    submitSelector: 'button[type="submit"]',
+    // "pass" since October 2026, "password" before.
+    passwordSelector: 'input[name="pass"], input[name="password"]',
     envPrefix: 'IG',
     totpSelector: 'input[name="verificationCode"], input[aria-label*="ecurity code" i]',
     totpSubmitSelector: 'button[type="button"]:has-text("Confirm"), button:has-text("Weiter")',
     afterLogin: [
-      { selector: 'button:has-text("Not now"), button:has-text("Jetzt nicht")', action: 'dismiss' },
+      {
+        selector:
+          'button:has-text("Not now"), button:has-text("Jetzt nicht"), ' +
+          '[role="button"]:has-text("Not now"), [role="button"]:has-text("Jetzt nicht")',
+        action: 'dismiss',
+      },
     ],
   },
 }
@@ -108,7 +113,10 @@ async function rejectCookies(page: Page): Promise<void> {
   if (script) await page.addInitScript(script).catch(() => {})
   await page.waitForTimeout(1500)
   const reject = page
-    .locator('[aria-label*="ablehnen" i], [aria-label*="ecline" i], [aria-label*="eject" i]')
+    .locator(
+      '[aria-label*="ablehnen" i], [aria-label*="ecline" i], [aria-label*="eject" i], ' +
+        'button:has-text("Optionale Cookies ablehnen"), button:has-text("Decline optional cookies")',
+    )
     .first()
   if (await reject.count().catch(() => 0)) {
     await reject.click({ timeout: 3000 }).catch(() => {})
@@ -127,6 +135,8 @@ async function main(): Promise<void> {
   const site = SITES[siteName]!
   const env = envVarNames(site.envPrefix, profile)
 
+  // Loads .env first: the username below lives there.
+  const config = loadConfig()
   const username = process.env[env.username]
   const password = readSecret(env.password)
   if (!username || !password) {
@@ -143,7 +153,6 @@ async function main(): Promise<void> {
       : `${env.password} is a plain .env value - move it to set-secret.ps1 when you can.`,
   )
 
-  const config = loadConfig()
   const { context, page } = await launchBrowser(config, {
     profile,
     width: 1440,
@@ -174,8 +183,9 @@ async function main(): Promise<void> {
     out(`Signing in to ${siteName} as ${username}...`)
     await userField.click()
     await userField.pressSequentially(username, { delay: 40 })
-    await page.locator(site.passwordSelector).first().pressSequentially(password, { delay: 40 })
-    await page.locator(site.submitSelector).first().click()
+    const passwordField = page.locator(site.passwordSelector).first()
+    await passwordField.pressSequentially(password, { delay: 40 })
+    await passwordField.press('Enter')
 
     // A two-factor prompt is optional: only handled if the site actually shows it.
     if (site.totpSelector) {
