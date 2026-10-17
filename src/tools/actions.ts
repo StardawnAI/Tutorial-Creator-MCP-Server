@@ -20,6 +20,7 @@ import {
   type Box,
 } from '../lib/emphasis.js'
 import { raiseWindow } from '../lib/foreground.js'
+import { openInThisTab } from '../lib/browser.js'
 import { framingBox, openOverlays, settleCamera, settleLastAction } from '../lib/scene.js'
 import { describePrivacy } from '../lib/privacy.js'
 import { currentCode } from '../lib/totp.js'
@@ -265,6 +266,14 @@ export function registerActionTools(server: McpServer): void {
             'Skip without an error when the element does not appear within 3 seconds - for ' +
               'cookie banners and prompts that only sometimes show up.',
           ),
+        sameTab: z
+          .boolean()
+          .default(false)
+          .describe(
+            'A link that would open a new tab opens in this one instead, so the recording ' +
+              'follows it - "View on Instagram", "Open in a new window". Go back with ' +
+              'tutorial_goto.',
+          ),
         waitForMs: z.number().int().min(0).max(30_000).default(BEAT_MS),
       },
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
@@ -282,6 +291,7 @@ export function registerActionTools(server: McpServer): void {
         const box = await prepareTarget(session, locator, args.instruction)
         const before = { overlays: (await openOverlays(session.page)).length, acted: locator }
 
+        if (args.sameTab) await openInThisTab(locator)
         await locator.click({ timeout: 20_000 })
 
         if (box && session.options.emphasis) {

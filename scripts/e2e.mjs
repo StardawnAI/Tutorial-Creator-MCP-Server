@@ -32,7 +32,7 @@ import { hostOf, stageComposition, stageLayout } from '../dist/lib/stage.js'
 import { spotlight, ripple, instruct, instructionLayout, keycaps } from '../dist/lib/emphasis.js'
 import { probeVideo, run } from '../dist/lib/ffmpeg.js'
 import { musicPrompt } from '../dist/lib/music-gen.js'
-import { launchBrowser } from '../dist/lib/browser.js'
+import { launchBrowser, openInThisTab } from '../dist/lib/browser.js'
 import { createDetector, describePrivacy } from '../dist/lib/privacy.js'
 import { currentCode, secondsLeft, totp } from '../dist/lib/totp.js'
 import { framingBox, openOverlays, settleCamera, settleLastAction } from '../dist/lib/scene.js'
@@ -1275,6 +1275,39 @@ async function botAndTwoFactor(config) {
   )
 }
 
+/**
+ * A "View on Instagram" link opens a new tab, which a recording of one tab never shows.
+ * sameTab on tutorial_click keeps it in the tab being filmed.
+ */
+async function linkStaysInTheTab() {
+  process.stdout.write('\nA new-tab link stays in the filmed tab...\n')
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'tutorial-tab-'))
+  fs.writeFileSync(path.join(tmp, 'native.html'), '<!doctype html><title>Native</title><h1>The post itself</h1>')
+  fs.writeFileSync(
+    path.join(tmp, 'app.html'),
+    '<!doctype html><title>App</title><a id="view" href="native.html" target="_blank" rel="noreferrer">View on Instagram</a>',
+  )
+  const { context, page } = await launchBrowser(loadConfig(), {
+    fresh: true,
+    width: 800,
+    height: 600,
+    headless: true,
+    deviceScaleFactor: 1,
+  })
+  try {
+    await page.goto(pathToFileURL(path.join(tmp, 'app.html')).href)
+    const link = page.locator('#view')
+    await openInThisTab(link)
+    await link.click()
+    await page.waitForURL(/native\.html$/, { timeout: 5000 }).catch(() => {})
+    check('the link opened in the same tab', page.url().endsWith('native.html'), page.url())
+    check('no second tab appeared', context.pages().length === 1, `${context.pages().length} tab(s)`)
+  } finally {
+    await context.close()
+    fs.rmSync(tmp, { recursive: true, force: true })
+  }
+}
+
 /** The parts that run on their own: `node scripts/e2e.mjs privacy`. */
 const SECTIONS = {
   'two-browsers': twoBrowsers,
@@ -1285,6 +1318,7 @@ const SECTIONS = {
   'trusted-types': overlaysUnderTrustedTypes,
   bot: botAndTwoFactor,
   scene: cameraFollowsTheScene,
+  'same-tab': linkStaysInTheTab,
 }
 
 async function main() {
@@ -1726,6 +1760,7 @@ async function main() {
   await overlaysUnderTrustedTypes(config)
   await botAndTwoFactor(config)
   await cameraFollowsTheScene(config)
+  await linkStaysInTheTab()
 
   const failed = results.filter(r => !r.ok)
   process.stdout.write(`\n${results.length - failed.length}/${results.length} checks passed\n`)

@@ -16,7 +16,7 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { chromium, type BrowserContext, type Page } from 'playwright-core'
+import { chromium, type BrowserContext, type Locator, type Page } from 'playwright-core'
 import type { Config } from './env.js'
 import { installHeartbeat } from './heartbeat.js'
 import { log } from './logger.js'
@@ -206,4 +206,16 @@ export async function launchBrowser(
   })
 
   return { context, page, profileDir, disposableDir }
+}
+
+/**
+ * Makes the link at `target` open where it is clicked rather than in a new tab. A
+ * recording films one tab; whatever a new one showed would happen off screen.
+ */
+export async function openInThisTab(target: Locator): Promise<void> {
+  await target.evaluate(el => {
+    const link = el.closest('a')
+    link?.removeAttribute('target')
+    link?.removeAttribute('rel')
+  })
 }
