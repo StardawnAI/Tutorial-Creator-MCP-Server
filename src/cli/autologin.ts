@@ -41,6 +41,8 @@ import { launchBrowser } from '../lib/browser.js'
 import { currentCodeForSecret } from '../lib/totp.js'
 import { autoconsentScript } from '../lib/privacy.js'
 import { readSecret, hasEncryptedSecret } from '../lib/secrets.js'
+import { raiseWindow } from '../lib/foreground.js'
+import { clearHandoffBanner, showHandoffBanner } from '../lib/emphasis.js'
 import type { Page } from 'playwright-core'
 
 interface SiteLogin {
@@ -58,6 +60,8 @@ interface SiteLogin {
   totpSubmitSelector?: string
   /** Prompts Instagram (and similar sites) show right after a fresh sign-in. */
   afterLogin?: Array<{ selector: string; action: 'click' | 'dismiss' }>
+  /** Addresses of a sign-in still in progress, where the session cookie can already exist. */
+  pendingUrl?: RegExp
 }
 
 const SITES: Record<string, SiteLogin> = {
@@ -79,7 +83,21 @@ const SITES: Record<string, SiteLogin> = {
       },
     ],
   },
+  // A Facebook account usually has two-factor without a shared secret (an app approval
+  // or a code from another device), so a person finishes that step once - see
+  // waitForPerson below. The session then lasts for months.
+  facebook: {
+    loginUrl: 'https://www.facebook.com/login/',
+    sessionCookie: { name: 'c_user', domain: 'facebook.com' },
+    usernameSelector: 'input[name="email"]',
+    passwordSelector: 'input[name="pass"]',
+    envPrefix: 'FB',
+    pendingUrl: /checkpoint|two_step_verification|two_factor|\/login/,
+  },
 }
+
+/** How long a person has to finish a security check the site shows after the password. */
+const PERSON_TIMEOUT_MS = 10 * 60_000
 
 function parseArgs(argv: string[]): { site: string | null; profile: string | null } {
   let site: string | null = null
@@ -104,6 +122,7 @@ function envVarNames(prefix: string, profile: string): { username: string; passw
 
 async function isSignedIn(page: Page, site: SiteLogin): Promise<boolean> {
   const cookies = await page.context().cookies(`https://${site.sessionCookie.domain}/`)
+  if (site.pendingUrl?.test(page.url())) return false
   return cookies.some(c => c.name === site.sessionCookie.name)
 }
 
@@ -124,6 +143,36 @@ async function rejectCookies(page: Page): Promise<void> {
   }
 }
 
+/**
+ * The password went in, but the site still wants something only its owner can give - an
+ * approval on the phone, a code from another device, a "was this you?". The window comes
+ * to the front with the request across the top, and this waits for the session cookie.
+ */
+async function waitForPerson(page: Page, site: SiteLogin, out: (s: string) => void): Promise<void> {
+  out(
+    'The site is asking for a security check after the password. Finish it in the browser ' +
+      `window that just came to the front (up to ${PERSON_TIMEOUT_MS / 60_000} minutes).`,
+  )
+  await raiseWindow((await page.title().catch(() => '')).slice(0, 30) || 'Chromium').catch(() => '')
+  await showHandoffBanner(
+    page,
+    'Finish the sign-in here: approve it on your phone or type the code. This window closes by itself.',
+  ).catch(() => {})
+  const deadline = Date.now() + PERSON_TIMEOUT_MS
+  while (!(await isSignedIn(page, site))) {
+    if (Date.now() > deadline) {
+      throw new Error(
+        `No ${site.sessionCookie.name} cookie within ${PERSON_TIMEOUT_MS / 60_000} minutes: ` +
+          'the password may be wrong, or the security check was not finished.',
+      )
+    }
+    await page.waitForTimeout(2000)
+  }
+  await clearHandoffBanner(page).catch(() => {})
+  // Let the site finish writing the rest of its session before the profile is closed.
+  await page.waitForTimeout(3000)
+}
+
 async function main(): Promise<void> {
   const { site: siteName, profile } = parseArgs(process.argv.slice(2))
   const out = (s: string) => process.stdout.write(`${s}\n`)
@@ -135,13 +184,15 @@ async function main(): Promise<void> {
   const site = SITES[siteName]!
   const env = envVarNames(site.envPrefix, profile)
 
-  // Loads .env first: the username below lives there.
+  // Loads .env first: a username that is a public handle lives there. One that is a
+  // private e-mail address or phone number goes through set-secret.ps1 like the password.
   const config = loadConfig()
-  const username = process.env[env.username]
+  const username = readSecret(env.username)
   const password = readSecret(env.password)
   if (!username || !password) {
     out(
-      `${env.username} must be set in .env, and ${env.password} must be set once with:\n` +
+      `${env.username} must be set in .env (or with set-secret.ps1, if it is private), and ` +
+        `${env.password} must be set once with:\n` +
         `  powershell -File scripts\\set-secret.ps1 -Name ${env.password}\n` +
         '(masked input, encrypted with Windows DPAPI - never typed into a file or a chat).',
     )
@@ -180,7 +231,7 @@ async function main(): Promise<void> {
       )
     }
 
-    out(`Signing in to ${siteName} as ${username}...`)
+    out(`Signing in to ${siteName}${hasEncryptedSecret(env.username) ? '' : ` as ${username}`}...`)
     await userField.click()
     await userField.pressSequentially(username, { delay: 40 })
     const passwordField = page.locator(site.passwordSelector).first()
@@ -222,13 +273,7 @@ async function main(): Promise<void> {
       }
     }
 
-    if (!(await isSignedIn(page, site))) {
-      throw new Error(
-        `Signed in but no ${site.sessionCookie.name} cookie appeared. ${siteName} may have ` +
-          'refused the credentials or shown a check this script does not know - look at the ' +
-          `window (still open) or a screenshot to see what it is asking.`,
-      )
-    }
+    if (!(await isSignedIn(page, site))) await waitForPerson(page, site, out)
     out(`Signed in. Profile "${profile}" is ready for a recording.`)
   } finally {
     await context.close()

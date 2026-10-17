@@ -7,11 +7,12 @@
 #
 #   powershell -File scripts\set-secret.ps1 -Name IG_PASSWORD_INSTAGRAM_CUSTOMER
 #
-# Name it exactly what autologin expects: IG_PASSWORD_<PROFILE> or IG_TOTP_SECRET_<PROFILE>,
-# with the profile name upper-cased and any "-" turned into "_" (e.g. profile
-# "instagram-customer" -> IG_PASSWORD_INSTAGRAM_CUSTOMER). Usernames are not secret (they
-# are the public handle shown on the profile) and stay as plain IG_USERNAME_<PROFILE> in
-# .env, same as before.
+# Name it exactly what autologin expects: <SITE>_PASSWORD_<PROFILE> or
+# <SITE>_TOTP_SECRET_<PROFILE> (SITE is IG for Instagram, FB for Facebook), with the profile
+# name upper-cased and any "-" turned into "_" (e.g. profile "instagram-customer" ->
+# IG_PASSWORD_INSTAGRAM_CUSTOMER). A username that is a public handle stays a plain
+# <SITE>_USERNAME_<PROFILE> in .env; one that is a private e-mail address or phone number
+# (a Facebook login, usually) is stored here the same way, e.g. FB_USERNAME_INSTAR_REVIEW.
 
 param(
     [Parameter(Mandatory = $true)]
