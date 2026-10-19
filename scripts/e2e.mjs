@@ -14,7 +14,7 @@ import path from 'node:path'
 import os from 'node:os'
 import { pathToFileURL } from 'node:url'
 
-import { loadConfig } from '../dist/lib/env.js'
+import { loadConfig, requireFfmpeg } from '../dist/lib/env.js'
 import { RecordingSession } from '../dist/lib/session.js'
 import {
   AVATAR_SIZE,
@@ -31,6 +31,7 @@ import { fillTemplate, motionAvailability, renderMotion } from '../dist/lib/moti
 import { hostOf, stageComposition, stageLayout } from '../dist/lib/stage.js'
 import { spotlight, ripple, instruct, instructionLayout, keycaps } from '../dist/lib/emphasis.js'
 import { probeVideo, run } from '../dist/lib/ffmpeg.js'
+import { buildZoomFilter } from '../dist/lib/zoom.js'
 import { musicPrompt } from '../dist/lib/music-gen.js'
 import { launchBrowser, openInThisTab } from '../dist/lib/browser.js'
 import { createDetector, describePrivacy } from '../dist/lib/privacy.js'
@@ -1308,6 +1309,35 @@ async function linkStaysInTheTab() {
   }
 }
 
+/**
+ * A long recording has many camera moves. ffmpeg refuses an expression nested more than
+ * about a hundred levels deep, which a nested if chain reached at some 25 moves.
+ */
+async function manyCameraMoves(config) {
+  process.stdout.write('\nA recording with many camera moves still renders...\n')
+  const events = Array.from({ length: 60 }, (_, i) => ({
+    atMs: i * 3000,
+    releaseMs: i * 3000 + 1500,
+    scale: 1.75,
+    centerX: 200 + (i % 5) * 50,
+    centerY: 120,
+  }))
+  const filter = buildZoomFilter(events, {
+    rampMs: 700,
+    viewportWidth: 640,
+    viewportHeight: 360,
+    outputWidth: 320,
+    outputHeight: 180,
+    fps: 25,
+  })
+  check('sixty moves give one zoompan filter', typeof filter === 'string' && filter.startsWith('zoompan='))
+  const ok = await run(requireFfmpeg(config), [
+    '-hide_banner', '-loglevel', 'error', '-f', 'lavfi',
+    '-i', 'testsrc=size=640x360:rate=25:duration=4', '-vf', filter, '-f', 'null', '-',
+  ]).then(() => true, err => (process.stdout.write(`${String(err.message).slice(-400)}\n`), false))
+  check('ffmpeg accepts and runs it', ok)
+}
+
 /** The parts that run on their own: `node scripts/e2e.mjs privacy`. */
 const SECTIONS = {
   'two-browsers': twoBrowsers,
@@ -1319,6 +1349,7 @@ const SECTIONS = {
   bot: botAndTwoFactor,
   scene: cameraFollowsTheScene,
   'same-tab': linkStaysInTheTab,
+  'camera-moves': manyCameraMoves,
 }
 
 async function main() {
@@ -1761,6 +1792,7 @@ async function main() {
   await botAndTwoFactor(config)
   await cameraFollowsTheScene(config)
   await linkStaysInTheTab()
+  await manyCameraMoves(config)
 
   const failed = results.filter(r => !r.ok)
   process.stdout.write(`\n${results.length - failed.length}/${results.length} checks passed\n`)
