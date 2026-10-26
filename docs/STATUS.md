@@ -5,6 +5,62 @@ Newest entry on top.
 
 ---
 
+## 2026-09-28 - The camera follows the scene; sign-ins without a person (M20)
+
+Asked for as: in the InStar App Review video the camera zoomed in on a menu at the right
+edge, the "Delete this post?" dialog opened in the middle, and the camera stayed - cutting
+the dialog in half (4:52-4:58), then framing a list that had changed under it (5:05), and
+sitting on the Hide button while the "Hidden" badge appeared elsewhere (3:34). Separately:
+recordings must not need someone to type a password, and a real account's password must
+never sit in a plain-text file.
+
+### Built
+
+- **`src/lib/scene.ts`** - what the camera must keep in view:
+  - a target inside a dialog or menu is framed together with the whole overlay
+    (`framingBox`), so the camera never crops the question a button answers;
+  - after a click (and a key press) the camera pulls out if a dialog/menu closed, if one
+    opened that does not fit in the frame, or if the element clicked is gone
+    (`settleCamera`). A menu dropping open under its own button still keeps the shot;
+  - the last click is remembered on the session (`lastAction`) and checked again when the
+    recording next waits, narrates or acts - for a badge that appears once an API call
+    returns, after the click's own beat.
+- **`npm run autologin -- --site instagram --profile <p>`** - drives a site's own login
+  form, idempotent, so a recording starts signed in with nobody at the keyboard.
+- **`npm run set-secret -- -Name <NAME>`** - a masked PowerShell prompt that encrypts the
+  value with Windows DPAPI before it touches disk (`profiles/secrets/<NAME>.dpapi`);
+  `src/lib/secrets.ts` reads it back. Usernames stay plain in `.env`.
+- **`recompose --engine avatar_iii`** - Avatar III renders a digital twin at $0.0167/s
+  against Avatar IV's $0.0667/s.
+
+### Decided
+
+- **Frame the context, not the button.** The hold rule itself ("do not pull out and push
+  back in for every click in one corner") stays; what it tests changed, from the next
+  button to what the viewer needs to see.
+- **Chrome's saved passwords and passkeys are not a source.** Saved passwords are sealed
+  with App-Bound Encryption (`v20`) against every other process, on purpose; a passkey
+  needs a person at Windows Hello. Neither is something to route around.
+- **Existing recordings keep their camera.** The moves are baked into `timeline.json`
+  without the page geometry that would say where a dialog was, so a recompose cannot
+  apply the new rule; the next recording can.
+
+### Verified
+
+- `node scripts/e2e.mjs scene` 7/7: the page rebuilds the crop (frame x 549-1280, dialog
+  x 440-882, its Delete button inside the frame), and the camera pulls out on the dialog,
+  frames the whole dialog for its button (442x222 for a 55 px button, 1.30x), and pulls
+  out when it closes. A menu opening under its button keeps the shot.
+- `node scripts/handshake.mjs` 11/11; full `node scripts/e2e.mjs` 105/105 (98 before, 7 new).
+
+### Known problems
+
+- The desktop-control MCP server (`desktop-kv3ok8i`) answers "Session not found" to every
+  call, so a native file-picker (uploading a video to a web form) still needs a person.
+  Chrome refuses `DOM.setFileInputFiles` over the extension bridge ("Not allowed").
+
+---
+
 ## 2026-09-28 - The twin in its own voice, and HeyGen without the API wallet (M19)
 
 Asked for as: the digital twin speaks the tutorial with the voice it is built on, and

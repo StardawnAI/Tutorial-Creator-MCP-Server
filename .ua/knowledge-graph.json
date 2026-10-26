@@ -1,0 +1,6180 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "tutorial-creator-mcp-server",
+    "languages": [
+      "css",
+      "html",
+      "javascript",
+      "json",
+      "markdown",
+      "typescript"
+    ],
+    "frameworks": [
+      "Model Context Protocol SDK",
+      "Playwright",
+      "Zod",
+      "GSAP",
+      "HyperFrames"
+    ],
+    "description": "MCP server that records narrated screen-capture tutorial videos of web apps, driving a logged-in Playwright browser, generating ElevenLabs narration, and compositing the final mp4 with ffmpeg. Optional HyperFrames and GSAP render animated opening, chapter and closing cards.",
+    "analyzedAt": "2026-09-25T13:19:21.530Z",
+    "gitCommitHash": "adcfe0954db49345fb1125f436c5df761782fdf6"
+  },
+  "nodes": [
+    {
+      "id": "file:src/cli/doctor.ts",
+      "type": "file",
+      "name": "doctor.ts",
+      "filePath": "src/cli/doctor.ts",
+      "summary": "Command-line environment check that verifies ffmpeg/ffprobe and required filters, API keys for ElevenLabs and HeyGen, HyperFrames motion support, default music and browser profiles, then reports problems and warnings and exits non-zero only on hard blockers.",
+      "tags": [
+        "entry-point",
+        "cli",
+        "diagnostics",
+        "environment-check"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/cli/doctor.ts:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "src/cli/doctor.ts",
+      "lineRange": [
+        18,
+        187
+      ],
+      "summary": "Runs every environment check (ffmpeg filters, keys, voices, HeyGen balance, HyperFrames, music, profiles) and prints a report, exiting with an error code on blockers.",
+      "tags": [
+        "cli",
+        "diagnostics",
+        "entry-point"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:src/lib/avatar.ts",
+      "type": "file",
+      "name": "avatar.ts",
+      "filePath": "src/lib/avatar.ts",
+      "summary": "HeyGen integration that lists and resolves avatar looks, speaks narration through HeyGen voices, and renders lip-synced and idle avatar clips after the recording, with retrying API calls and an on-disk clip cache.",
+      "tags": [
+        "service",
+        "api-client",
+        "avatar",
+        "heygen",
+        "caching"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/lib/avatar.ts:canRenderAvatar",
+      "type": "function",
+      "name": "canRenderAvatar",
+      "filePath": "src/lib/avatar.ts",
+      "lineRange": [
+        60,
+        62
+      ],
+      "summary": "Reports whether a HeyGen key is configured so avatar rendering is possible.",
+      "tags": [
+        "predicate",
+        "avatar",
+        "config"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/avatar.ts:call",
+      "type": "function",
+      "name": "call",
+      "filePath": "src/lib/avatar.ts",
+      "lineRange": [
+        76,
+        107
+      ],
+      "summary": "Performs a HeyGen API request with retries on network failures while returning server answers, including refusals, as-is.",
+      "tags": [
+        "http-client",
+        "retry",
+        "heygen"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/avatar.ts:describeError",
+      "type": "function",
+      "name": "describeError",
+      "filePath": "src/lib/avatar.ts",
+      "lineRange": [
+        110,
+        124
+      ],
+      "summary": "Turns a HeyGen error response into an actionable Error message.",
+      "tags": [
+        "error-handling",
+        "heygen",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/avatar.ts:listLooks",
+      "type": "function",
+      "name": "listLooks",
+      "filePath": "src/lib/avatar.ts",
+      "lineRange": [
+        142,
+        169
+      ],
+      "summary": "Lists HeyGen avatar looks, walking pages client-side when a name search is given.",
+      "tags": [
+        "heygen",
+        "avatar",
+        "pagination"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/avatar.ts:resolveLook",
+      "type": "function",
+      "name": "resolveLook",
+      "filePath": "src/lib/avatar.ts",
+      "lineRange": [
+        178,
+        210
+      ],
+      "summary": "Resolves a look id, avatar group id from the app URL, or partial name to a single avatar look.",
+      "tags": [
+        "heygen",
+        "avatar",
+        "lookup"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/avatar.ts:remainingBalance",
+      "type": "function",
+      "name": "remainingBalance",
+      "filePath": "src/lib/avatar.ts",
+      "lineRange": [
+        213,
+        218
+      ],
+      "summary": "Fetches the remaining HeyGen wallet balance, or null when unavailable.",
+      "tags": [
+        "heygen",
+        "billing",
+        "api-client"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/avatar.ts:uploadAudio",
+      "type": "function",
+      "name": "uploadAudio",
+      "filePath": "src/lib/avatar.ts",
+      "lineRange": [
+        221,
+        233
+      ],
+      "summary": "Uploads a narration clip to HeyGen and returns the audio asset id.",
+      "tags": [
+        "heygen",
+        "upload",
+        "audio"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/avatar.ts:findVideoUrl",
+      "type": "function",
+      "name": "findVideoUrl",
+      "filePath": "src/lib/avatar.ts",
+      "lineRange": [
+        236,
+        251
+      ],
+      "summary": "Searches a finished job response for the rendered video URL wherever it appears.",
+      "tags": [
+        "utility",
+        "parsing",
+        "heygen"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/avatar.ts:renderClip",
+      "type": "function",
+      "name": "renderClip",
+      "filePath": "src/lib/avatar.ts",
+      "lineRange": [
+        264,
+        318
+      ],
+      "summary": "Renders a square 720p lip-synced avatar clip for one narration audio file and downloads it.",
+      "tags": [
+        "heygen",
+        "avatar",
+        "video-render"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/avatar.ts:renderIdleClip",
+      "type": "function",
+      "name": "renderIdleClip",
+      "filePath": "src/lib/avatar.ts",
+      "lineRange": [
+        328,
+        363
+      ],
+      "summary": "Renders a silent idle clip of the avatar breathing and blinking, looped under gaps between lines.",
+      "tags": [
+        "heygen",
+        "avatar",
+        "ffmpeg"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/avatar.ts:speakWithHeyGen",
+      "type": "function",
+      "name": "speakWithHeyGen",
+      "filePath": "src/lib/avatar.ts",
+      "lineRange": [
+        374,
+        412
+      ],
+      "summary": "Synthesises a narration line with a HeyGen speech voice, caching the audio and probing its duration.",
+      "tags": [
+        "heygen",
+        "text-to-speech",
+        "caching"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/avatar.ts:listSpeechVoices",
+      "type": "function",
+      "name": "listSpeechVoices",
+      "filePath": "src/lib/avatar.ts",
+      "lineRange": [
+        415,
+        446
+      ],
+      "summary": "Lists voices accepted by the HeyGen speech endpoint (starfish engine).",
+      "tags": [
+        "heygen",
+        "voices",
+        "api-client"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/avatar.ts:renderAvatarClips",
+      "type": "function",
+      "name": "renderAvatarClips",
+      "filePath": "src/lib/avatar.ts",
+      "lineRange": [
+        473,
+        523
+      ],
+      "summary": "Renders avatar clips for every narration line with caching, skipping lines that fail instead of failing the video.",
+      "tags": [
+        "heygen",
+        "avatar",
+        "batch-processing"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/lib/compose.ts",
+      "type": "file",
+      "name": "compose.ts",
+      "filePath": "src/lib/compose.ts",
+      "summary": "Core composition engine that turns the raw screen capture, narration clips, music, avatar bubble and motion cards into the finished mp4 via two ffmpeg passes, building SRT/ASS karaoke captions, loudness-normalised ducked audio, dissolve transitions, zoom filters and a post-render sanity check.",
+      "tags": [
+        "service",
+        "video-composition",
+        "ffmpeg",
+        "audio-mixing",
+        "subtitles"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Builds large ffmpeg filtergraphs as strings from TypeScript data structures; audio is rendered as a separate pass so it can be inspected in isolation."
+    },
+    {
+      "id": "function:src/lib/compose.ts:buildSrt",
+      "type": "function",
+      "name": "buildSrt",
+      "filePath": "src/lib/compose.ts",
+      "lineRange": [
+        122,
+        137
+      ],
+      "summary": "Builds an SRT subtitle document from narration cues.",
+      "tags": [
+        "subtitles",
+        "serialization",
+        "srt"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/compose.ts:buildAss",
+      "type": "function",
+      "name": "buildAss",
+      "filePath": "src/lib/compose.ts",
+      "lineRange": [
+        167,
+        228
+      ],
+      "summary": "Builds an ASS subtitle document, using karaoke timing so words light up as they are spoken when timings exist.",
+      "tags": [
+        "subtitles",
+        "serialization",
+        "karaoke"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/lib/compose.ts:karaokeText",
+      "type": "function",
+      "name": "karaokeText",
+      "filePath": "src/lib/compose.ts",
+      "lineRange": [
+        246,
+        263
+      ],
+      "summary": "Converts word timings into ASS karaoke-tagged text with line wrapping and a leading silent syllable.",
+      "tags": [
+        "subtitles",
+        "karaoke",
+        "formatting"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/compose.ts:measureLoudness",
+      "type": "function",
+      "name": "measureLoudness",
+      "filePath": "src/lib/compose.ts",
+      "lineRange": [
+        288,
+        305
+      ],
+      "summary": "Measures integrated loudness and true peak of an audio file with ffmpeg loudnorm.",
+      "tags": [
+        "audio",
+        "ffmpeg",
+        "measurement"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/compose.ts:narrationChain",
+      "type": "function",
+      "name": "narrationChain",
+      "filePath": "src/lib/compose.ts",
+      "lineRange": [
+        341,
+        346
+      ],
+      "summary": "Returns the ffmpeg filter chain that pads, normalises and trims a narration clip.",
+      "tags": [
+        "audio",
+        "ffmpeg",
+        "filtergraph"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/compose.ts:buildAudio",
+      "type": "function",
+      "name": "buildAudio",
+      "filePath": "src/lib/compose.ts",
+      "lineRange": [
+        355,
+        500
+      ],
+      "summary": "First pass: levels each narration clip, places it on a silent timeline, loops and fades music and ducks it under the voice with sidechain compression.",
+      "tags": [
+        "audio-mixing",
+        "ffmpeg",
+        "filtergraph"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/lib/compose.ts:joinSegments",
+      "type": "function",
+      "name": "joinSegments",
+      "filePath": "src/lib/compose.ts",
+      "lineRange": [
+        528,
+        587
+      ],
+      "summary": "Builds the filtergraph that joins capture segments with dissolves, falling back to hard cuts for short segments.",
+      "tags": [
+        "video",
+        "transitions",
+        "filtergraph"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/lib/compose.ts:avatarOverlayFilters",
+      "type": "function",
+      "name": "avatarOverlayFilters",
+      "filePath": "src/lib/compose.ts",
+      "lineRange": [
+        635,
+        710
+      ],
+      "summary": "Builds filters that overlay the round avatar bubble in the corner after camera moves, with idle looping between spoken lines.",
+      "tags": [
+        "video",
+        "avatar",
+        "filtergraph"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/lib/compose.ts:bookendFilters",
+      "type": "function",
+      "name": "bookendFilters",
+      "filePath": "src/lib/compose.ts",
+      "lineRange": [
+        748,
+        803
+      ],
+      "summary": "Builds filters that dissolve opening and closing cards into and out of the recording.",
+      "tags": [
+        "video",
+        "motion-cards",
+        "filtergraph"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/lib/compose.ts:overlayFilters",
+      "type": "function",
+      "name": "overlayFilters",
+      "filePath": "src/lib/compose.ts",
+      "lineRange": [
+        810,
+        828
+      ],
+      "summary": "Builds filters laying transparent full-frame chapter cards over the picture at their moments.",
+      "tags": [
+        "video",
+        "motion-cards",
+        "filtergraph"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/compose.ts:compose",
+      "type": "function",
+      "name": "compose",
+      "filePath": "src/lib/compose.ts",
+      "lineRange": [
+        831,
+        1144
+      ],
+      "summary": "Second pass: assembles zoom, segments, avatar, cards and captions into the final mp4 and muxes the audio mix.",
+      "tags": [
+        "video-composition",
+        "ffmpeg",
+        "orchestration"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/lib/compose.ts:verifyOutput",
+      "type": "function",
+      "name": "verifyOutput",
+      "filePath": "src/lib/compose.ts",
+      "lineRange": [
+        1150,
+        1200
+      ],
+      "summary": "Sanity-checks a finished render for all-black or motionless video that indicates a failed capture.",
+      "tags": [
+        "validation",
+        "ffmpeg",
+        "quality-check"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/lib/ffmpeg.ts",
+      "type": "file",
+      "name": "ffmpeg.ts",
+      "filePath": "src/lib/ffmpeg.ts",
+      "summary": "Thin ffmpeg/ffprobe wrappers that spawn processes with argument arrays (safe for paths with spaces), probe media duration and video stream properties, and escape filter values.",
+      "tags": [
+        "utility",
+        "ffmpeg",
+        "process-spawn",
+        "media-probe"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/lib/ffmpeg.ts:run",
+      "type": "function",
+      "name": "run",
+      "filePath": "src/lib/ffmpeg.ts",
+      "lineRange": [
+        24,
+        67
+      ],
+      "summary": "Spawns a process with an argument array, optional cwd and env, and resolves with stdout/stderr or rejects on failure.",
+      "tags": [
+        "process-spawn",
+        "ffmpeg",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/lib/ffmpeg.ts:probeDuration",
+      "type": "function",
+      "name": "probeDuration",
+      "filePath": "src/lib/ffmpeg.ts",
+      "lineRange": [
+        70,
+        78
+      ],
+      "summary": "Returns a media file duration in seconds via ffprobe, or null.",
+      "tags": [
+        "ffprobe",
+        "media-probe",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/ffmpeg.ts:probeVideo",
+      "type": "function",
+      "name": "probeVideo",
+      "filePath": "src/lib/ffmpeg.ts",
+      "lineRange": [
+        88,
+        119
+      ],
+      "summary": "Probes width, height, frame rate and duration of a video stream.",
+      "tags": [
+        "ffprobe",
+        "media-probe",
+        "video"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/ffmpeg.ts:escapeFilterValue",
+      "type": "function",
+      "name": "escapeFilterValue",
+      "filePath": "src/lib/ffmpeg.ts",
+      "lineRange": [
+        122,
+        124
+      ],
+      "summary": "Escapes a value for safe use inside an ffmpeg filter argument.",
+      "tags": [
+        "utility",
+        "escaping",
+        "ffmpeg"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/motion.ts",
+      "type": "file",
+      "name": "motion.ts",
+      "filePath": "src/lib/motion.ts",
+      "summary": "Renders opening, chapter and closing motion cards from GSAP-animated HTML templates through the optional HyperFrames renderer, detecting availability, picking a transparent output format, and caching rendered cards by content hash.",
+      "tags": [
+        "service",
+        "motion-graphics",
+        "hyperframes",
+        "templating",
+        "caching"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/lib/motion.ts:findHyperFrames",
+      "type": "function",
+      "name": "findHyperFrames",
+      "filePath": "src/lib/motion.ts",
+      "lineRange": [
+        47,
+        63
+      ],
+      "summary": "Locates the HyperFrames CLI and the GSAP build used by templates, memoising the result or null.",
+      "tags": [
+        "discovery",
+        "hyperframes",
+        "singleton"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/motion.ts:motionAvailability",
+      "type": "function",
+      "name": "motionAvailability",
+      "filePath": "src/lib/motion.ts",
+      "lineRange": [
+        66,
+        76
+      ],
+      "summary": "Reports whether motion cards can be rendered and why not.",
+      "tags": [
+        "predicate",
+        "hyperframes",
+        "diagnostics"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/motion.ts:fillTemplate",
+      "type": "function",
+      "name": "fillTemplate",
+      "filePath": "src/lib/motion.ts",
+      "lineRange": [
+        94,
+        99
+      ],
+      "summary": "Fills {{slot}} placeholders in an HTML template with escaped values, leaving missing slots empty.",
+      "tags": [
+        "templating",
+        "html",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/motion.ts:transparentCardFormat",
+      "type": "function",
+      "name": "transparentCardFormat",
+      "filePath": "src/lib/motion.ts",
+      "lineRange": [
+        130,
+        137
+      ],
+      "summary": "Chooses webm (libvpx) or mov (ProRes) as the transparent card format depending on the ffmpeg build.",
+      "tags": [
+        "ffmpeg",
+        "format-detection",
+        "memoization"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/motion.ts:renderMotion",
+      "type": "function",
+      "name": "renderMotion",
+      "filePath": "src/lib/motion.ts",
+      "lineRange": [
+        146,
+        238
+      ],
+      "summary": "Renders one motion card through HyperFrames, cached by template, styles, logo and renderer version.",
+      "tags": [
+        "hyperframes",
+        "video-render",
+        "caching"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/lib/motion.ts:renderCards",
+      "type": "function",
+      "name": "renderCards",
+      "filePath": "src/lib/motion.ts",
+      "lineRange": [
+        275,
+        339
+      ],
+      "summary": "Renders every opening, chapter and closing card a recording asks for, reporting and skipping failures.",
+      "tags": [
+        "hyperframes",
+        "motion-cards",
+        "batch-processing"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/lib/music-gen.ts",
+      "type": "file",
+      "name": "music-gen.ts",
+      "filePath": "src/lib/music-gen.ts",
+      "summary": "Generates background music sized to a video through Google Lyria, using a fixed calm instrumental brief with rotating instrumentation and API-key or OAuth credentials.",
+      "tags": [
+        "service",
+        "api-client",
+        "music-generation",
+        "audio"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/lib/music-gen.ts:musicPrompt",
+      "type": "function",
+      "name": "musicPrompt",
+      "filePath": "src/lib/music-gen.ts",
+      "lineRange": [
+        36,
+        51
+      ],
+      "summary": "Builds the fixed calm instrumental brief for Lyria with a rotating instrumentation and target length.",
+      "tags": [
+        "prompt-building",
+        "music-generation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/music-gen.ts:canGenerateMusic",
+      "type": "function",
+      "name": "canGenerateMusic",
+      "filePath": "src/lib/music-gen.ts",
+      "lineRange": [
+        53,
+        55
+      ],
+      "summary": "Reports whether a Gemini API key or Google OAuth grant is configured.",
+      "tags": [
+        "predicate",
+        "config",
+        "music-generation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/music-gen.ts:authHeaders",
+      "type": "function",
+      "name": "authHeaders",
+      "filePath": "src/lib/music-gen.ts",
+      "lineRange": [
+        58,
+        85
+      ],
+      "summary": "Produces request headers from an API key or a refreshed OAuth access token.",
+      "tags": [
+        "auth",
+        "oauth",
+        "http-client"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/music-gen.ts:findAudio",
+      "type": "function",
+      "name": "findAudio",
+      "filePath": "src/lib/music-gen.ts",
+      "lineRange": [
+        94,
+        106
+      ],
+      "summary": "Searches a Lyria response for the base64 audio payload regardless of response shape.",
+      "tags": [
+        "parsing",
+        "utility",
+        "audio"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/music-gen.ts:generateMusic",
+      "type": "function",
+      "name": "generateMusic",
+      "filePath": "src/lib/music-gen.ts",
+      "lineRange": [
+        120,
+        145
+      ],
+      "summary": "Requests a Lyria track slightly longer than the video and writes it to disk.",
+      "tags": [
+        "music-generation",
+        "api-client",
+        "audio"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/tts.ts",
+      "type": "file",
+      "name": "tts.ts",
+      "filePath": "src/lib/tts.ts",
+      "summary": "ElevenLabs text-to-speech client that synthesises narration lines with tutorial voice settings, caches audio by a hash of all inputs, estimates spoken duration and lists available voices.",
+      "tags": [
+        "service",
+        "api-client",
+        "text-to-speech",
+        "caching"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/lib/tts.ts:describeApiError",
+      "type": "function",
+      "name": "describeApiError",
+      "filePath": "src/lib/tts.ts",
+      "lineRange": [
+        26,
+        39
+      ],
+      "summary": "Turns an ElevenLabs error response into an actionable message using its detail text.",
+      "tags": [
+        "error-handling",
+        "elevenlabs",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/tts.ts:looksLikeApiKey",
+      "type": "function",
+      "name": "looksLikeApiKey",
+      "filePath": "src/lib/tts.ts",
+      "lineRange": [
+        42,
+        44
+      ],
+      "summary": "Heuristically checks whether a string looks like an ElevenLabs API key rather than a key id.",
+      "tags": [
+        "validation",
+        "predicate",
+        "elevenlabs"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/tts.ts:cacheKey",
+      "type": "function",
+      "name": "cacheKey",
+      "filePath": "src/lib/tts.ts",
+      "lineRange": [
+        78,
+        91
+      ],
+      "summary": "Hashes every input that affects synthesis into a cache key.",
+      "tags": [
+        "caching",
+        "hashing",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/tts.ts:estimateSpokenMs",
+      "type": "function",
+      "name": "estimateSpokenMs",
+      "filePath": "src/lib/tts.ts",
+      "lineRange": [
+        97,
+        100
+      ],
+      "summary": "Estimates how long a line takes to speak from its word count.",
+      "tags": [
+        "estimation",
+        "utility",
+        "text-to-speech"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/tts.ts:synthesise",
+      "type": "function",
+      "name": "synthesise",
+      "filePath": "src/lib/tts.ts",
+      "lineRange": [
+        102,
+        147
+      ],
+      "summary": "Synthesises a narration line with ElevenLabs, reusing cached audio and probing its duration.",
+      "tags": [
+        "text-to-speech",
+        "elevenlabs",
+        "caching"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/lib/tts.ts:listVoices",
+      "type": "function",
+      "name": "listVoices",
+      "filePath": "src/lib/tts.ts",
+      "lineRange": [
+        157,
+        177
+      ],
+      "summary": "Lists the ElevenLabs voices available to the configured key.",
+      "tags": [
+        "elevenlabs",
+        "voices",
+        "api-client"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/words.ts",
+      "type": "file",
+      "name": "words.ts",
+      "filePath": "src/lib/words.ts",
+      "summary": "Computes per-word timings for karaoke captions using ElevenLabs forced alignment, falling back to length-based estimates, and caches results by audio and text hash.",
+      "tags": [
+        "service",
+        "subtitles",
+        "forced-alignment",
+        "caching"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/lib/words.ts:tokens",
+      "type": "function",
+      "name": "tokens",
+      "filePath": "src/lib/words.ts",
+      "lineRange": [
+        37,
+        39
+      ],
+      "summary": "Splits a narration line into word tokens.",
+      "tags": [
+        "utility",
+        "tokenization",
+        "text"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/words.ts:estimateTimings",
+      "type": "function",
+      "name": "estimateTimings",
+      "filePath": "src/lib/words.ts",
+      "lineRange": [
+        49,
+        65
+      ],
+      "summary": "Estimates word timings proportionally from word length, leaving a short breath before the first word.",
+      "tags": [
+        "estimation",
+        "subtitles",
+        "fallback"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/words.ts:align",
+      "type": "function",
+      "name": "align",
+      "filePath": "src/lib/words.ts",
+      "lineRange": [
+        68,
+        113
+      ],
+      "summary": "Calls ElevenLabs forced alignment for a clip and text, returning word timings or null on mismatch.",
+      "tags": [
+        "forced-alignment",
+        "elevenlabs",
+        "api-client"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/lib/words.ts:wordTimings",
+      "type": "function",
+      "name": "wordTimings",
+      "filePath": "src/lib/words.ts",
+      "lineRange": [
+        121,
+        151
+      ],
+      "summary": "Returns cached, aligned or estimated word timings for a narration clip.",
+      "tags": [
+        "subtitles",
+        "caching",
+        "forced-alignment"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/tools/recording.ts",
+      "type": "file",
+      "name": "recording.ts",
+      "filePath": "src/tools/recording.ts",
+      "summary": "Registers the MCP recording tools (tutorial_start, tutorial_say, tutorial_chapter, tutorial_finish, tutorial_cancel, tutorial_status, tutorial_avatars, tutorial_voices) that drive a session from start through narration to final composition.",
+      "tags": [
+        "api-handler",
+        "mcp-tools",
+        "orchestration",
+        "entry-point"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/tools/recording.ts:registerRecordingTools",
+      "type": "function",
+      "name": "registerRecordingTools",
+      "filePath": "src/tools/recording.ts",
+      "lineRange": [
+        64,
+        870
+      ],
+      "summary": "Registers all tutorial_* MCP tools on the server, handling session setup, narration synthesis, chapters, final rendering of music, avatar and cards, composition and verification.",
+      "tags": [
+        "mcp-tools",
+        "orchestration",
+        "api-handler"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:src/index.ts",
+      "type": "file",
+      "name": "index.ts",
+      "filePath": "src/index.ts",
+      "summary": "Stdio entry point of the MCP server: loads configuration, registers the recording, action and setup tool groups, and cancels any live recording session on shutdown signals.",
+      "tags": [
+        "entry-point",
+        "mcp-server",
+        "bootstrap",
+        "lifecycle"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/index.ts:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "src/index.ts",
+      "lineRange": [
+        21,
+        87
+      ],
+      "summary": "Creates the McpServer, registers all tool groups, installs SIGINT/SIGTERM cleanup that cancels the active recording session, and connects the stdio transport.",
+      "tags": [
+        "entry-point",
+        "bootstrap",
+        "signal-handling"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/lib/emphasis.ts",
+      "type": "file",
+      "name": "emphasis.ts",
+      "filePath": "src/lib/emphasis.ts",
+      "summary": "Viewer-guidance layer drawn into the Playwright screencast overlay: spotlight rings, instruction callouts with arrows, click ripples and a hand-off banner, all without modifying the recorded page.",
+      "tags": [
+        "utility",
+        "overlay",
+        "visual-emphasis",
+        "playwright",
+        "tutorial"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Uses page.screencast.showOverlay with generated HTML/CSS strings so annotations live in the capture layer rather than the DOM of the app under test."
+    },
+    {
+      "id": "function:src/lib/emphasis.ts:padded",
+      "type": "function",
+      "name": "padded",
+      "filePath": "src/lib/emphasis.ts",
+      "lineRange": [
+        30,
+        39
+      ],
+      "summary": "Grows a bounding box by a padding margin and clamps it to the viewport.",
+      "tags": [
+        "utility",
+        "geometry"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/emphasis.ts:ringMarkup",
+      "type": "function",
+      "name": "ringMarkup",
+      "filePath": "src/lib/emphasis.ts",
+      "lineRange": [
+        42,
+        64
+      ],
+      "summary": "Builds the CSS and HTML for a rounded highlight ring that dims everything outside the target box.",
+      "tags": [
+        "utility",
+        "overlay",
+        "markup"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/emphasis.ts:spotlight",
+      "type": "function",
+      "name": "spotlight",
+      "filePath": "src/lib/emphasis.ts",
+      "lineRange": [
+        73,
+        84
+      ],
+      "summary": "Shows a timed spotlight ring around a target element in the screencast overlay, logging instead of failing when the overlay is unavailable.",
+      "tags": [
+        "overlay",
+        "visual-emphasis"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/emphasis.ts:readingTimeMs",
+      "type": "function",
+      "name": "readingTimeMs",
+      "filePath": "src/lib/emphasis.ts",
+      "lineRange": [
+        87,
+        90
+      ],
+      "summary": "Estimates how long an instruction text needs to stay on screen from its word count, clamped to a sensible range.",
+      "tags": [
+        "utility",
+        "timing"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/emphasis.ts:instructionLayout",
+      "type": "function",
+      "name": "instructionLayout",
+      "filePath": "src/lib/emphasis.ts",
+      "lineRange": [
+        121,
+        152
+      ],
+      "summary": "Computes where an instruction callout goes relative to the target box (above, below or beside) so it fits within the viewport.",
+      "tags": [
+        "layout",
+        "geometry",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/lib/emphasis.ts:instruct",
+      "type": "function",
+      "name": "instruct",
+      "filePath": "src/lib/emphasis.ts",
+      "lineRange": [
+        154,
+        215
+      ],
+      "summary": "Renders an instruction callout with an arrow pointing to the highlighted target, sized and timed from the text, as a screencast overlay.",
+      "tags": [
+        "overlay",
+        "visual-emphasis",
+        "tutorial"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/lib/emphasis.ts:showHandoffBanner",
+      "type": "function",
+      "name": "showHandoffBanner",
+      "filePath": "src/lib/emphasis.ts",
+      "lineRange": [
+        232,
+        259
+      ],
+      "summary": "Injects a fixed yellow banner into the page telling the person what manual step (e.g. a security check) they must complete in the recorded browser.",
+      "tags": [
+        "overlay",
+        "handoff",
+        "dom-injection"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/emphasis.ts:clearHandoffBanner",
+      "type": "function",
+      "name": "clearHandoffBanner",
+      "filePath": "src/lib/emphasis.ts",
+      "lineRange": [
+        261,
+        267
+      ],
+      "summary": "Removes the hand-off banner from the page once the manual step is done.",
+      "tags": [
+        "handoff",
+        "dom-injection",
+        "cleanup"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/emphasis.ts:ripple",
+      "type": "function",
+      "name": "ripple",
+      "filePath": "src/lib/emphasis.ts",
+      "lineRange": [
+        276,
+        295
+      ],
+      "summary": "Draws a short expanding ripple at a click position in the screencast overlay.",
+      "tags": [
+        "overlay",
+        "animation",
+        "visual-emphasis"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/foreground.ts",
+      "type": "file",
+      "name": "foreground.ts",
+      "filePath": "src/lib/foreground.ts",
+      "summary": "Brings the recorder browser window to the foreground on Windows via a generated PowerShell script (with a synthetic Alt keypress) so manual security checks are answered in the recorded browser.",
+      "tags": [
+        "utility",
+        "windows",
+        "powershell",
+        "window-management"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Works around the Windows SetForegroundWindow restriction by writing a PowerShell script to a temp file and running it with execFile rather than -Command."
+    },
+    {
+      "id": "function:src/lib/foreground.ts:raiseWindow",
+      "type": "function",
+      "name": "raiseWindow",
+      "filePath": "src/lib/foreground.ts",
+      "lineRange": [
+        75,
+        91
+      ],
+      "summary": "Raises the window whose title contains the given fragment and reports whether it succeeded, logging failures instead of throwing.",
+      "tags": [
+        "window-management",
+        "windows",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/logger.ts",
+      "type": "file",
+      "name": "logger.ts",
+      "filePath": "src/lib/logger.ts",
+      "summary": "Minimal structured logger that writes leveled messages with JSON-serialised extras to stderr, keeping stdout free for the MCP stdio protocol.",
+      "tags": [
+        "utility",
+        "logging",
+        "singleton"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/recorder.ts",
+      "type": "file",
+      "name": "recorder.ts",
+      "filePath": "src/lib/recorder.ts",
+      "summary": "Wraps Playwright page.screencast to record a page to webm, capturing the first-frame wall-clock origin that all narration cue offsets are measured against.",
+      "tags": [
+        "service",
+        "screen-recording",
+        "playwright",
+        "synchronization"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:src/lib/recorder.ts:Recorder",
+      "type": "class",
+      "name": "Recorder",
+      "filePath": "src/lib/recorder.ts",
+      "lineRange": [
+        31,
+        134
+      ],
+      "summary": "Starts and stops a screencast capture, tracks first/last frame times and frame count, converts wall-clock to video time, and shows chapter captions.",
+      "tags": [
+        "screen-recording",
+        "service",
+        "timing"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/lib/session.ts",
+      "type": "file",
+      "name": "session.ts",
+      "filePath": "src/lib/session.ts",
+      "summary": "Central recording session state: owns the browsers and their recorders, narration cues, chapters, zoom events and on-air stretches across browser cuts, and exposes a single global active session.",
+      "tags": [
+        "service",
+        "state-management",
+        "recording-session",
+        "singleton",
+        "core"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Keeps one continuous capture per browser and tracks on-air intervals instead of restarting screencasts, because restarted captures begin with stale frames."
+    },
+    {
+      "id": "class:src/lib/session.ts:RecordingSession",
+      "type": "class",
+      "name": "RecordingSession",
+      "filePath": "src/lib/session.ts",
+      "lineRange": [
+        147,
+        541
+      ],
+      "summary": "Coordinates a multi-browser recording: opens and switches browsers, records cues and chapters, manages off-camera work and zoom focus, stops captures into on-air segments and writes the timeline file.",
+      "tags": [
+        "service",
+        "state-management",
+        "recording-session",
+        "orchestration"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/lib/session.ts:getSession",
+      "type": "function",
+      "name": "getSession",
+      "filePath": "src/lib/session.ts",
+      "lineRange": [
+        546,
+        548
+      ],
+      "summary": "Returns the current active recording session, if any.",
+      "tags": [
+        "singleton",
+        "accessor"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/session.ts:requireSession",
+      "type": "function",
+      "name": "requireSession",
+      "filePath": "src/lib/session.ts",
+      "lineRange": [
+        550,
+        555
+      ],
+      "summary": "Returns the active recording session or throws a clear error telling the caller to start a recording first.",
+      "tags": [
+        "singleton",
+        "accessor",
+        "validation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/session.ts:setSession",
+      "type": "function",
+      "name": "setSession",
+      "filePath": "src/lib/session.ts",
+      "lineRange": [
+        557,
+        559
+      ],
+      "summary": "Sets or clears the global active recording session.",
+      "tags": [
+        "singleton",
+        "mutator"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/totp.ts",
+      "type": "file",
+      "name": "totp.ts",
+      "filePath": "src/lib/totp.ts",
+      "summary": "RFC 6238 TOTP implementation that generates two-factor codes from a base32 secret read from an environment variable, so recordings can sign in without a person.",
+      "tags": [
+        "utility",
+        "security",
+        "authentication",
+        "totp"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/lib/totp.ts:decodeBase32",
+      "type": "function",
+      "name": "decodeBase32",
+      "filePath": "src/lib/totp.ts",
+      "lineRange": [
+        19,
+        37
+      ],
+      "summary": "Decodes an authenticator secret in base32 (spaces, dashes, padding and any case allowed) into raw bytes, rejecting invalid characters.",
+      "tags": [
+        "utility",
+        "encoding",
+        "security"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/totp.ts:totp",
+      "type": "function",
+      "name": "totp",
+      "filePath": "src/lib/totp.ts",
+      "lineRange": [
+        40,
+        62
+      ],
+      "summary": "Computes a time-based one-time password with HMAC-SHA1 and dynamic truncation for a given time, step and digit count.",
+      "tags": [
+        "security",
+        "authentication",
+        "crypto"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/totp.ts:secondsLeft",
+      "type": "function",
+      "name": "secondsLeft",
+      "filePath": "src/lib/totp.ts",
+      "lineRange": [
+        65,
+        67
+      ],
+      "summary": "Returns how many seconds the current TOTP code remains valid.",
+      "tags": [
+        "utility",
+        "timing"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/totp.ts:currentCode",
+      "type": "function",
+      "name": "currentCode",
+      "filePath": "src/lib/totp.ts",
+      "lineRange": [
+        75,
+        87
+      ],
+      "summary": "Returns the current code for the secret in a named environment variable, waiting for the next code when the current one is about to expire.",
+      "tags": [
+        "security",
+        "authentication",
+        "environment"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/zoom.ts",
+      "type": "file",
+      "name": "zoom.ts",
+      "filePath": "src/lib/zoom.ts",
+      "summary": "Virtual camera zoom: turns zoom intents recorded during capture into a single time-exact ffmpeg zoompan expression with eased transitions, applied after recording so the app is never rescaled.",
+      "tags": [
+        "utility",
+        "ffmpeg",
+        "video-effects",
+        "camera-zoom"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Builds nested ffmpeg if() expressions (piecewise over output time `ot`) as strings rather than running per-frame code."
+    },
+    {
+      "id": "function:src/lib/zoom.ts:zoomForBox",
+      "type": "function",
+      "name": "zoomForBox",
+      "filePath": "src/lib/zoom.ts",
+      "lineRange": [
+        69,
+        77
+      ],
+      "summary": "Chooses a zoom scale that frames a target box within the viewport, bounded by the maximum zoom.",
+      "tags": [
+        "geometry",
+        "camera-zoom",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/zoom.ts:boxContains",
+      "type": "function",
+      "name": "boxContains",
+      "filePath": "src/lib/zoom.ts",
+      "lineRange": [
+        80,
+        91
+      ],
+      "summary": "Checks whether a point lies within a rectangle, with an optional margin, to decide if the current zoom already covers a target.",
+      "tags": [
+        "geometry",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/zoom.ts:buildZoomFilter",
+      "type": "function",
+      "name": "buildZoomFilter",
+      "filePath": "src/lib/zoom.ts",
+      "lineRange": [
+        129,
+        195
+      ],
+      "summary": "Converts sorted zoom events into zoom-in/hold/zoom-out phases and emits the zoompan filter string with eased zoom and centre expressions.",
+      "tags": [
+        "ffmpeg",
+        "filter-builder",
+        "camera-zoom",
+        "animation"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/tools/actions.ts",
+      "type": "file",
+      "name": "actions.ts",
+      "filePath": "src/tools/actions.ts",
+      "summary": "Registers the in-recording browser action MCP tools (goto, switch, click, type, press, scroll, wait, handoff, snapshot, screenshot, highlight, zoom), each highlighting its target and driving the active session.",
+      "tags": [
+        "api-handler",
+        "mcp-tools",
+        "browser-automation",
+        "playwright",
+        "validation"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Tool input schemas are declared with zod chains (min/max/default/describe), which double as the tool documentation shown to the MCP client."
+    },
+    {
+      "id": "function:src/tools/actions.ts:matchAll",
+      "type": "function",
+      "name": "matchAll",
+      "filePath": "src/tools/actions.ts",
+      "lineRange": [
+        59,
+        68
+      ],
+      "summary": "Resolves a target description to a Playwright locator by CSS selector, ARIA role and name, or visible text.",
+      "tags": [
+        "locator",
+        "browser-automation",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/tools/actions.ts:prepareTarget",
+      "type": "function",
+      "name": "prepareTarget",
+      "filePath": "src/tools/actions.ts",
+      "lineRange": [
+        93,
+        127
+      ],
+      "summary": "Scrolls a target into view, zooms the virtual camera onto it and shows either an instruction callout or a spotlight before the action happens.",
+      "tags": [
+        "visual-emphasis",
+        "browser-automation",
+        "tutorial"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/tools/actions.ts:registerActionTools",
+      "type": "function",
+      "name": "registerActionTools",
+      "filePath": "src/tools/actions.ts",
+      "lineRange": [
+        129,
+        768
+      ],
+      "summary": "Registers all twelve tutorial action tools on the MCP server, including TOTP code typing, human hand-off with window raising and banner, and aria snapshots for target discovery.",
+      "tags": [
+        "api-handler",
+        "mcp-tools",
+        "registration",
+        "browser-automation"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:src/cli/login.ts",
+      "type": "file",
+      "name": "login.ts",
+      "filePath": "src/cli/login.ts",
+      "summary": "One-time sign-in CLI (`npm run login`) that opens a visible browser on a named tutorial profile so the user can log in by hand; the stored session is then reused by every later headless recording.",
+      "tags": [
+        "entry-point",
+        "cli",
+        "authentication",
+        "browser-profile"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/cli/login.ts:parseArgs",
+      "type": "function",
+      "name": "parseArgs",
+      "filePath": "src/cli/login.ts",
+      "lineRange": [
+        18,
+        28
+      ],
+      "summary": "Parses `--url` and `--profile` command-line flags for the login command.",
+      "tags": [
+        "cli",
+        "argument-parsing",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/cli/login.ts:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "src/cli/login.ts",
+      "lineRange": [
+        40,
+        78
+      ],
+      "summary": "Loads config, launches a headed persistent browser on the chosen profile, navigates to the target URL, waits for the user to press Enter after signing in, then reports the visited pages and closes the context so the session persists.",
+      "tags": [
+        "entry-point",
+        "cli",
+        "authentication",
+        "interactive"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/lib/browser.ts",
+      "type": "file",
+      "name": "browser.ts",
+      "filePath": "src/lib/browser.ts",
+      "summary": "Owns the Playwright browser lifecycle: launches a persistent Chromium context from a profile directory (or a throwaway temp profile), applies anti-throttling and anti-automation flags, hides headless traces, and installs the repaint heartbeat on every page.",
+      "tags": [
+        "service",
+        "browser-automation",
+        "playwright",
+        "recording"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Uses Playwright's launchPersistentContext plus a CDP session (Network.setUserAgentOverride) to rewrite the HeadlessChrome user agent per page."
+    },
+    {
+      "id": "function:src/lib/browser.ts:disguiseScript",
+      "type": "function",
+      "name": "disguiseScript",
+      "filePath": "src/lib/browser.ts",
+      "lineRange": [
+        85,
+        94
+      ],
+      "summary": "Builds an init script that removes the remaining JavaScript-visible automation traces (navigator.webdriver, window.chrome, languages) for the configured locale.",
+      "tags": [
+        "browser-automation",
+        "stealth",
+        "init-script"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/browser.ts:hideHeadlessUserAgent",
+      "type": "function",
+      "name": "hideHeadlessUserAgent",
+      "filePath": "src/lib/browser.ts",
+      "lineRange": [
+        101,
+        110
+      ],
+      "summary": "Detects a HeadlessChrome user agent on a page and overrides it via a CDP session so sites see a regular Chrome UA.",
+      "tags": [
+        "browser-automation",
+        "stealth",
+        "cdp"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/browser.ts:assertNotRealChromeProfile",
+      "type": "function",
+      "name": "assertNotRealChromeProfile",
+      "filePath": "src/lib/browser.ts",
+      "lineRange": [
+        113,
+        130
+      ],
+      "summary": "Safety guard that refuses to launch against the user's real Chrome or Edge User Data directory.",
+      "tags": [
+        "validation",
+        "safety-guard",
+        "browser-profile"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/browser.ts:launchBrowser",
+      "type": "function",
+      "name": "launchBrowser",
+      "filePath": "src/lib/browser.ts",
+      "lineRange": [
+        132,
+        180
+      ],
+      "summary": "Launches a persistent Chromium context for a named or throwaway profile with recording-friendly flags, injects the disguise script, and wires heartbeat and UA fixes onto existing and future pages.",
+      "tags": [
+        "factory",
+        "browser-automation",
+        "playwright",
+        "recording"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/lib/env.ts",
+      "type": "file",
+      "name": "env.ts",
+      "filePath": "src/lib/env.ts",
+      "summary": "Central configuration module: loads a local .env file, resolves project paths and caches, locates ffmpeg/ffprobe and the Playwright Chromium build, resolves background-music tracks, and exposes guard functions that fail readably when required tools or API keys are missing.",
+      "tags": [
+        "config",
+        "environment",
+        "utility",
+        "validation"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Implements a minimal dependency-free .env parser that strips a UTF-8 BOM and one layer of matching quotes."
+    },
+    {
+      "id": "function:src/lib/env.ts:which",
+      "type": "function",
+      "name": "which",
+      "filePath": "src/lib/env.ts",
+      "lineRange": [
+        64,
+        82
+      ],
+      "summary": "Cross-platform executable lookup across PATH, honouring PATHEXT on Windows.",
+      "tags": [
+        "utility",
+        "path-resolution",
+        "cross-platform"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/env.ts:findPlaywrightBrowser",
+      "type": "function",
+      "name": "findPlaywrightBrowser",
+      "filePath": "src/lib/env.ts",
+      "lineRange": [
+        88,
+        115
+      ],
+      "summary": "Finds the newest installed Playwright Chromium build in PLAYWRIGHT_BROWSERS_PATH or the default ms-playwright cache directory.",
+      "tags": [
+        "utility",
+        "playwright",
+        "path-resolution"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/env.ts:loadDotEnv",
+      "type": "function",
+      "name": "loadDotEnv",
+      "filePath": "src/lib/env.ts",
+      "lineRange": [
+        125,
+        153
+      ],
+      "summary": "Reads the project .env file into process.env without overriding existing variables, handling BOMs, comments and quoted values.",
+      "tags": [
+        "config",
+        "environment",
+        "parser"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/env.ts:listMusicTracks",
+      "type": "function",
+      "name": "listMusicTracks",
+      "filePath": "src/lib/env.ts",
+      "lineRange": [
+        158,
+        165
+      ],
+      "summary": "Lists every background-music audio file in assets/music, sorted by name.",
+      "tags": [
+        "utility",
+        "music",
+        "assets"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/env.ts:resolveMusicTrack",
+      "type": "function",
+      "name": "resolveMusicTrack",
+      "filePath": "src/lib/env.ts",
+      "lineRange": [
+        174,
+        189
+      ],
+      "summary": "Resolves a music selection given as an explicit path or a partial track title to a concrete file.",
+      "tags": [
+        "utility",
+        "music",
+        "lookup"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/env.ts:loadConfig",
+      "type": "function",
+      "name": "loadConfig",
+      "filePath": "src/lib/env.ts",
+      "lineRange": [
+        193,
+        241
+      ],
+      "summary": "Builds the runtime Config object: loads .env, creates output/profile/cache directories, detects ffmpeg, ffprobe and Chromium, and reads ElevenLabs, music, Google and HeyGen settings with defaults.",
+      "tags": [
+        "config",
+        "factory",
+        "environment",
+        "entry-point"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/lib/env.ts:requireFfmpeg",
+      "type": "function",
+      "name": "requireFfmpeg",
+      "filePath": "src/lib/env.ts",
+      "lineRange": [
+        244,
+        251
+      ],
+      "summary": "Returns the ffmpeg path or throws a readable error explaining how to install it.",
+      "tags": [
+        "validation",
+        "guard",
+        "ffmpeg"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/env.ts:requireFfprobe",
+      "type": "function",
+      "name": "requireFfprobe",
+      "filePath": "src/lib/env.ts",
+      "lineRange": [
+        253,
+        260
+      ],
+      "summary": "Returns the ffprobe path or throws a readable error when it is missing.",
+      "tags": [
+        "validation",
+        "guard",
+        "ffmpeg"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/env.ts:requireElevenLabsKey",
+      "type": "function",
+      "name": "requireElevenLabsKey",
+      "filePath": "src/lib/env.ts",
+      "lineRange": [
+        262,
+        269
+      ],
+      "summary": "Returns the configured ElevenLabs API key or throws an error explaining which environment variable to set.",
+      "tags": [
+        "validation",
+        "guard",
+        "api-key"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/env.ts:requireHeyGenKey",
+      "type": "function",
+      "name": "requireHeyGenKey",
+      "filePath": "src/lib/env.ts",
+      "lineRange": [
+        271,
+        279
+      ],
+      "summary": "Returns the configured HeyGen API key or throws a readable error when the avatar feature is used without one.",
+      "tags": [
+        "validation",
+        "guard",
+        "api-key"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/env.ts:slugify",
+      "type": "function",
+      "name": "slugify",
+      "filePath": "src/lib/env.ts",
+      "lineRange": [
+        282,
+        291
+      ],
+      "summary": "Turns a title into a lowercase, accent-free, hyphenated filesystem-safe slug used for output folder names.",
+      "tags": [
+        "utility",
+        "string",
+        "formatting"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/heartbeat.ts",
+      "type": "file",
+      "name": "heartbeat.ts",
+      "filePath": "src/lib/heartbeat.ts",
+      "summary": "Repaint heartbeat that keeps an invisible 1x1 px element changing colour every animation frame so the event-driven screencast emits frames continuously and video time tracks wall-clock time.",
+      "tags": [
+        "utility",
+        "recording",
+        "screencast",
+        "browser-automation"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/lib/heartbeat.ts:installHeartbeat",
+      "type": "function",
+      "name": "installHeartbeat",
+      "filePath": "src/lib/heartbeat.ts",
+      "lineRange": [
+        52,
+        58
+      ],
+      "summary": "Installs the heartbeat script on a page as an init script for future navigations and evaluates it immediately on the current document.",
+      "tags": [
+        "recording",
+        "init-script",
+        "browser-automation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/session-import.ts",
+      "type": "file",
+      "name": "session-import.ts",
+      "filePath": "src/lib/session-import.ts",
+      "summary": "Imports a signed-in session exported from the user's real browser (a Playwright storageState file) into a recording profile, filtering cookies to requested hosts, restoring localStorage per origin, deleting the export afterwards, and optionally verifying the login carried.",
+      "tags": [
+        "service",
+        "authentication",
+        "session-management",
+        "security",
+        "browser-profile"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Hands credentials off via a one-shot file instead of the tool response so session data never lands in the conversation transcript; only domain counts are reported back."
+    },
+    {
+      "id": "function:src/lib/session-import.ts:importSession",
+      "type": "function",
+      "name": "importSession",
+      "filePath": "src/lib/session-import.ts",
+      "lineRange": [
+        89,
+        254
+      ],
+      "summary": "Reads a storageState export, filters and normalises cookies for the requested hosts, writes them and matching localStorage into the profile via a launched browser, deletes the export, and optionally checks a verify URL for sign-in redirects or password fields.",
+      "tags": [
+        "authentication",
+        "session-management",
+        "browser-automation",
+        "security"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/lib/session-import.ts:listProfiles",
+      "type": "function",
+      "name": "listProfiles",
+      "filePath": "src/lib/session-import.ts",
+      "lineRange": [
+        257,
+        267
+      ],
+      "summary": "Lists the browser profile directories under the profiles folder and whether each already holds session data.",
+      "tags": [
+        "utility",
+        "browser-profile",
+        "filesystem"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/tools/setup.ts",
+      "type": "file",
+      "name": "setup.ts",
+      "filePath": "src/tools/setup.ts",
+      "summary": "Registers the MCP setup tools `tutorial_import_session` and `tutorial_profiles`, which bring a signed-in session into the recording browser and list available profiles.",
+      "tags": [
+        "api-handler",
+        "mcp-tool",
+        "authentication",
+        "registration"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/tools/setup.ts:registerSetupTools",
+      "type": "function",
+      "name": "registerSetupTools",
+      "filePath": "src/tools/setup.ts",
+      "lineRange": [
+        25,
+        165
+      ],
+      "summary": "Registers the session-import and profile-listing MCP tools with zod input schemas, delegating to importSession and listProfiles and formatting text results or failures.",
+      "tags": [
+        "api-handler",
+        "mcp-tool",
+        "validation",
+        "registration"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "README.md",
+      "summary": "Main project guide for the Tutorial Creator MCP server. Its 20 sections cover requirements (ffmpeg 7.x, ElevenLabs key), setup and transferring browser logins, registering with Claude Code, the tutorial_* tools, two-person videos, composed music, the HeyGen avatar, defended sign-ins, captions, cuts, HyperFrames cards, keeping secrets out of the video, configuration, output layout, and end-to-end verification.",
+      "tags": [
+        "documentation",
+        "entry-point",
+        "overview",
+        "setup-guide",
+        "mcp"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "config:package.json",
+      "type": "config",
+      "name": "package.json",
+      "filePath": "package.json",
+      "summary": "npm manifest for the ESM package tutorial-creator-mcp-server. It sets dist/index.js as the bin and main entry, requires Node >=20, and defines the build, dev, start, typecheck, login and doctor scripts. Runtime dependencies are the MCP SDK, playwright-core and zod; gsap and hyperframes are optional, for the animated cards.",
+      "tags": [
+        "configuration",
+        "build-system",
+        "dependencies",
+        "npm",
+        "entry-point"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:tsconfig.json",
+      "type": "config",
+      "name": "tsconfig.json",
+      "filePath": "tsconfig.json",
+      "summary": "TypeScript compiler configuration that compiles src/**/*.ts to dist for ES2022 with Node16 module resolution. It turns on strict mode plus noUncheckedIndexedAccess and noImplicitOverride, and emits source maps but no declarations.",
+      "tags": [
+        "configuration",
+        "typescript",
+        "build-system",
+        "compiler"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:assets/motion/brand.css",
+      "type": "file",
+      "name": "brand.css",
+      "filePath": "assets/motion/brand.css",
+      "summary": "Shared Stardawn brand stylesheet for the HyperFrames motion cards: navy/cyan/magenta color tokens, Satoshi typeface, a fixed 1920x1080 canvas, and reusable ground, glow, grain, line, eyebrow, rule, mask and logo classes.",
+      "tags": [
+        "stylesheet",
+        "design-tokens",
+        "branding",
+        "motion-graphics",
+        "template"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Uses CSS custom properties on :root as design tokens and an inline SVG feTurbulence data URI as film grain, which prevents banding rings when soft gradients are encoded at 8 bits."
+    },
+    {
+      "id": "file:assets/motion/chapter.html",
+      "type": "file",
+      "name": "chapter.html",
+      "filePath": "assets/motion/chapter.html",
+      "summary": "HyperFrames chapter-card template laid over the recording with a translucent navy veil when tutorial_chapter is called; shows an optional counter, a title that auto-shrinks to fit two lines, a gradient rule and an optional description, animated in and out with a paused GSAP timeline.",
+      "tags": [
+        "template",
+        "motion-graphics",
+        "gsap-animation",
+        "chapter-card",
+        "hyperframes"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "The {{title}}, {{description}}, {{counter}} and {{duration}} placeholders are substituted before render; the paused GSAP timeline is registered on window.__timelines so the renderer can seek it frame by frame."
+    },
+    {
+      "id": "file:assets/motion/closing.html",
+      "type": "file",
+      "name": "closing.html",
+      "filePath": "assets/motion/closing.html",
+      "summary": "HyperFrames closing-card template played after the recording: branded gradient ground with drifting glows, a self-drawing check-mark ring, eyebrow, title, subtitle and Stardawn logo footer, fading to black at the end.",
+      "tags": [
+        "template",
+        "motion-graphics",
+        "gsap-animation",
+        "closing-card",
+        "hyperframes"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "SVG stroke draw-on is done by setting strokeDasharray/strokeDashoffset to getTotalLength() and tweening the offset to 0."
+    },
+    {
+      "id": "file:assets/motion/opening.html",
+      "type": "file",
+      "name": "opening.html",
+      "filePath": "assets/motion/opening.html",
+      "summary": "HyperFrames opening-card template played before the recording: branded ground with glows and self-drawing angular lines, logo, eyebrow, auto-fitting title, gradient rule and subtitle, with a slow push-in and a still final half second for the dissolve into the recording.",
+      "tags": [
+        "template",
+        "motion-graphics",
+        "gsap-animation",
+        "opening-card",
+        "hyperframes"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Title size is stepped down in a loop until scrollHeight fits two lines, so long titles never overflow the fixed 1920x1080 frame."
+    },
+    {
+      "id": "document:docs/ARCHITECTURE.md",
+      "type": "document",
+      "name": "ARCHITECTURE.md",
+      "filePath": "docs/ARCHITECTURE.md",
+      "summary": "Design rationale for the tutorial recorder across 10 sections: why capture uses a dedicated Playwright browser with page.screencast (rejecting gdigrab and desktop capture), how the timeline stays honest, speak-then-act narration, ffmpeg composition, camera moves and emphasis, defended sign-ins (session import, stealth flags, TOTP, CAPTCHA handoff) and HyperFrames motion cards.",
+      "tags": [
+        "documentation",
+        "architecture",
+        "design-decisions",
+        "video-pipeline",
+        "screen-capture"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Structured as decision records: each capture approach is listed as Rejected or Chosen with the measured evidence behind it."
+    },
+    {
+      "id": "document:docs/PLAN.md",
+      "type": "document",
+      "name": "PLAN.md",
+      "filePath": "docs/PLAN.md",
+      "summary": "Milestone-based implementation checklist (M0 foundations through M16 HyperFrames motion design) where each item is ticked with the concrete verification evidence, covering the environment doctor, browser sessions, recording timeline, ElevenLabs narration, ffmpeg composition, MCP surface, music, HeyGen avatar, bot checks/2FA and professional presentation.",
+      "tags": [
+        "documentation",
+        "planning",
+        "roadmap",
+        "milestones",
+        "checklist"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:docs/STATUS.md",
+      "type": "document",
+      "name": "STATUS.md",
+      "filePath": "docs/STATUS.md",
+      "summary": "Reverse-chronological status log from 2026-08-23 to 2026-09-24 recording what was built, decisions and their reasons, defects found (ffmpeg traps, loudness, wrong API key, Meta security checks), verification numbers and open problems for each work session.",
+      "tags": [
+        "documentation",
+        "changelog",
+        "status-log",
+        "decisions",
+        "known-issues"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "config:examples/find-code-on-github.json",
+      "type": "config",
+      "name": "find-code-on-github.json",
+      "filePath": "examples/find-code-on-github.json",
+      "summary": "Example tutorial plan that records how to scope GitHub search to a single repository, exercising click, highlight, type and zoom actions with emphasis and auto-zoom enabled. Replayed step by step by scripts/record.mjs through the tutorial_* MCP tools.",
+      "tags": [
+        "configuration",
+        "example",
+        "tutorial-script",
+        "browser-automation",
+        "narration"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "config:examples/overview.json",
+      "type": "config",
+      "name": "overview.json",
+      "filePath": "examples/overview.json",
+      "summary": "Example tutorial plan for a narrated product overview of the Tutorial Creator GitHub page, using a chapter card, text-anchored scrolls and a sequence of tutorial_say narration lines. Consumed by scripts/record.mjs as a start/steps/finish recording plan.",
+      "tags": [
+        "configuration",
+        "example",
+        "tutorial-script",
+        "narration",
+        "documentation"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "config:examples/signed-in.json",
+      "type": "config",
+      "name": "signed-in.json",
+      "filePath": "examples/signed-in.json",
+      "summary": "Example tutorial plan that proves recording from a reused signed-in browser session by opening the GitHub profile settings page under the 'proof' profile and narrating over it. Consumed by scripts/record.mjs.",
+      "tags": [
+        "configuration",
+        "example",
+        "tutorial-script",
+        "authentication",
+        "session-reuse"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:assets/chapters.json",
+      "type": "config",
+      "name": "chapters.json",
+      "filePath": "assets/chapters.json",
+      "summary": "Default chapter list for split-music.mjs: twenty MM:SS start stamps with track titles that mark where a one-hour ambient music mix is cut into separate background tracks.",
+      "tags": [
+        "configuration",
+        "music",
+        "chapters",
+        "data"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:scripts/e2e.mjs",
+      "type": "file",
+      "name": "e2e.mjs",
+      "filePath": "scripts/e2e.mjs",
+      "summary": "End-to-end check of the whole recording pipeline without MCP. It records short tutorials against local test pages, then asserts duration, a non-black picture, the audio mix and loudness, caption timing, the avatar bubble, motion cards, two-browser switching and a bot login with two-factor (TOTP) codes.",
+      "tags": [
+        "test",
+        "e2e",
+        "entry-point",
+        "video-pipeline",
+        "audio"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Plain ESM script that imports the compiled dist/lib/*.js output rather than the TypeScript sources, so it needs a build first; ffmpeg is used both to produce synthetic narration and to measure the result."
+    },
+    {
+      "id": "function:scripts/e2e.mjs:speechStandIn",
+      "type": "function",
+      "name": "speechStandIn",
+      "filePath": "scripts/e2e.mjs",
+      "lineRange": [
+        65,
+        77
+      ],
+      "summary": "Generates a synthetic narration clip with ffmpeg (quiet, slowly swelling pink noise plus one sharp transient), so the mixing chain is tested without a speech API key and with speech-like loudness properties.",
+      "tags": [
+        "test-fixture",
+        "audio",
+        "ffmpeg"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:scripts/e2e.mjs:loudnessOf",
+      "type": "function",
+      "name": "loudnessOf",
+      "filePath": "scripts/e2e.mjs",
+      "lineRange": [
+        80,
+        90
+      ],
+      "summary": "Measures the integrated loudness of a time window of a rendered file with ffmpeg, used to assert that the voice sits above the music.",
+      "tags": [
+        "audio",
+        "measurement",
+        "ffmpeg",
+        "assertion"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:scripts/e2e.mjs:frameAndMark",
+      "type": "function",
+      "name": "frameAndMark",
+      "filePath": "scripts/e2e.mjs",
+      "lineRange": [
+        93,
+        105
+      ],
+      "summary": "Frames an element in the recording session and draws the spotlight, ripple and instruction emphasis on it, mirroring what a real browser action does.",
+      "tags": [
+        "test-helper",
+        "emphasis",
+        "browser"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:scripts/e2e.mjs:twoBrowsers",
+      "type": "function",
+      "name": "twoBrowsers",
+      "filePath": "scripts/e2e.mjs",
+      "lineRange": [
+        165,
+        313
+      ],
+      "summary": "Test scenario that records across two browser profiles in one tutorial and checks that switching between them produces a continuous, correctly timed video.",
+      "tags": [
+        "test",
+        "e2e",
+        "multi-browser",
+        "session"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:scripts/e2e.mjs:avatarBubble",
+      "type": "function",
+      "name": "avatarBubble",
+      "filePath": "scripts/e2e.mjs",
+      "lineRange": [
+        323,
+        469
+      ],
+      "summary": "Test scenario for the talking-avatar overlay: composes stand-in avatar clips into the corner bubble and verifies overlay filters, placement and timing in the output.",
+      "tags": [
+        "test",
+        "e2e",
+        "avatar",
+        "compositing"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:scripts/e2e.mjs:motionCards",
+      "type": "function",
+      "name": "motionCards",
+      "filePath": "scripts/e2e.mjs",
+      "lineRange": [
+        482,
+        646
+      ],
+      "summary": "Test scenario for the animated HyperFrames opening, chapter and closing cards: fills and renders card templates when HyperFrames is available and checks they are spliced into the final video.",
+      "tags": [
+        "test",
+        "e2e",
+        "motion-graphics",
+        "hyperframes"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:scripts/e2e.mjs:botAndTwoFactor",
+      "type": "function",
+      "name": "botAndTwoFactor",
+      "filePath": "scripts/e2e.mjs",
+      "lineRange": [
+        655,
+        720
+      ],
+      "summary": "Test scenario that serves a local login page over HTTP and verifies bot sign-in with TOTP two-factor codes, including code generation and timing within the code window.",
+      "tags": [
+        "test",
+        "e2e",
+        "authentication",
+        "totp"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:scripts/e2e.mjs:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "scripts/e2e.mjs",
+      "lineRange": [
+        722,
+        1154
+      ],
+      "summary": "Runs the main end-to-end recording against a local test page (chapters, narration cues, typing, clicks, zoom), composes the mp4 and asserts duration, picture, audio, captions and cue placement, then runs the additional scenarios and reports pass/fail.",
+      "tags": [
+        "entry-point",
+        "test",
+        "e2e",
+        "orchestration"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:scripts/handshake.mjs",
+      "type": "file",
+      "name": "handshake.mjs",
+      "filePath": "scripts/handshake.mjs",
+      "summary": "MCP protocol smoke test: spawns the built server over stdio, completes the JSON-RPC handshake, checks that every expected tutorial_* tool is listed, and asserts that nothing except JSON-RPC reaches stdout.",
+      "tags": [
+        "test",
+        "smoke-test",
+        "mcp",
+        "json-rpc",
+        "entry-point"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:scripts/handshake.mjs:request",
+      "type": "function",
+      "name": "request",
+      "filePath": "scripts/handshake.mjs",
+      "lineRange": [
+        54,
+        66
+      ],
+      "summary": "Sends a JSON-RPC request to the spawned server and resolves when the response with the matching id arrives, with a timeout.",
+      "tags": [
+        "json-rpc",
+        "stdio",
+        "test-helper"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:scripts/handshake.mjs:waitForReady",
+      "type": "function",
+      "name": "waitForReady",
+      "filePath": "scripts/handshake.mjs",
+      "lineRange": [
+        69,
+        82
+      ],
+      "summary": "Waits until the spawned MCP server reports on stderr that it is ready to accept requests.",
+      "tags": [
+        "process",
+        "startup",
+        "test-helper"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:scripts/handshake.mjs:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "scripts/handshake.mjs",
+      "lineRange": [
+        90,
+        161
+      ],
+      "summary": "Performs initialize, tools/list and error-path tool calls (status without a session, say without a session) and checks responses plus stdout cleanliness.",
+      "tags": [
+        "entry-point",
+        "test",
+        "mcp"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:scripts/live-run.mjs",
+      "type": "file",
+      "name": "live-run.mjs",
+      "filePath": "scripts/live-run.mjs",
+      "summary": "Records a full tutorial through the MCP protocol itself, the same path Claude Code takes: spawns the server, calls tutorial_start, chapter, say, type, highlight, click and finish against a local test page, and works with or without an ElevenLabs key.",
+      "tags": [
+        "test",
+        "integration-test",
+        "mcp",
+        "entry-point"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:scripts/live-run.mjs:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "scripts/live-run.mjs",
+      "lineRange": [
+        108,
+        161
+      ],
+      "summary": "Drives a scripted account-verification walkthrough via MCP tool calls and reports the finished video path and whether narration was voiced or silent.",
+      "tags": [
+        "entry-point",
+        "mcp-client",
+        "test"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:scripts/recompose.mjs",
+      "type": "file",
+      "name": "recompose.mjs",
+      "filePath": "scripts/recompose.mjs",
+      "summary": "CLI that re-renders a finished recording from its saved timeline.json without recording again, optionally with new or generated music, a HeyGen avatar bubble, animated cards, extra chapters and different transitions.",
+      "tags": [
+        "cli",
+        "video-pipeline",
+        "compositing",
+        "entry-point"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:scripts/recompose.mjs:parseArgs",
+      "type": "function",
+      "name": "parseArgs",
+      "filePath": "scripts/recompose.mjs",
+      "lineRange": [
+        67,
+        76
+      ],
+      "summary": "Parses the recompose command line into positional arguments and --flag values.",
+      "tags": [
+        "cli",
+        "argument-parsing",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:scripts/recompose.mjs:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "scripts/recompose.mjs",
+      "lineRange": [
+        78,
+        219
+      ],
+      "summary": "Loads the recording's timeline, relocates moved files, resolves music (existing, a file, or Lyria-generated), renders avatar and card clips as requested, and composes and verifies the new output video.",
+      "tags": [
+        "entry-point",
+        "orchestration",
+        "video-pipeline"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:scripts/record.mjs",
+      "type": "file",
+      "name": "record.mjs",
+      "filePath": "scripts/record.mjs",
+      "summary": "Records a tutorial from a JSON script file through a freshly started MCP server, useful when the editor's long-running server predates a .env change; cancels the session on failure.",
+      "tags": [
+        "cli",
+        "mcp-client",
+        "entry-point",
+        "automation"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:scripts/record.mjs:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "scripts/record.mjs",
+      "lineRange": [
+        83,
+        115
+      ],
+      "summary": "Reads the script plan, calls tutorial_start, replays each step as a tool call, then calls tutorial_finish and prints the result.",
+      "tags": [
+        "entry-point",
+        "mcp-client",
+        "orchestration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:scripts/split-music.mjs",
+      "type": "file",
+      "name": "split-music.mjs",
+      "filePath": "scripts/split-music.mjs",
+      "summary": "CLI that cuts a long music mix into named chapter tracks in assets/music/ with ffmpeg, using a chapter list (assets/chapters.json by default), so each recording can pick a fitting track.",
+      "tags": [
+        "cli",
+        "audio",
+        "ffmpeg",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:scripts/split-music.mjs:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "scripts/split-music.mjs",
+      "lineRange": [
+        31,
+        107
+      ],
+      "summary": "Reads the chapter list, converts timestamps to seconds and runs ffmpeg once per chapter to write slugified track files, the last one running to the end of the source.",
+      "tags": [
+        "entry-point",
+        "audio",
+        "ffmpeg"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/types/global.d.ts",
+      "type": "file",
+      "name": "global.d.ts",
+      "filePath": "src/types/global.d.ts",
+      "summary": "Ambient type declaration that augments the browser Window interface with the optional __tutorialHeartbeat flag set by the repaint heartbeat.",
+      "tags": [
+        "type-definition",
+        "ambient-declaration",
+        "browser"
+      ],
+      "complexity": "simple",
+      "languageNotes": "Global interface merging: declaring interface Window in a non-module .d.ts extends the DOM lib type everywhere."
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:src/cli/doctor.ts",
+      "target": "function:src/cli/doctor.ts:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/cli/doctor.ts",
+      "target": "file:src/lib/avatar.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/cli/doctor.ts",
+      "target": "file:src/lib/env.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/cli/doctor.ts",
+      "target": "file:src/lib/ffmpeg.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/cli/doctor.ts",
+      "target": "file:src/lib/motion.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/cli/doctor.ts",
+      "target": "file:src/lib/tts.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:canRenderAvatar",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:canRenderAvatar",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:call",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:describeError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:listLooks",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:listLooks",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:resolveLook",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:resolveLook",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:remainingBalance",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:remainingBalance",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:uploadAudio",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:findVideoUrl",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:renderClip",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:renderClip",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:renderIdleClip",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:renderIdleClip",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:speakWithHeyGen",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:speakWithHeyGen",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:listSpeechVoices",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:listSpeechVoices",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:renderAvatarClips",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:renderAvatarClips",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "file:src/lib/env.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "file:src/lib/ffmpeg.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "file:src/lib/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:buildSrt",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:buildSrt",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:buildAss",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:buildAss",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:karaokeText",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:karaokeText",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:measureLoudness",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:narrationChain",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:narrationChain",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:buildAudio",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:joinSegments",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:avatarOverlayFilters",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:avatarOverlayFilters",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:bookendFilters",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:bookendFilters",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:overlayFilters",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:overlayFilters",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:compose",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:compose",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:verifyOutput",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:verifyOutput",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "file:src/lib/avatar.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "file:src/lib/env.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "file:src/lib/ffmpeg.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "file:src/lib/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "file:src/lib/session.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "file:src/lib/words.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "file:src/lib/zoom.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/ffmpeg.ts",
+      "target": "function:src/lib/ffmpeg.ts:run",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/ffmpeg.ts",
+      "target": "function:src/lib/ffmpeg.ts:run",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/ffmpeg.ts",
+      "target": "function:src/lib/ffmpeg.ts:probeDuration",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/ffmpeg.ts",
+      "target": "function:src/lib/ffmpeg.ts:probeDuration",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/ffmpeg.ts",
+      "target": "function:src/lib/ffmpeg.ts:probeVideo",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/ffmpeg.ts",
+      "target": "function:src/lib/ffmpeg.ts:probeVideo",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/ffmpeg.ts",
+      "target": "function:src/lib/ffmpeg.ts:escapeFilterValue",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/ffmpeg.ts",
+      "target": "function:src/lib/ffmpeg.ts:escapeFilterValue",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/ffmpeg.ts",
+      "target": "file:src/lib/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "function:src/lib/motion.ts:findHyperFrames",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "function:src/lib/motion.ts:findHyperFrames",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "function:src/lib/motion.ts:motionAvailability",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "function:src/lib/motion.ts:motionAvailability",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "function:src/lib/motion.ts:fillTemplate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "function:src/lib/motion.ts:fillTemplate",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "function:src/lib/motion.ts:transparentCardFormat",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "function:src/lib/motion.ts:transparentCardFormat",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "function:src/lib/motion.ts:renderMotion",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "function:src/lib/motion.ts:renderMotion",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "function:src/lib/motion.ts:renderCards",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "function:src/lib/motion.ts:renderCards",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "file:src/lib/env.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "file:src/lib/ffmpeg.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "file:src/lib/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:src/cli/doctor.ts:main",
+      "target": "function:src/lib/env.ts:loadConfig",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli/doctor.ts:main",
+      "target": "function:src/lib/ffmpeg.ts:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli/doctor.ts:main",
+      "target": "function:src/lib/tts.ts:looksLikeApiKey",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli/doctor.ts:main",
+      "target": "function:src/lib/tts.ts:listVoices",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli/doctor.ts:main",
+      "target": "function:src/lib/avatar.ts:remainingBalance",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli/doctor.ts:main",
+      "target": "function:src/lib/motion.ts:motionAvailability",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli/doctor.ts:main",
+      "target": "function:src/lib/motion.ts:transparentCardFormat",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli/doctor.ts:main",
+      "target": "function:src/lib/ffmpeg.ts:probeDuration",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/avatar.ts:call",
+      "target": "function:src/lib/env.ts:requireHeyGenKey",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/avatar.ts:renderIdleClip",
+      "target": "function:src/lib/ffmpeg.ts:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/avatar.ts:renderIdleClip",
+      "target": "function:src/lib/env.ts:requireFfmpeg",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/avatar.ts:speakWithHeyGen",
+      "target": "function:src/lib/ffmpeg.ts:probeDuration",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/avatar.ts:speakWithHeyGen",
+      "target": "function:src/lib/env.ts:requireFfprobe",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/compose.ts:measureLoudness",
+      "target": "function:src/lib/ffmpeg.ts:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/compose.ts:buildAudio",
+      "target": "function:src/lib/env.ts:requireFfmpeg",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/compose.ts:buildAudio",
+      "target": "function:src/lib/ffmpeg.ts:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/compose.ts:compose",
+      "target": "function:src/lib/env.ts:requireFfmpeg",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/compose.ts:compose",
+      "target": "function:src/lib/env.ts:requireFfprobe",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/compose.ts:compose",
+      "target": "function:src/lib/ffmpeg.ts:probeVideo",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/compose.ts:compose",
+      "target": "function:src/lib/zoom.ts:buildZoomFilter",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/compose.ts:compose",
+      "target": "function:src/lib/ffmpeg.ts:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/compose.ts:compose",
+      "target": "function:src/lib/words.ts:wordTimings",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/compose.ts:compose",
+      "target": "function:src/lib/ffmpeg.ts:probeDuration",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/compose.ts:verifyOutput",
+      "target": "function:src/lib/env.ts:requireFfmpeg",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/compose.ts:verifyOutput",
+      "target": "function:src/lib/ffmpeg.ts:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/compose.ts:verifyOutput",
+      "target": "function:src/lib/env.ts:requireFfprobe",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/motion.ts:transparentCardFormat",
+      "target": "function:src/lib/ffmpeg.ts:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/motion.ts:renderMotion",
+      "target": "function:src/lib/ffmpeg.ts:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/motion.ts:renderMotion",
+      "target": "function:src/lib/ffmpeg.ts:probeDuration",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/motion.ts:renderMotion",
+      "target": "function:src/lib/env.ts:requireFfprobe",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/music-gen.ts",
+      "target": "function:src/lib/music-gen.ts:musicPrompt",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/music-gen.ts",
+      "target": "function:src/lib/music-gen.ts:musicPrompt",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/music-gen.ts",
+      "target": "function:src/lib/music-gen.ts:canGenerateMusic",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/music-gen.ts",
+      "target": "function:src/lib/music-gen.ts:canGenerateMusic",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/music-gen.ts",
+      "target": "function:src/lib/music-gen.ts:authHeaders",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/music-gen.ts",
+      "target": "function:src/lib/music-gen.ts:findAudio",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/music-gen.ts",
+      "target": "function:src/lib/music-gen.ts:generateMusic",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/music-gen.ts",
+      "target": "function:src/lib/music-gen.ts:generateMusic",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/music-gen.ts",
+      "target": "file:src/lib/env.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/music-gen.ts",
+      "target": "file:src/lib/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/tts.ts",
+      "target": "function:src/lib/tts.ts:describeApiError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/tts.ts",
+      "target": "function:src/lib/tts.ts:looksLikeApiKey",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/tts.ts",
+      "target": "function:src/lib/tts.ts:looksLikeApiKey",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/tts.ts",
+      "target": "function:src/lib/tts.ts:cacheKey",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/tts.ts",
+      "target": "function:src/lib/tts.ts:estimateSpokenMs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/tts.ts",
+      "target": "function:src/lib/tts.ts:estimateSpokenMs",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/tts.ts",
+      "target": "function:src/lib/tts.ts:synthesise",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/tts.ts",
+      "target": "function:src/lib/tts.ts:synthesise",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/tts.ts",
+      "target": "function:src/lib/tts.ts:listVoices",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/tts.ts",
+      "target": "function:src/lib/tts.ts:listVoices",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/tts.ts",
+      "target": "file:src/lib/env.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/tts.ts",
+      "target": "file:src/lib/ffmpeg.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/tts.ts",
+      "target": "file:src/lib/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/words.ts",
+      "target": "function:src/lib/words.ts:tokens",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/words.ts",
+      "target": "function:src/lib/words.ts:tokens",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/words.ts",
+      "target": "function:src/lib/words.ts:estimateTimings",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/words.ts",
+      "target": "function:src/lib/words.ts:estimateTimings",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/words.ts",
+      "target": "function:src/lib/words.ts:align",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/words.ts",
+      "target": "function:src/lib/words.ts:wordTimings",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/words.ts",
+      "target": "function:src/lib/words.ts:wordTimings",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/words.ts",
+      "target": "file:src/lib/env.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/words.ts",
+      "target": "file:src/lib/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/tools/recording.ts",
+      "target": "function:src/tools/recording.ts:registerRecordingTools",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/tools/recording.ts",
+      "target": "function:src/tools/recording.ts:registerRecordingTools",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/tools/recording.ts",
+      "target": "file:src/lib/avatar.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/tools/recording.ts",
+      "target": "file:src/lib/compose.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/tools/recording.ts",
+      "target": "file:src/lib/env.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/tools/recording.ts",
+      "target": "file:src/lib/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/tools/recording.ts",
+      "target": "file:src/lib/motion.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/tools/recording.ts",
+      "target": "file:src/lib/music-gen.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/tools/recording.ts",
+      "target": "file:src/lib/session.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/tools/recording.ts",
+      "target": "file:src/lib/tts.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:src/lib/tts.ts:synthesise",
+      "target": "function:src/lib/env.ts:requireElevenLabsKey",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/tts.ts:synthesise",
+      "target": "function:src/lib/ffmpeg.ts:probeDuration",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/tts.ts:synthesise",
+      "target": "function:src/lib/env.ts:requireFfprobe",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/tts.ts:listVoices",
+      "target": "function:src/lib/env.ts:requireElevenLabsKey",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/recording.ts:registerRecordingTools",
+      "target": "function:src/lib/session.ts:getSession",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/recording.ts:registerRecordingTools",
+      "target": "function:src/lib/music-gen.ts:canGenerateMusic",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/recording.ts:registerRecordingTools",
+      "target": "function:src/lib/env.ts:resolveMusicTrack",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/recording.ts:registerRecordingTools",
+      "target": "function:src/lib/env.ts:listMusicTracks",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/recording.ts:registerRecordingTools",
+      "target": "function:src/lib/avatar.ts:canRenderAvatar",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/recording.ts:registerRecordingTools",
+      "target": "function:src/lib/avatar.ts:resolveLook",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/recording.ts:registerRecordingTools",
+      "target": "function:src/lib/avatar.ts:remainingBalance",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/recording.ts:registerRecordingTools",
+      "target": "function:src/lib/motion.ts:motionAvailability",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/recording.ts:registerRecordingTools",
+      "target": "function:src/lib/session.ts:setSession",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/recording.ts:registerRecordingTools",
+      "target": "function:src/lib/session.ts:requireSession",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/recording.ts:registerRecordingTools",
+      "target": "function:src/lib/tts.ts:estimateSpokenMs",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/recording.ts:registerRecordingTools",
+      "target": "function:src/lib/avatar.ts:speakWithHeyGen",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/recording.ts:registerRecordingTools",
+      "target": "function:src/lib/tts.ts:synthesise",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/recording.ts:registerRecordingTools",
+      "target": "function:src/lib/music-gen.ts:generateMusic",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/recording.ts:registerRecordingTools",
+      "target": "function:src/lib/avatar.ts:renderIdleClip",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/recording.ts:registerRecordingTools",
+      "target": "function:src/lib/avatar.ts:renderAvatarClips",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/recording.ts:registerRecordingTools",
+      "target": "function:src/lib/motion.ts:renderCards",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/recording.ts:registerRecordingTools",
+      "target": "function:src/lib/compose.ts:compose",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/recording.ts:registerRecordingTools",
+      "target": "function:src/lib/compose.ts:verifyOutput",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/recording.ts:registerRecordingTools",
+      "target": "function:src/lib/avatar.ts:listLooks",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/recording.ts:registerRecordingTools",
+      "target": "function:src/lib/avatar.ts:listSpeechVoices",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/recording.ts:registerRecordingTools",
+      "target": "function:src/lib/tts.ts:listVoices",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/index.ts",
+      "target": "function:src/index.ts:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:padded",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:ringMarkup",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:spotlight",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:spotlight",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:readingTimeMs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:readingTimeMs",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:instructionLayout",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:instructionLayout",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:instruct",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:instruct",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:showHandoffBanner",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:showHandoffBanner",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:clearHandoffBanner",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:clearHandoffBanner",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:ripple",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:ripple",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/emphasis.ts:spotlight",
+      "target": "function:src/lib/emphasis.ts:ringMarkup",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/emphasis.ts:spotlight",
+      "target": "function:src/lib/emphasis.ts:padded",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/emphasis.ts:instructionLayout",
+      "target": "function:src/lib/emphasis.ts:padded",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/emphasis.ts:instruct",
+      "target": "function:src/lib/emphasis.ts:readingTimeMs",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/emphasis.ts:instruct",
+      "target": "function:src/lib/emphasis.ts:instructionLayout",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/emphasis.ts:instruct",
+      "target": "function:src/lib/emphasis.ts:ringMarkup",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/foreground.ts",
+      "target": "function:src/lib/foreground.ts:raiseWindow",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/foreground.ts",
+      "target": "function:src/lib/foreground.ts:raiseWindow",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/recorder.ts",
+      "target": "class:src/lib/recorder.ts:Recorder",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/recorder.ts",
+      "target": "class:src/lib/recorder.ts:Recorder",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "class:src/lib/session.ts:RecordingSession",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "class:src/lib/session.ts:RecordingSession",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "function:src/lib/session.ts:getSession",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "function:src/lib/session.ts:getSession",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "function:src/lib/session.ts:requireSession",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "function:src/lib/session.ts:requireSession",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "function:src/lib/session.ts:setSession",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "function:src/lib/session.ts:setSession",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "class:src/lib/session.ts:RecordingSession",
+      "target": "function:src/lib/browser.ts:launchBrowser",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "class:src/lib/session.ts:RecordingSession",
+      "target": "function:src/lib/env.ts:slugify",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "class:src/lib/session.ts:RecordingSession",
+      "target": "function:src/lib/zoom.ts:zoomForBox",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "class:src/lib/session.ts:RecordingSession",
+      "target": "function:src/lib/zoom.ts:boxContains",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "class:src/lib/session.ts:RecordingSession",
+      "target": "class:src/lib/recorder.ts:Recorder",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/lib/totp.ts",
+      "target": "function:src/lib/totp.ts:decodeBase32",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/totp.ts",
+      "target": "function:src/lib/totp.ts:decodeBase32",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/totp.ts",
+      "target": "function:src/lib/totp.ts:totp",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/totp.ts",
+      "target": "function:src/lib/totp.ts:totp",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/totp.ts",
+      "target": "function:src/lib/totp.ts:secondsLeft",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/totp.ts",
+      "target": "function:src/lib/totp.ts:secondsLeft",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/totp.ts",
+      "target": "function:src/lib/totp.ts:currentCode",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/totp.ts",
+      "target": "function:src/lib/totp.ts:currentCode",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/totp.ts:totp",
+      "target": "function:src/lib/totp.ts:decodeBase32",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/totp.ts:currentCode",
+      "target": "function:src/lib/totp.ts:secondsLeft",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/totp.ts:currentCode",
+      "target": "function:src/lib/totp.ts:totp",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/zoom.ts",
+      "target": "function:src/lib/zoom.ts:zoomForBox",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/zoom.ts",
+      "target": "function:src/lib/zoom.ts:zoomForBox",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/zoom.ts",
+      "target": "function:src/lib/zoom.ts:boxContains",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/zoom.ts",
+      "target": "function:src/lib/zoom.ts:boxContains",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/zoom.ts",
+      "target": "function:src/lib/zoom.ts:buildZoomFilter",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/zoom.ts",
+      "target": "function:src/lib/zoom.ts:buildZoomFilter",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/tools/actions.ts",
+      "target": "function:src/tools/actions.ts:matchAll",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/tools/actions.ts",
+      "target": "function:src/tools/actions.ts:prepareTarget",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/tools/actions.ts",
+      "target": "function:src/tools/actions.ts:registerActionTools",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/tools/actions.ts",
+      "target": "function:src/tools/actions.ts:registerActionTools",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/actions.ts:prepareTarget",
+      "target": "function:src/lib/emphasis.ts:instruct",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/actions.ts:prepareTarget",
+      "target": "function:src/lib/emphasis.ts:spotlight",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/actions.ts:registerActionTools",
+      "target": "function:src/tools/actions.ts:matchAll",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/actions.ts:registerActionTools",
+      "target": "function:src/tools/actions.ts:prepareTarget",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/actions.ts:registerActionTools",
+      "target": "function:src/lib/session.ts:requireSession",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/actions.ts:registerActionTools",
+      "target": "function:src/lib/emphasis.ts:ripple",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/actions.ts:registerActionTools",
+      "target": "function:src/lib/totp.ts:currentCode",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/actions.ts:registerActionTools",
+      "target": "function:src/lib/foreground.ts:raiseWindow",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/actions.ts:registerActionTools",
+      "target": "function:src/lib/emphasis.ts:showHandoffBanner",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/actions.ts:registerActionTools",
+      "target": "function:src/lib/emphasis.ts:clearHandoffBanner",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/actions.ts:registerActionTools",
+      "target": "function:src/lib/emphasis.ts:instruct",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/actions.ts:registerActionTools",
+      "target": "function:src/lib/emphasis.ts:spotlight",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/index.ts:main",
+      "target": "function:src/lib/env.ts:loadConfig",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/index.ts:main",
+      "target": "function:src/tools/recording.ts:registerRecordingTools",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/index.ts:main",
+      "target": "function:src/tools/setup.ts:registerSetupTools",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/index.ts:main",
+      "target": "function:src/tools/actions.ts:registerActionTools",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/index.ts:main",
+      "target": "function:src/lib/session.ts:getSession",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/index.ts:main",
+      "target": "function:src/lib/session.ts:setSession",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/index.ts",
+      "target": "file:src/lib/env.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/index.ts",
+      "target": "file:src/lib/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/index.ts",
+      "target": "file:src/lib/session.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/index.ts",
+      "target": "file:src/tools/actions.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/index.ts",
+      "target": "file:src/tools/recording.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/index.ts",
+      "target": "file:src/tools/setup.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "file:src/lib/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/foreground.ts",
+      "target": "file:src/lib/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/recorder.ts",
+      "target": "file:src/lib/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "file:src/lib/browser.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "file:src/lib/compose.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "file:src/lib/env.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "file:src/lib/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "file:src/lib/motion.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "file:src/lib/recorder.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "file:src/lib/zoom.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/tools/actions.ts",
+      "target": "file:src/lib/emphasis.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/tools/actions.ts",
+      "target": "file:src/lib/foreground.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/tools/actions.ts",
+      "target": "file:src/lib/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/tools/actions.ts",
+      "target": "file:src/lib/session.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/tools/actions.ts",
+      "target": "file:src/lib/totp.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/cli/login.ts",
+      "target": "function:src/cli/login.ts:parseArgs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/cli/login.ts",
+      "target": "function:src/cli/login.ts:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/browser.ts",
+      "target": "function:src/lib/browser.ts:disguiseScript",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/browser.ts",
+      "target": "function:src/lib/browser.ts:hideHeadlessUserAgent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/browser.ts",
+      "target": "function:src/lib/browser.ts:assertNotRealChromeProfile",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/browser.ts",
+      "target": "function:src/lib/browser.ts:launchBrowser",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/env.ts",
+      "target": "function:src/lib/env.ts:which",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/env.ts",
+      "target": "function:src/lib/env.ts:findPlaywrightBrowser",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/env.ts",
+      "target": "function:src/lib/env.ts:loadDotEnv",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/env.ts",
+      "target": "function:src/lib/env.ts:listMusicTracks",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/env.ts",
+      "target": "function:src/lib/env.ts:resolveMusicTrack",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/env.ts",
+      "target": "function:src/lib/env.ts:loadConfig",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/env.ts",
+      "target": "function:src/lib/env.ts:requireFfmpeg",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/env.ts",
+      "target": "function:src/lib/env.ts:requireFfprobe",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/env.ts",
+      "target": "function:src/lib/env.ts:requireElevenLabsKey",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/env.ts",
+      "target": "function:src/lib/env.ts:requireHeyGenKey",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/env.ts",
+      "target": "function:src/lib/env.ts:slugify",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/heartbeat.ts",
+      "target": "function:src/lib/heartbeat.ts:installHeartbeat",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/session-import.ts",
+      "target": "function:src/lib/session-import.ts:importSession",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/session-import.ts",
+      "target": "function:src/lib/session-import.ts:listProfiles",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/tools/setup.ts",
+      "target": "function:src/tools/setup.ts:registerSetupTools",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/browser.ts",
+      "target": "function:src/lib/browser.ts:launchBrowser",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/env.ts",
+      "target": "function:src/lib/env.ts:listMusicTracks",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/env.ts",
+      "target": "function:src/lib/env.ts:resolveMusicTrack",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/env.ts",
+      "target": "function:src/lib/env.ts:loadConfig",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/env.ts",
+      "target": "function:src/lib/env.ts:requireFfmpeg",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/env.ts",
+      "target": "function:src/lib/env.ts:requireFfprobe",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/env.ts",
+      "target": "function:src/lib/env.ts:requireElevenLabsKey",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/env.ts",
+      "target": "function:src/lib/env.ts:requireHeyGenKey",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/env.ts",
+      "target": "function:src/lib/env.ts:slugify",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/heartbeat.ts",
+      "target": "function:src/lib/heartbeat.ts:installHeartbeat",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/session-import.ts",
+      "target": "function:src/lib/session-import.ts:importSession",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/session-import.ts",
+      "target": "function:src/lib/session-import.ts:listProfiles",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/tools/setup.ts",
+      "target": "function:src/tools/setup.ts:registerSetupTools",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/cli/login.ts",
+      "target": "file:src/lib/browser.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/cli/login.ts",
+      "target": "file:src/lib/env.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/browser.ts",
+      "target": "file:src/lib/env.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/browser.ts",
+      "target": "file:src/lib/heartbeat.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/browser.ts",
+      "target": "file:src/lib/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/heartbeat.ts",
+      "target": "file:src/lib/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/session-import.ts",
+      "target": "file:src/lib/browser.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/session-import.ts",
+      "target": "file:src/lib/env.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/session-import.ts",
+      "target": "file:src/lib/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/tools/setup.ts",
+      "target": "file:src/lib/env.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/tools/setup.ts",
+      "target": "file:src/lib/session-import.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:src/cli/login.ts:main",
+      "target": "function:src/cli/login.ts:parseArgs",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli/login.ts:main",
+      "target": "function:src/lib/env.ts:loadConfig",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli/login.ts:main",
+      "target": "function:src/lib/browser.ts:launchBrowser",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/browser.ts:launchBrowser",
+      "target": "function:src/lib/browser.ts:assertNotRealChromeProfile",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/browser.ts:launchBrowser",
+      "target": "function:src/lib/browser.ts:disguiseScript",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/browser.ts:launchBrowser",
+      "target": "function:src/lib/browser.ts:hideHeadlessUserAgent",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/browser.ts:launchBrowser",
+      "target": "function:src/lib/heartbeat.ts:installHeartbeat",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/env.ts:loadConfig",
+      "target": "function:src/lib/env.ts:loadDotEnv",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/env.ts:loadConfig",
+      "target": "function:src/lib/env.ts:which",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/env.ts:loadConfig",
+      "target": "function:src/lib/env.ts:findPlaywrightBrowser",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/env.ts:loadConfig",
+      "target": "function:src/lib/env.ts:resolveMusicTrack",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/env.ts:resolveMusicTrack",
+      "target": "function:src/lib/env.ts:listMusicTracks",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/env.ts:resolveMusicTrack",
+      "target": "function:src/lib/env.ts:slugify",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/session-import.ts:importSession",
+      "target": "function:src/lib/browser.ts:launchBrowser",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/setup.ts:registerSetupTools",
+      "target": "function:src/lib/session-import.ts:importSession",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/setup.ts:registerSetupTools",
+      "target": "function:src/lib/session-import.ts:listProfiles",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:src/index.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:src/tools/recording.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:src/tools/actions.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:src/tools/setup.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:src/cli/doctor.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:src/cli/login.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:scripts/recompose.mjs",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:scripts/e2e.mjs",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "document:docs/ARCHITECTURE.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "config:package.json",
+      "target": "file:src/index.ts",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:package.json",
+      "target": "file:src/cli/login.ts",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:package.json",
+      "target": "file:src/cli/doctor.ts",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:package.json",
+      "target": "config:tsconfig.json",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:tsconfig.json",
+      "target": "file:src/index.ts",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:assets/motion/chapter.html",
+      "target": "file:assets/motion/brand.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:assets/motion/closing.html",
+      "target": "file:assets/motion/brand.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:assets/motion/opening.html",
+      "target": "file:assets/motion/brand.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:assets/motion/chapter.html",
+      "target": "file:src/lib/motion.ts",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:assets/motion/closing.html",
+      "target": "file:src/lib/motion.ts",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:assets/motion/opening.html",
+      "target": "file:src/lib/motion.ts",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:assets/motion/brand.css",
+      "target": "file:src/lib/motion.ts",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/ARCHITECTURE.md",
+      "target": "file:src/lib/recorder.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/ARCHITECTURE.md",
+      "target": "file:src/lib/browser.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/ARCHITECTURE.md",
+      "target": "file:src/lib/compose.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/ARCHITECTURE.md",
+      "target": "file:src/lib/tts.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/ARCHITECTURE.md",
+      "target": "file:src/lib/zoom.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/ARCHITECTURE.md",
+      "target": "file:src/lib/emphasis.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/ARCHITECTURE.md",
+      "target": "file:src/lib/motion.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/ARCHITECTURE.md",
+      "target": "file:src/lib/totp.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/ARCHITECTURE.md",
+      "target": "file:src/lib/session-import.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/ARCHITECTURE.md",
+      "target": "file:src/tools/actions.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/ARCHITECTURE.md",
+      "target": "file:scripts/split-music.mjs",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/ARCHITECTURE.md",
+      "target": "file:assets/motion/opening.html",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/ARCHITECTURE.md",
+      "target": "file:assets/motion/chapter.html",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/ARCHITECTURE.md",
+      "target": "file:assets/motion/closing.html",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/ARCHITECTURE.md",
+      "target": "document:README.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/PLAN.md",
+      "target": "file:src/lib/env.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/PLAN.md",
+      "target": "file:src/cli/doctor.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/PLAN.md",
+      "target": "file:src/cli/login.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/PLAN.md",
+      "target": "file:src/lib/browser.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/PLAN.md",
+      "target": "file:src/lib/recorder.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/PLAN.md",
+      "target": "file:src/lib/heartbeat.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/PLAN.md",
+      "target": "file:src/lib/session.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/PLAN.md",
+      "target": "file:src/lib/tts.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/PLAN.md",
+      "target": "file:src/index.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/PLAN.md",
+      "target": "file:src/lib/avatar.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/PLAN.md",
+      "target": "file:src/lib/totp.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/PLAN.md",
+      "target": "file:src/lib/motion.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/PLAN.md",
+      "target": "file:scripts/handshake.mjs",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/PLAN.md",
+      "target": "file:scripts/e2e.mjs",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/PLAN.md",
+      "target": "file:scripts/record.mjs",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/PLAN.md",
+      "target": "file:scripts/recompose.mjs",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/PLAN.md",
+      "target": "document:README.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/PLAN.md",
+      "target": "document:docs/STATUS.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/PLAN.md",
+      "target": "document:docs/ARCHITECTURE.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/STATUS.md",
+      "target": "file:scripts/e2e.mjs",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/STATUS.md",
+      "target": "file:scripts/handshake.mjs",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/STATUS.md",
+      "target": "file:scripts/recompose.mjs",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/STATUS.md",
+      "target": "file:scripts/split-music.mjs",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/STATUS.md",
+      "target": "file:scripts/record.mjs",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/STATUS.md",
+      "target": "file:scripts/live-run.mjs",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/STATUS.md",
+      "target": "file:src/lib/emphasis.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/STATUS.md",
+      "target": "file:src/lib/zoom.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/STATUS.md",
+      "target": "file:src/cli/doctor.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/STATUS.md",
+      "target": "file:src/cli/login.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/STATUS.md",
+      "target": "file:src/lib/session-import.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/STATUS.md",
+      "target": "document:README.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "config:examples/find-code-on-github.json",
+      "target": "file:scripts/record.mjs",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:examples/find-code-on-github.json",
+      "target": "file:src/tools/actions.ts",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "config:examples/find-code-on-github.json",
+      "target": "file:src/tools/recording.ts",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "config:examples/overview.json",
+      "target": "file:scripts/record.mjs",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:examples/overview.json",
+      "target": "file:src/tools/actions.ts",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "config:examples/overview.json",
+      "target": "file:src/tools/recording.ts",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "config:examples/signed-in.json",
+      "target": "file:scripts/record.mjs",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:examples/signed-in.json",
+      "target": "file:src/tools/actions.ts",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "config:examples/signed-in.json",
+      "target": "file:src/tools/recording.ts",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:scripts/e2e.mjs",
+      "target": "function:scripts/e2e.mjs:speechStandIn",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:scripts/e2e.mjs",
+      "target": "function:scripts/e2e.mjs:loudnessOf",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:scripts/e2e.mjs",
+      "target": "function:scripts/e2e.mjs:frameAndMark",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:scripts/e2e.mjs",
+      "target": "function:scripts/e2e.mjs:twoBrowsers",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:scripts/e2e.mjs",
+      "target": "function:scripts/e2e.mjs:avatarBubble",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:scripts/e2e.mjs",
+      "target": "function:scripts/e2e.mjs:motionCards",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:scripts/e2e.mjs",
+      "target": "function:scripts/e2e.mjs:botAndTwoFactor",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:scripts/e2e.mjs",
+      "target": "function:scripts/e2e.mjs:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:scripts/handshake.mjs",
+      "target": "function:scripts/handshake.mjs:request",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:scripts/handshake.mjs",
+      "target": "function:scripts/handshake.mjs:waitForReady",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:scripts/handshake.mjs",
+      "target": "function:scripts/handshake.mjs:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:scripts/live-run.mjs",
+      "target": "function:scripts/live-run.mjs:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:scripts/recompose.mjs",
+      "target": "function:scripts/recompose.mjs:parseArgs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:scripts/recompose.mjs",
+      "target": "function:scripts/recompose.mjs:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:scripts/record.mjs",
+      "target": "function:scripts/record.mjs:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:scripts/split-music.mjs",
+      "target": "function:scripts/split-music.mjs:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "function:scripts/e2e.mjs:main",
+      "target": "function:scripts/e2e.mjs:twoBrowsers",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:scripts/e2e.mjs:main",
+      "target": "function:scripts/e2e.mjs:avatarBubble",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:scripts/e2e.mjs:main",
+      "target": "function:scripts/e2e.mjs:motionCards",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:scripts/e2e.mjs:main",
+      "target": "function:scripts/e2e.mjs:botAndTwoFactor",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:scripts/e2e.mjs:main",
+      "target": "function:scripts/e2e.mjs:speechStandIn",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:scripts/e2e.mjs:main",
+      "target": "function:scripts/e2e.mjs:loudnessOf",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:scripts/handshake.mjs:main",
+      "target": "function:scripts/handshake.mjs:request",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:scripts/handshake.mjs:main",
+      "target": "function:scripts/handshake.mjs:waitForReady",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:scripts/recompose.mjs:main",
+      "target": "function:scripts/recompose.mjs:parseArgs",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:scripts/e2e.mjs",
+      "target": "file:src/lib/env.ts",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:scripts/e2e.mjs",
+      "target": "file:src/lib/session.ts",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:scripts/e2e.mjs",
+      "target": "file:src/lib/compose.ts",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:scripts/e2e.mjs",
+      "target": "file:src/lib/words.ts",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:scripts/e2e.mjs",
+      "target": "file:src/lib/motion.ts",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:scripts/e2e.mjs",
+      "target": "file:src/lib/emphasis.ts",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:scripts/e2e.mjs",
+      "target": "file:src/lib/ffmpeg.ts",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:scripts/e2e.mjs",
+      "target": "file:src/lib/music-gen.ts",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:scripts/e2e.mjs",
+      "target": "file:src/lib/browser.ts",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:scripts/e2e.mjs",
+      "target": "file:src/lib/totp.ts",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:scripts/recompose.mjs",
+      "target": "file:src/lib/env.ts",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:scripts/recompose.mjs",
+      "target": "file:src/lib/compose.ts",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:scripts/recompose.mjs",
+      "target": "file:src/lib/music-gen.ts",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:scripts/recompose.mjs",
+      "target": "file:src/lib/avatar.ts",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:scripts/recompose.mjs",
+      "target": "file:src/lib/motion.ts",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:scripts/split-music.mjs",
+      "target": "file:src/lib/env.ts",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:scripts/split-music.mjs",
+      "target": "file:src/lib/ffmpeg.ts",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:scripts/handshake.mjs",
+      "target": "file:src/index.ts",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:scripts/live-run.mjs",
+      "target": "file:src/index.ts",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:scripts/record.mjs",
+      "target": "file:src/index.ts",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:scripts/record.mjs",
+      "target": "config:examples/overview.json",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:assets/chapters.json",
+      "target": "file:scripts/split-music.mjs",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/types/global.d.ts",
+      "target": "file:src/lib/heartbeat.ts",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ],
+  "layers": [
+    {
+      "id": "layer:mcp-server",
+      "name": "MCP Server & Tools",
+      "description": "The stdio MCP server entry point and the tool handlers it registers for recording lifecycle, browser actions, and session setup, which orchestrate everything below them.",
+      "nodeIds": [
+        "file:src/index.ts",
+        "file:src/tools/recording.ts",
+        "file:src/tools/actions.ts",
+        "file:src/tools/setup.ts"
+      ]
+    },
+    {
+      "id": "layer:browser-capture",
+      "name": "Browser & Capture",
+      "description": "The logged-in headless Playwright browser, the recording session state, screencast capture with heartbeat frames, on-page emphasis overlays, TOTP login support, and profile/session import.",
+      "nodeIds": [
+        "file:src/lib/session.ts",
+        "file:src/lib/browser.ts",
+        "file:src/lib/recorder.ts",
+        "file:src/lib/heartbeat.ts",
+        "file:src/lib/session-import.ts",
+        "file:src/lib/emphasis.ts",
+        "file:src/lib/foreground.ts",
+        "file:src/lib/totp.ts",
+        "file:src/types/global.d.ts"
+      ]
+    },
+    {
+      "id": "layer:media-production",
+      "name": "Media Production",
+      "description": "Turns captured footage into the finished tutorial: ElevenLabs narration, word-level caption alignment, HeyGen avatar, generated music, HyperFrames motion cards, camera zoom, and the ffmpeg compositing pipeline.",
+      "nodeIds": [
+        "file:src/lib/compose.ts",
+        "file:src/lib/tts.ts",
+        "file:src/lib/words.ts",
+        "file:src/lib/avatar.ts",
+        "file:src/lib/music-gen.ts",
+        "file:src/lib/motion.ts",
+        "file:src/lib/zoom.ts",
+        "file:src/lib/ffmpeg.ts"
+      ]
+    },
+    {
+      "id": "layer:foundation",
+      "name": "Foundation Utilities",
+      "description": "Environment/configuration loading and the shared logger, imported by nearly every other module in the server.",
+      "nodeIds": [
+        "file:src/lib/env.ts",
+        "file:src/lib/logger.ts"
+      ]
+    },
+    {
+      "id": "layer:motion-assets",
+      "name": "Motion Assets",
+      "description": "Brand stylesheet and GSAP/HyperFrames HTML templates for the opening, chapter, and closing cards, plus the music chapter definitions used when splitting background tracks.",
+      "nodeIds": [
+        "file:assets/motion/brand.css",
+        "file:assets/motion/opening.html",
+        "file:assets/motion/chapter.html",
+        "file:assets/motion/closing.html",
+        "config:assets/chapters.json"
+      ]
+    },
+    {
+      "id": "layer:cli-scripts",
+      "name": "CLI & Operator Scripts",
+      "description": "Command-line entry points for operators: the doctor environment check, interactive browser login, and scripts that record from an example script, recompose a finished run, or split music tracks.",
+      "nodeIds": [
+        "file:src/cli/doctor.ts",
+        "file:src/cli/login.ts",
+        "file:scripts/record.mjs",
+        "file:scripts/recompose.mjs",
+        "file:scripts/split-music.mjs"
+      ]
+    },
+    {
+      "id": "layer:test",
+      "name": "Test & Smoke Scripts",
+      "description": "End-to-end pipeline run, JSON-RPC handshake smoke test, and live MCP run that exercise the server and its video pipeline.",
+      "nodeIds": [
+        "file:scripts/e2e.mjs",
+        "file:scripts/handshake.mjs",
+        "file:scripts/live-run.mjs"
+      ]
+    },
+    {
+      "id": "layer:config",
+      "name": "Configuration & Examples",
+      "description": "npm package and TypeScript build configuration, plus example tutorial scripts that drive the recording and action tools.",
+      "nodeIds": [
+        "config:package.json",
+        "config:tsconfig.json",
+        "config:examples/overview.json",
+        "config:examples/find-code-on-github.json",
+        "config:examples/signed-in.json"
+      ]
+    },
+    {
+      "id": "layer:documentation",
+      "name": "Documentation",
+      "description": "README setup guide, architecture and design decisions for the capture/compose pipeline, and the project's plan and status logs.",
+      "nodeIds": [
+        "document:README.md",
+        "document:docs/ARCHITECTURE.md",
+        "document:docs/PLAN.md",
+        "document:docs/STATUS.md"
+      ]
+    }
+  ],
+  "tour": [
+    {
+      "order": 1,
+      "title": "The MCP Server Entry Point",
+      "description": "Everything starts in src/index.ts, the stdio entry point that loads configuration, registers three tool groups (recording, browser actions, setup) and cancels any live recording when the process is told to shut down. The README frames what those tools add up to: an agent drives a browser that is already signed in to your app, narrates what it does, and gets back a finished mp4 through the flow tutorial_start, then tutorial_say / tutorial_click / tutorial_type, then tutorial_finish. package.json wires dist/index.js up as the bin and defines the build, login and doctor scripts you will meet later in the tour.",
+      "nodeIds": [
+        "file:src/index.ts",
+        "document:README.md",
+        "config:package.json"
+      ],
+      "languageLesson": "An MCP stdio server talks JSON-RPC over stdin/stdout, so stdout belongs to the protocol alone. Any stray console.log would corrupt the stream, which is why this project routes all diagnostics elsewhere (see Step 2)."
+    },
+    {
+      "order": 2,
+      "title": "Configuration and Logging Foundation",
+      "description": "env.ts and logger.ts are the two most depended-upon modules in the codebase: nearly every other file imports them. env.ts loads the local .env, resolves project paths and caches, finds ffmpeg/ffprobe and the Playwright Chromium build, and offers guard functions that fail with a readable message when a tool or API key is missing. logger.ts writes leveled, JSON-annotated messages to stderr, which keeps stdout clean for the MCP protocol described in Step 1.",
+      "nodeIds": [
+        "file:src/lib/env.ts",
+        "file:src/lib/logger.ts"
+      ]
+    },
+    {
+      "order": 3,
+      "title": "Recording Tools and Session State",
+      "description": "recording.ts registers the lifecycle tools (tutorial_start, tutorial_say, tutorial_chapter, tutorial_finish, tutorial_cancel, tutorial_status plus the avatar and voice listings), and session.ts holds the state those tools operate on. A session owns its browsers and recorders, the narration cues, chapters, zoom events and on-air stretches across browser cuts, and there is exactly one global active session. Together with index.ts and the logger they form the most tightly coupled cluster in the graph, because every tool call reads or mutates this shared state.",
+      "nodeIds": [
+        "file:src/tools/recording.ts",
+        "file:src/lib/session.ts"
+      ]
+    },
+    {
+      "order": 4,
+      "title": "Browser Actions and On-Screen Emphasis",
+      "description": "While a session from Step 3 is live, actions.ts exposes the in-recording tools: goto, switch, click, type, press, scroll, wait, handoff, snapshot, screenshot, highlight and zoom. Each action first highlights its target so the viewer can follow along, using emphasis.ts, which draws spotlight rings, callouts with arrows, click ripples and a hand-off banner into the screencast overlay. The key design choice is that the emphasis layer never modifies the recorded page itself, so the app under test behaves exactly as it would for a real user.",
+      "nodeIds": [
+        "file:src/tools/actions.ts",
+        "file:src/lib/emphasis.ts"
+      ]
+    },
+    {
+      "order": 5,
+      "title": "The Signed-In Headless Browser",
+      "description": "browser.ts owns the Playwright lifecycle: it launches a persistent Chromium context from a saved profile directory, adds anti-throttling and anti-automation flags, hides headless traces and installs the repaint heartbeat on every page. Profiles get their login in one of two ways: login.ts (npm run login) opens a visible browser once so you sign in by hand, or the setup tool tutorial_import_session in setup.ts hands a storageState export from your real browser to session-import.ts, which filters cookies to the requested hosts, restores localStorage and deletes the export afterwards. Either way, every later headless recording reuses that stored session.",
+      "nodeIds": [
+        "file:src/lib/browser.ts",
+        "file:src/cli/login.ts",
+        "file:src/tools/setup.ts",
+        "file:src/lib/session-import.ts"
+      ]
+    },
+    {
+      "order": 6,
+      "title": "Screencast Capture and One Clock",
+      "description": "recorder.ts wraps Playwright's page.screencast to write the page to webm and records the wall-clock moment of the first frame; every narration cue offset from Step 3 is measured against that origin. Because the screencast only emits frames when something repaints, heartbeat.ts keeps an invisible 1x1 px element changing colour every animation frame so video time tracks real time. This is how the project guarantees that picture and sound cannot drift apart: there is only one clock.",
+      "nodeIds": [
+        "file:src/lib/recorder.ts",
+        "file:src/lib/heartbeat.ts",
+        "file:src/types/global.d.ts",
+        "config:tsconfig.json"
+      ],
+      "languageLesson": "global.d.ts uses TypeScript declaration merging: redeclaring `interface Window` inside a `declare global` block adds the optional __tutorialHeartbeat property to the built-in type without touching lib.dom.d.ts. With strict mode and noUncheckedIndexedAccess from tsconfig.json, the compiler then checks every access to that flag."
+    },
+    {
+      "order": 7,
+      "title": "Defended Sign-Ins",
+      "description": "Real apps fight bots, so two small helpers keep recordings from getting stuck at the login. totp.ts implements RFC 6238 time-based one-time passwords from a base32 secret in an environment variable, letting a recording pass two-factor authentication without a person. When a manual security check (such as a CAPTCHA) cannot be automated, foreground.ts brings the recorder's browser window to the front on Windows via a generated PowerShell script, so the human answers the check inside the browser that is actually being recorded.",
+      "nodeIds": [
+        "file:src/lib/totp.ts",
+        "file:src/lib/foreground.ts"
+      ]
+    },
+    {
+      "order": 8,
+      "title": "Narration and Word Timing",
+      "description": "tts.ts is the ElevenLabs client: it synthesises each narration line with tutorial voice settings and caches the audio by a hash of every input. The recording then waits for exactly as long as the speech lasts (speak first, then act), which is what keeps the single clock from Step 6 honest. words.ts computes per-word timings for karaoke-style captions using ElevenLabs forced alignment, falling back to length-based estimates when alignment is unavailable.",
+      "nodeIds": [
+        "file:src/lib/tts.ts",
+        "file:src/lib/words.ts"
+      ]
+    },
+    {
+      "order": 9,
+      "title": "The Composition Engine",
+      "description": "compose.ts turns the raw capture, the narration clips and everything else into the finished mp4 in two ffmpeg passes: it builds SRT/ASS karaoke captions from the word timings in Step 8, normalises loudness and ducks the music under the voice, adds dissolve transitions, and runs a sanity check on the result. zoom.ts converts the zoom intents recorded during capture into one time-exact zoompan expression with eased transitions, so the camera moves happen after recording and the app is never rescaled. ffmpeg.ts underneath spawns ffmpeg/ffprobe with argument arrays, which makes paths with spaces safe.",
+      "nodeIds": [
+        "file:src/lib/compose.ts",
+        "file:src/lib/zoom.ts",
+        "file:src/lib/ffmpeg.ts"
+      ],
+      "languageLesson": "Spawning a process with an argument array (spawn('ffmpeg', ['-i', path])) passes each argument to the program unchanged, while building one shell command string requires quoting every path by hand. The array form avoids a whole class of bugs with spaces and special characters in file names."
+    },
+    {
+      "order": 10,
+      "title": "Avatar and Background Music",
+      "description": "Two optional media sources feed the composer from Step 9. avatar.ts integrates HeyGen: it lists and resolves avatar looks, can voice the narration through HeyGen, and renders lip-synced and idle avatar clips after the recording, with retrying API calls and an on-disk clip cache. music-gen.ts generates a background track sized to the video through Google Lyria, using a fixed calm instrumental brief with rotating instrumentation.",
+      "nodeIds": [
+        "file:src/lib/avatar.ts",
+        "file:src/lib/music-gen.ts"
+      ]
+    },
+    {
+      "order": 11,
+      "title": "Animated Opening, Chapter and Closing Cards",
+      "description": "motion.ts renders the opening, chapter and closing cards through the optional HyperFrames renderer: it detects whether HyperFrames is available, picks a transparent output format and caches rendered cards by content hash. The cards themselves are HTML templates animated with GSAP timelines, all sharing brand.css for the colour tokens, typeface and fixed 1920x1080 canvas. The chapter card is drawn over the recording whenever tutorial_chapter (Step 3) is called, while the opening and closing cards dissolve into and out of the recording during composition.",
+      "nodeIds": [
+        "file:src/lib/motion.ts",
+        "file:assets/motion/opening.html",
+        "file:assets/motion/chapter.html",
+        "file:assets/motion/closing.html",
+        "file:assets/motion/brand.css"
+      ],
+      "languageLesson": "A paused GSAP timeline (gsap.timeline({ paused: true })) does not play on its own; the renderer seeks it frame by frame. That makes the animation deterministic, so every rendered frame is reproducible no matter how fast the machine is."
+    },
+    {
+      "order": 12,
+      "title": "Why It Is Built This Way",
+      "description": "Now that you have seen every part of the pipeline, ARCHITECTURE.md explains the reasoning behind it. It covers why capture uses a dedicated Playwright browser with page.screencast instead of desktop capture, how the timeline stays honest, the speak-then-act narration model, ffmpeg composition, camera moves and emphasis, the defended sign-in strategy and the HyperFrames cards. Reading it after Steps 1 to 11 connects each design decision to the code that implements it.",
+      "nodeIds": [
+        "document:docs/ARCHITECTURE.md"
+      ]
+    },
+    {
+      "order": 13,
+      "title": "Operator Tools",
+      "description": "A few command-line tools sit outside the MCP server. doctor.ts (npm run doctor) checks ffmpeg and its filters, the ElevenLabs and HeyGen keys, HyperFrames support, default music and browser profiles, and only exits non-zero on hard blockers. recompose.mjs re-renders a finished recording from its saved timeline.json with new music, an avatar, cards or transitions without recording again, and split-music.mjs cuts a long music mix into named tracks using the timestamps in chapters.json.",
+      "nodeIds": [
+        "file:src/cli/doctor.ts",
+        "file:scripts/recompose.mjs",
+        "file:scripts/split-music.mjs",
+        "config:assets/chapters.json"
+      ]
+    },
+    {
+      "order": 14,
+      "title": "Example Plans and Verification",
+      "description": "record.mjs replays a JSON tutorial plan, such as examples/overview.json, through a freshly started MCP server, which shows the start/steps/finish sequence an agent follows. Three scripts guard the whole system: handshake.mjs checks that the built server lists every tutorial_* tool and prints nothing but JSON-RPC on stdout, live-run.mjs records a full tutorial through the MCP protocol just as Claude Code would, and e2e.mjs runs the pipeline directly and asserts duration, a non-black picture, loudness, caption timing, avatar, motion cards, browser switching and a TOTP login.",
+      "nodeIds": [
+        "file:scripts/record.mjs",
+        "config:examples/overview.json",
+        "file:scripts/handshake.mjs",
+        "file:scripts/live-run.mjs",
+        "file:scripts/e2e.mjs"
+      ]
+    },
+    {
+      "order": 15,
+      "title": "Project Plan and History",
+      "description": "PLAN.md is the milestone checklist from M0 foundations to M16 HyperFrames motion design, with each item ticked against concrete verification evidence. STATUS.md is the reverse-chronological log of what was built, which decisions were made and why, and which defects turned up, such as ffmpeg pitfalls, loudness problems and security checks. Together they show how the architecture you just toured grew step by step, and where to look before changing it.",
+      "nodeIds": [
+        "document:docs/PLAN.md",
+        "document:docs/STATUS.md"
+      ]
+    }
+  ]
+}

@@ -101,12 +101,26 @@ function ease(progress: string): string {
   return `(${progress})*(${progress})*(3-2*(${progress}))`
 }
 
-/** Nested `if` chain over `ot`, innermost fallback last. */
+/**
+ * A value over `ot` that is `clause.value` until `clause.before`, then the next clause's,
+ * and `fallback` after the last - written as a flat sum of gated terms, each gate open on
+ * exactly one stretch of time.
+ *
+ * Not as a nested `if` chain: ffmpeg's expression parser refuses anything nested more than
+ * about a hundred levels deep ("Invalid argument" while configuring zoompan), and every
+ * camera move adds four, so a recording with some 25 moves could no longer be rendered.
+ * A sum is parsed term by term and never gets deeper than one term.
+ */
 function piecewise(clauses: Array<{ before: number; value: string }>, fallback: string): string {
-  return clauses.reduceRight(
-    (rest, clause) => `if(lt(ot,${n(clause.before)}),${clause.value},${rest})`,
-    fallback,
-  )
+  const terms: string[] = []
+  let from: number | null = null
+  for (const clause of clauses) {
+    const gate = from === null ? `lt(ot,${n(clause.before)})` : `gte(ot,${n(from)})*lt(ot,${n(clause.before)})`
+    terms.push(`${gate}*(${clause.value})`)
+    from = clause.before
+  }
+  terms.push(from === null ? `(${fallback})` : `gte(ot,${n(from)})*(${fallback})`)
+  return `(${terms.join('+')})`
 }
 
 interface Phase {

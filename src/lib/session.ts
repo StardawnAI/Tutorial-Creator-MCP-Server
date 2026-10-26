@@ -36,6 +36,7 @@ import { Privacy, type LocatedTarget, type PrivacySettings, type VeilOptions } f
 import { Recorder } from './recorder.js'
 import { hostOf, type LocationMark } from './stage.js'
 import { boxContains, zoomForBox, MIN_USEFUL_ZOOM, type ZoomEvent } from './zoom.js'
+import type { SceneMark } from './scene.js'
 import { log } from './logger.js'
 
 export interface NarrationCue {
@@ -177,6 +178,9 @@ export class RecordingSession {
     event: ZoomEvent
     visible: { x: number; y: number; width: number; height: number }
   } | null = null
+
+  /** The last click, for noticing a change it causes after its own beat (scene.ts). */
+  lastAction: SceneMark | null = null
 
   private readonly config: Config
   private readonly browsers = new Map<string, OpenBrowser>()

@@ -1,0 +1,82 @@
+{
+  "nodes": [
+    {
+      "id": "document:docs/ARCHITECTURE.md",
+      "type": "document",
+      "name": "ARCHITECTURE.md",
+      "filePath": "docs/ARCHITECTURE.md",
+      "summary": "Design rationale for the tutorial recorder across 10 sections: why capture uses a dedicated Playwright browser with page.screencast (rejecting gdigrab and desktop capture), how the timeline stays honest, speak-then-act narration, ffmpeg composition, camera moves and emphasis, defended sign-ins (session import, stealth flags, TOTP, CAPTCHA handoff) and HyperFrames motion cards.",
+      "tags": ["documentation", "architecture", "design-decisions", "video-pipeline", "screen-capture"],
+      "complexity": "complex",
+      "languageNotes": "Structured as decision records: each capture approach is listed as Rejected or Chosen with the measured evidence behind it."
+    },
+    {
+      "id": "document:docs/PLAN.md",
+      "type": "document",
+      "name": "PLAN.md",
+      "filePath": "docs/PLAN.md",
+      "summary": "Milestone-based implementation checklist (M0 foundations through M16 HyperFrames motion design) where each item is ticked with the concrete verification evidence, covering the environment doctor, browser sessions, recording timeline, ElevenLabs narration, ffmpeg composition, MCP surface, music, HeyGen avatar, bot checks/2FA and professional presentation.",
+      "tags": ["documentation", "planning", "roadmap", "milestones", "checklist"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:docs/STATUS.md",
+      "type": "document",
+      "name": "STATUS.md",
+      "filePath": "docs/STATUS.md",
+      "summary": "Reverse-chronological status log from 2026-08-23 to 2026-09-24 recording what was built, decisions and their reasons, defects found (ffmpeg traps, loudness, wrong API key, Meta security checks), verification numbers and open problems for each work session.",
+      "tags": ["documentation", "changelog", "status-log", "decisions", "known-issues"],
+      "complexity": "complex"
+    }
+  ],
+  "edges": [
+    {"source": "document:docs/ARCHITECTURE.md", "target": "file:src/lib/recorder.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/ARCHITECTURE.md", "target": "file:src/lib/browser.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/ARCHITECTURE.md", "target": "file:src/lib/compose.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/ARCHITECTURE.md", "target": "file:src/lib/tts.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/ARCHITECTURE.md", "target": "file:src/lib/zoom.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/ARCHITECTURE.md", "target": "file:src/lib/emphasis.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/ARCHITECTURE.md", "target": "file:src/lib/motion.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/ARCHITECTURE.md", "target": "file:src/lib/totp.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/ARCHITECTURE.md", "target": "file:src/lib/session-import.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/ARCHITECTURE.md", "target": "file:src/tools/actions.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/ARCHITECTURE.md", "target": "file:scripts/split-music.mjs", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/ARCHITECTURE.md", "target": "file:assets/motion/opening.html", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/ARCHITECTURE.md", "target": "file:assets/motion/chapter.html", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/ARCHITECTURE.md", "target": "file:assets/motion/closing.html", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/ARCHITECTURE.md", "target": "document:README.md", "type": "related", "direction": "forward", "weight": 0.5},
+
+    {"source": "document:docs/PLAN.md", "target": "file:src/lib/env.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/PLAN.md", "target": "file:src/cli/doctor.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/PLAN.md", "target": "file:src/cli/login.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/PLAN.md", "target": "file:src/lib/browser.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/PLAN.md", "target": "file:src/lib/recorder.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/PLAN.md", "target": "file:src/lib/heartbeat.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/PLAN.md", "target": "file:src/lib/session.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/PLAN.md", "target": "file:src/lib/tts.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/PLAN.md", "target": "file:src/index.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/PLAN.md", "target": "file:src/lib/avatar.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/PLAN.md", "target": "file:src/lib/totp.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/PLAN.md", "target": "file:src/lib/motion.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/PLAN.md", "target": "file:scripts/handshake.mjs", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/PLAN.md", "target": "file:scripts/e2e.mjs", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/PLAN.md", "target": "file:scripts/record.mjs", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/PLAN.md", "target": "file:scripts/recompose.mjs", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/PLAN.md", "target": "document:README.md", "type": "related", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/PLAN.md", "target": "document:docs/STATUS.md", "type": "related", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/PLAN.md", "target": "document:docs/ARCHITECTURE.md", "type": "related", "direction": "forward", "weight": 0.5},
+
+    {"source": "document:docs/STATUS.md", "target": "file:scripts/e2e.mjs", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/STATUS.md", "target": "file:scripts/handshake.mjs", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/STATUS.md", "target": "file:scripts/recompose.mjs", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/STATUS.md", "target": "file:scripts/split-music.mjs", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/STATUS.md", "target": "file:scripts/record.mjs", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/STATUS.md", "target": "file:scripts/live-run.mjs", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/STATUS.md", "target": "file:src/lib/emphasis.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/STATUS.md", "target": "file:src/lib/zoom.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/STATUS.md", "target": "file:src/cli/doctor.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/STATUS.md", "target": "file:src/cli/login.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/STATUS.md", "target": "file:src/lib/session-import.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:docs/STATUS.md", "target": "document:README.md", "type": "related", "direction": "forward", "weight": 0.5}
+  ]
+}

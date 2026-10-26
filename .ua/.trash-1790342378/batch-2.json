@@ -1,0 +1,1277 @@
+{
+  "nodes": [
+    {
+      "id": "file:src/index.ts",
+      "type": "file",
+      "name": "index.ts",
+      "filePath": "src/index.ts",
+      "summary": "Stdio entry point of the MCP server: loads configuration, registers the recording, action and setup tool groups, and cancels any live recording session on shutdown signals.",
+      "tags": [
+        "entry-point",
+        "mcp-server",
+        "bootstrap",
+        "lifecycle"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/index.ts:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "src/index.ts",
+      "lineRange": [
+        21,
+        87
+      ],
+      "summary": "Creates the McpServer, registers all tool groups, installs SIGINT/SIGTERM cleanup that cancels the active recording session, and connects the stdio transport.",
+      "tags": [
+        "entry-point",
+        "bootstrap",
+        "signal-handling"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/lib/emphasis.ts",
+      "type": "file",
+      "name": "emphasis.ts",
+      "filePath": "src/lib/emphasis.ts",
+      "summary": "Viewer-guidance layer drawn into the Playwright screencast overlay: spotlight rings, instruction callouts with arrows, click ripples and a hand-off banner, all without modifying the recorded page.",
+      "tags": [
+        "utility",
+        "overlay",
+        "visual-emphasis",
+        "playwright",
+        "tutorial"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Uses page.screencast.showOverlay with generated HTML/CSS strings so annotations live in the capture layer rather than the DOM of the app under test."
+    },
+    {
+      "id": "function:src/lib/emphasis.ts:padded",
+      "type": "function",
+      "name": "padded",
+      "filePath": "src/lib/emphasis.ts",
+      "lineRange": [
+        30,
+        39
+      ],
+      "summary": "Grows a bounding box by a padding margin and clamps it to the viewport.",
+      "tags": [
+        "utility",
+        "geometry"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/emphasis.ts:ringMarkup",
+      "type": "function",
+      "name": "ringMarkup",
+      "filePath": "src/lib/emphasis.ts",
+      "lineRange": [
+        42,
+        64
+      ],
+      "summary": "Builds the CSS and HTML for a rounded highlight ring that dims everything outside the target box.",
+      "tags": [
+        "utility",
+        "overlay",
+        "markup"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/emphasis.ts:spotlight",
+      "type": "function",
+      "name": "spotlight",
+      "filePath": "src/lib/emphasis.ts",
+      "lineRange": [
+        73,
+        84
+      ],
+      "summary": "Shows a timed spotlight ring around a target element in the screencast overlay, logging instead of failing when the overlay is unavailable.",
+      "tags": [
+        "overlay",
+        "visual-emphasis"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/emphasis.ts:readingTimeMs",
+      "type": "function",
+      "name": "readingTimeMs",
+      "filePath": "src/lib/emphasis.ts",
+      "lineRange": [
+        87,
+        90
+      ],
+      "summary": "Estimates how long an instruction text needs to stay on screen from its word count, clamped to a sensible range.",
+      "tags": [
+        "utility",
+        "timing"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/emphasis.ts:instructionLayout",
+      "type": "function",
+      "name": "instructionLayout",
+      "filePath": "src/lib/emphasis.ts",
+      "lineRange": [
+        121,
+        152
+      ],
+      "summary": "Computes where an instruction callout goes relative to the target box (above, below or beside) so it fits within the viewport.",
+      "tags": [
+        "layout",
+        "geometry",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/lib/emphasis.ts:instruct",
+      "type": "function",
+      "name": "instruct",
+      "filePath": "src/lib/emphasis.ts",
+      "lineRange": [
+        154,
+        215
+      ],
+      "summary": "Renders an instruction callout with an arrow pointing to the highlighted target, sized and timed from the text, as a screencast overlay.",
+      "tags": [
+        "overlay",
+        "visual-emphasis",
+        "tutorial"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/lib/emphasis.ts:showHandoffBanner",
+      "type": "function",
+      "name": "showHandoffBanner",
+      "filePath": "src/lib/emphasis.ts",
+      "lineRange": [
+        232,
+        259
+      ],
+      "summary": "Injects a fixed yellow banner into the page telling the person what manual step (e.g. a security check) they must complete in the recorded browser.",
+      "tags": [
+        "overlay",
+        "handoff",
+        "dom-injection"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/emphasis.ts:clearHandoffBanner",
+      "type": "function",
+      "name": "clearHandoffBanner",
+      "filePath": "src/lib/emphasis.ts",
+      "lineRange": [
+        261,
+        267
+      ],
+      "summary": "Removes the hand-off banner from the page once the manual step is done.",
+      "tags": [
+        "handoff",
+        "dom-injection",
+        "cleanup"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/emphasis.ts:ripple",
+      "type": "function",
+      "name": "ripple",
+      "filePath": "src/lib/emphasis.ts",
+      "lineRange": [
+        276,
+        295
+      ],
+      "summary": "Draws a short expanding ripple at a click position in the screencast overlay.",
+      "tags": [
+        "overlay",
+        "animation",
+        "visual-emphasis"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/foreground.ts",
+      "type": "file",
+      "name": "foreground.ts",
+      "filePath": "src/lib/foreground.ts",
+      "summary": "Brings the recorder browser window to the foreground on Windows via a generated PowerShell script (with a synthetic Alt keypress) so manual security checks are answered in the recorded browser.",
+      "tags": [
+        "utility",
+        "windows",
+        "powershell",
+        "window-management"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Works around the Windows SetForegroundWindow restriction by writing a PowerShell script to a temp file and running it with execFile rather than -Command."
+    },
+    {
+      "id": "function:src/lib/foreground.ts:raiseWindow",
+      "type": "function",
+      "name": "raiseWindow",
+      "filePath": "src/lib/foreground.ts",
+      "lineRange": [
+        75,
+        91
+      ],
+      "summary": "Raises the window whose title contains the given fragment and reports whether it succeeded, logging failures instead of throwing.",
+      "tags": [
+        "window-management",
+        "windows",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/logger.ts",
+      "type": "file",
+      "name": "logger.ts",
+      "filePath": "src/lib/logger.ts",
+      "summary": "Minimal structured logger that writes leveled messages with JSON-serialised extras to stderr, keeping stdout free for the MCP stdio protocol.",
+      "tags": [
+        "utility",
+        "logging",
+        "singleton"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/recorder.ts",
+      "type": "file",
+      "name": "recorder.ts",
+      "filePath": "src/lib/recorder.ts",
+      "summary": "Wraps Playwright page.screencast to record a page to webm, capturing the first-frame wall-clock origin that all narration cue offsets are measured against.",
+      "tags": [
+        "service",
+        "screen-recording",
+        "playwright",
+        "synchronization"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:src/lib/recorder.ts:Recorder",
+      "type": "class",
+      "name": "Recorder",
+      "filePath": "src/lib/recorder.ts",
+      "lineRange": [
+        31,
+        134
+      ],
+      "summary": "Starts and stops a screencast capture, tracks first/last frame times and frame count, converts wall-clock to video time, and shows chapter captions.",
+      "tags": [
+        "screen-recording",
+        "service",
+        "timing"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/lib/session.ts",
+      "type": "file",
+      "name": "session.ts",
+      "filePath": "src/lib/session.ts",
+      "summary": "Central recording session state: owns the browsers and their recorders, narration cues, chapters, zoom events and on-air stretches across browser cuts, and exposes a single global active session.",
+      "tags": [
+        "service",
+        "state-management",
+        "recording-session",
+        "singleton",
+        "core"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Keeps one continuous capture per browser and tracks on-air intervals instead of restarting screencasts, because restarted captures begin with stale frames."
+    },
+    {
+      "id": "class:src/lib/session.ts:RecordingSession",
+      "type": "class",
+      "name": "RecordingSession",
+      "filePath": "src/lib/session.ts",
+      "lineRange": [
+        147,
+        541
+      ],
+      "summary": "Coordinates a multi-browser recording: opens and switches browsers, records cues and chapters, manages off-camera work and zoom focus, stops captures into on-air segments and writes the timeline file.",
+      "tags": [
+        "service",
+        "state-management",
+        "recording-session",
+        "orchestration"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/lib/session.ts:getSession",
+      "type": "function",
+      "name": "getSession",
+      "filePath": "src/lib/session.ts",
+      "lineRange": [
+        546,
+        548
+      ],
+      "summary": "Returns the current active recording session, if any.",
+      "tags": [
+        "singleton",
+        "accessor"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/session.ts:requireSession",
+      "type": "function",
+      "name": "requireSession",
+      "filePath": "src/lib/session.ts",
+      "lineRange": [
+        550,
+        555
+      ],
+      "summary": "Returns the active recording session or throws a clear error telling the caller to start a recording first.",
+      "tags": [
+        "singleton",
+        "accessor",
+        "validation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/session.ts:setSession",
+      "type": "function",
+      "name": "setSession",
+      "filePath": "src/lib/session.ts",
+      "lineRange": [
+        557,
+        559
+      ],
+      "summary": "Sets or clears the global active recording session.",
+      "tags": [
+        "singleton",
+        "mutator"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/totp.ts",
+      "type": "file",
+      "name": "totp.ts",
+      "filePath": "src/lib/totp.ts",
+      "summary": "RFC 6238 TOTP implementation that generates two-factor codes from a base32 secret read from an environment variable, so recordings can sign in without a person.",
+      "tags": [
+        "utility",
+        "security",
+        "authentication",
+        "totp"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/lib/totp.ts:decodeBase32",
+      "type": "function",
+      "name": "decodeBase32",
+      "filePath": "src/lib/totp.ts",
+      "lineRange": [
+        19,
+        37
+      ],
+      "summary": "Decodes an authenticator secret in base32 (spaces, dashes, padding and any case allowed) into raw bytes, rejecting invalid characters.",
+      "tags": [
+        "utility",
+        "encoding",
+        "security"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/totp.ts:totp",
+      "type": "function",
+      "name": "totp",
+      "filePath": "src/lib/totp.ts",
+      "lineRange": [
+        40,
+        62
+      ],
+      "summary": "Computes a time-based one-time password with HMAC-SHA1 and dynamic truncation for a given time, step and digit count.",
+      "tags": [
+        "security",
+        "authentication",
+        "crypto"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/totp.ts:secondsLeft",
+      "type": "function",
+      "name": "secondsLeft",
+      "filePath": "src/lib/totp.ts",
+      "lineRange": [
+        65,
+        67
+      ],
+      "summary": "Returns how many seconds the current TOTP code remains valid.",
+      "tags": [
+        "utility",
+        "timing"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/totp.ts:currentCode",
+      "type": "function",
+      "name": "currentCode",
+      "filePath": "src/lib/totp.ts",
+      "lineRange": [
+        75,
+        87
+      ],
+      "summary": "Returns the current code for the secret in a named environment variable, waiting for the next code when the current one is about to expire.",
+      "tags": [
+        "security",
+        "authentication",
+        "environment"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/zoom.ts",
+      "type": "file",
+      "name": "zoom.ts",
+      "filePath": "src/lib/zoom.ts",
+      "summary": "Virtual camera zoom: turns zoom intents recorded during capture into a single time-exact ffmpeg zoompan expression with eased transitions, applied after recording so the app is never rescaled.",
+      "tags": [
+        "utility",
+        "ffmpeg",
+        "video-effects",
+        "camera-zoom"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Builds nested ffmpeg if() expressions (piecewise over output time `ot`) as strings rather than running per-frame code."
+    },
+    {
+      "id": "function:src/lib/zoom.ts:zoomForBox",
+      "type": "function",
+      "name": "zoomForBox",
+      "filePath": "src/lib/zoom.ts",
+      "lineRange": [
+        69,
+        77
+      ],
+      "summary": "Chooses a zoom scale that frames a target box within the viewport, bounded by the maximum zoom.",
+      "tags": [
+        "geometry",
+        "camera-zoom",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/zoom.ts:boxContains",
+      "type": "function",
+      "name": "boxContains",
+      "filePath": "src/lib/zoom.ts",
+      "lineRange": [
+        80,
+        91
+      ],
+      "summary": "Checks whether a point lies within a rectangle, with an optional margin, to decide if the current zoom already covers a target.",
+      "tags": [
+        "geometry",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/zoom.ts:buildZoomFilter",
+      "type": "function",
+      "name": "buildZoomFilter",
+      "filePath": "src/lib/zoom.ts",
+      "lineRange": [
+        129,
+        195
+      ],
+      "summary": "Converts sorted zoom events into zoom-in/hold/zoom-out phases and emits the zoompan filter string with eased zoom and centre expressions.",
+      "tags": [
+        "ffmpeg",
+        "filter-builder",
+        "camera-zoom",
+        "animation"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/tools/actions.ts",
+      "type": "file",
+      "name": "actions.ts",
+      "filePath": "src/tools/actions.ts",
+      "summary": "Registers the in-recording browser action MCP tools (goto, switch, click, type, press, scroll, wait, handoff, snapshot, screenshot, highlight, zoom), each highlighting its target and driving the active session.",
+      "tags": [
+        "api-handler",
+        "mcp-tools",
+        "browser-automation",
+        "playwright",
+        "validation"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Tool input schemas are declared with zod chains (min/max/default/describe), which double as the tool documentation shown to the MCP client."
+    },
+    {
+      "id": "function:src/tools/actions.ts:matchAll",
+      "type": "function",
+      "name": "matchAll",
+      "filePath": "src/tools/actions.ts",
+      "lineRange": [
+        59,
+        68
+      ],
+      "summary": "Resolves a target description to a Playwright locator by CSS selector, ARIA role and name, or visible text.",
+      "tags": [
+        "locator",
+        "browser-automation",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/tools/actions.ts:prepareTarget",
+      "type": "function",
+      "name": "prepareTarget",
+      "filePath": "src/tools/actions.ts",
+      "lineRange": [
+        93,
+        127
+      ],
+      "summary": "Scrolls a target into view, zooms the virtual camera onto it and shows either an instruction callout or a spotlight before the action happens.",
+      "tags": [
+        "visual-emphasis",
+        "browser-automation",
+        "tutorial"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/tools/actions.ts:registerActionTools",
+      "type": "function",
+      "name": "registerActionTools",
+      "filePath": "src/tools/actions.ts",
+      "lineRange": [
+        129,
+        768
+      ],
+      "summary": "Registers all twelve tutorial action tools on the MCP server, including TOTP code typing, human hand-off with window raising and banner, and aria snapshots for target discovery.",
+      "tags": [
+        "api-handler",
+        "mcp-tools",
+        "registration",
+        "browser-automation"
+      ],
+      "complexity": "complex"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:src/index.ts",
+      "target": "function:src/index.ts:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:padded",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:ringMarkup",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:spotlight",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:spotlight",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:readingTimeMs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:readingTimeMs",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:instructionLayout",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:instructionLayout",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:instruct",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:instruct",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:showHandoffBanner",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:showHandoffBanner",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:clearHandoffBanner",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:clearHandoffBanner",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:ripple",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "function:src/lib/emphasis.ts:ripple",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/emphasis.ts:spotlight",
+      "target": "function:src/lib/emphasis.ts:ringMarkup",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/emphasis.ts:spotlight",
+      "target": "function:src/lib/emphasis.ts:padded",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/emphasis.ts:instructionLayout",
+      "target": "function:src/lib/emphasis.ts:padded",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/emphasis.ts:instruct",
+      "target": "function:src/lib/emphasis.ts:readingTimeMs",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/emphasis.ts:instruct",
+      "target": "function:src/lib/emphasis.ts:instructionLayout",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/emphasis.ts:instruct",
+      "target": "function:src/lib/emphasis.ts:ringMarkup",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/foreground.ts",
+      "target": "function:src/lib/foreground.ts:raiseWindow",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/foreground.ts",
+      "target": "function:src/lib/foreground.ts:raiseWindow",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/recorder.ts",
+      "target": "class:src/lib/recorder.ts:Recorder",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/recorder.ts",
+      "target": "class:src/lib/recorder.ts:Recorder",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "class:src/lib/session.ts:RecordingSession",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "class:src/lib/session.ts:RecordingSession",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "function:src/lib/session.ts:getSession",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "function:src/lib/session.ts:getSession",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "function:src/lib/session.ts:requireSession",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "function:src/lib/session.ts:requireSession",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "function:src/lib/session.ts:setSession",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "function:src/lib/session.ts:setSession",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "class:src/lib/session.ts:RecordingSession",
+      "target": "function:src/lib/browser.ts:launchBrowser",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "class:src/lib/session.ts:RecordingSession",
+      "target": "function:src/lib/env.ts:slugify",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "class:src/lib/session.ts:RecordingSession",
+      "target": "function:src/lib/zoom.ts:zoomForBox",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "class:src/lib/session.ts:RecordingSession",
+      "target": "function:src/lib/zoom.ts:boxContains",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "class:src/lib/session.ts:RecordingSession",
+      "target": "class:src/lib/recorder.ts:Recorder",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/lib/totp.ts",
+      "target": "function:src/lib/totp.ts:decodeBase32",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/totp.ts",
+      "target": "function:src/lib/totp.ts:decodeBase32",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/totp.ts",
+      "target": "function:src/lib/totp.ts:totp",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/totp.ts",
+      "target": "function:src/lib/totp.ts:totp",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/totp.ts",
+      "target": "function:src/lib/totp.ts:secondsLeft",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/totp.ts",
+      "target": "function:src/lib/totp.ts:secondsLeft",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/totp.ts",
+      "target": "function:src/lib/totp.ts:currentCode",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/totp.ts",
+      "target": "function:src/lib/totp.ts:currentCode",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/totp.ts:totp",
+      "target": "function:src/lib/totp.ts:decodeBase32",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/totp.ts:currentCode",
+      "target": "function:src/lib/totp.ts:secondsLeft",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/totp.ts:currentCode",
+      "target": "function:src/lib/totp.ts:totp",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/zoom.ts",
+      "target": "function:src/lib/zoom.ts:zoomForBox",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/zoom.ts",
+      "target": "function:src/lib/zoom.ts:zoomForBox",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/zoom.ts",
+      "target": "function:src/lib/zoom.ts:boxContains",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/zoom.ts",
+      "target": "function:src/lib/zoom.ts:boxContains",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/zoom.ts",
+      "target": "function:src/lib/zoom.ts:buildZoomFilter",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/zoom.ts",
+      "target": "function:src/lib/zoom.ts:buildZoomFilter",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/tools/actions.ts",
+      "target": "function:src/tools/actions.ts:matchAll",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/tools/actions.ts",
+      "target": "function:src/tools/actions.ts:prepareTarget",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/tools/actions.ts",
+      "target": "function:src/tools/actions.ts:registerActionTools",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/tools/actions.ts",
+      "target": "function:src/tools/actions.ts:registerActionTools",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/actions.ts:prepareTarget",
+      "target": "function:src/lib/emphasis.ts:instruct",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/actions.ts:prepareTarget",
+      "target": "function:src/lib/emphasis.ts:spotlight",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/actions.ts:registerActionTools",
+      "target": "function:src/tools/actions.ts:matchAll",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/actions.ts:registerActionTools",
+      "target": "function:src/tools/actions.ts:prepareTarget",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/actions.ts:registerActionTools",
+      "target": "function:src/lib/session.ts:requireSession",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/actions.ts:registerActionTools",
+      "target": "function:src/lib/emphasis.ts:ripple",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/actions.ts:registerActionTools",
+      "target": "function:src/lib/totp.ts:currentCode",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/actions.ts:registerActionTools",
+      "target": "function:src/lib/foreground.ts:raiseWindow",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/actions.ts:registerActionTools",
+      "target": "function:src/lib/emphasis.ts:showHandoffBanner",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/actions.ts:registerActionTools",
+      "target": "function:src/lib/emphasis.ts:clearHandoffBanner",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/actions.ts:registerActionTools",
+      "target": "function:src/lib/emphasis.ts:instruct",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/tools/actions.ts:registerActionTools",
+      "target": "function:src/lib/emphasis.ts:spotlight",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/index.ts:main",
+      "target": "function:src/lib/env.ts:loadConfig",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/index.ts:main",
+      "target": "function:src/tools/recording.ts:registerRecordingTools",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/index.ts:main",
+      "target": "function:src/tools/setup.ts:registerSetupTools",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/index.ts:main",
+      "target": "function:src/tools/actions.ts:registerActionTools",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/index.ts:main",
+      "target": "function:src/lib/session.ts:getSession",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/index.ts:main",
+      "target": "function:src/lib/session.ts:setSession",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/index.ts",
+      "target": "file:src/lib/env.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/index.ts",
+      "target": "file:src/lib/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/index.ts",
+      "target": "file:src/lib/session.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/index.ts",
+      "target": "file:src/tools/actions.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/index.ts",
+      "target": "file:src/tools/recording.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/index.ts",
+      "target": "file:src/tools/setup.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/emphasis.ts",
+      "target": "file:src/lib/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/foreground.ts",
+      "target": "file:src/lib/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/recorder.ts",
+      "target": "file:src/lib/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "file:src/lib/browser.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "file:src/lib/compose.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "file:src/lib/env.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "file:src/lib/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "file:src/lib/motion.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "file:src/lib/recorder.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/session.ts",
+      "target": "file:src/lib/zoom.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/tools/actions.ts",
+      "target": "file:src/lib/emphasis.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/tools/actions.ts",
+      "target": "file:src/lib/foreground.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/tools/actions.ts",
+      "target": "file:src/lib/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/tools/actions.ts",
+      "target": "file:src/lib/session.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/tools/actions.ts",
+      "target": "file:src/lib/totp.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    }
+  ]
+}

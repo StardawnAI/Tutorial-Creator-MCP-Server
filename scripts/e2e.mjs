@@ -14,7 +14,7 @@ import path from 'node:path'
 import os from 'node:os'
 import { pathToFileURL } from 'node:url'
 
-import { loadConfig } from '../dist/lib/env.js'
+import { loadConfig, requireFfmpeg } from '../dist/lib/env.js'
 import { RecordingSession } from '../dist/lib/session.js'
 import {
   AVATAR_SIZE,
@@ -31,10 +31,12 @@ import { fillTemplate, motionAvailability, renderMotion } from '../dist/lib/moti
 import { hostOf, stageComposition, stageLayout } from '../dist/lib/stage.js'
 import { spotlight, ripple, instruct, instructionLayout, keycaps } from '../dist/lib/emphasis.js'
 import { probeVideo, run } from '../dist/lib/ffmpeg.js'
+import { buildZoomFilter } from '../dist/lib/zoom.js'
 import { musicPrompt } from '../dist/lib/music-gen.js'
-import { launchBrowser } from '../dist/lib/browser.js'
+import { launchBrowser, openInThisTab } from '../dist/lib/browser.js'
 import { createDetector, describePrivacy } from '../dist/lib/privacy.js'
 import { currentCode, secondsLeft, totp } from '../dist/lib/totp.js'
+import { framingBox, openOverlays, settleCamera, settleLastAction } from '../dist/lib/scene.js'
 
 const OUT_W = 1280
 const OUT_H = 720
@@ -1086,6 +1088,121 @@ async function overlaysUnderTrustedTypes(config) {
 }
 
 /**
+ * The camera follows the scene, not just the next button.
+ *
+ * Rebuilds the case that cut a confirmation in half in a real recording: a menu at the
+ * right edge of a post, whose "Delete post" opens a dialog in the middle of the page.
+ * The dialog's own Delete button lands inside the frame the camera took for the menu,
+ * so a camera that only asks "is the next button in frame?" stays put and crops the
+ * dialog. Driven through the same scene.ts calls tutorial_click makes.
+ */
+const SCENE_PAGE = `<!doctype html><meta charset="utf-8"><title>Posts</title>
+<style>
+ body{margin:0;font:16px system-ui,sans-serif;background:#0f172a;color:#e2e8f0}
+ .post{position:absolute;left:40px;right:40px;top:120px;height:180px;background:#1e293b;border-radius:12px;padding:24px}
+ #more{position:absolute;right:60px;top:140px;width:80px;height:36px}
+ [role=menu]{position:absolute;right:60px;top:182px;width:170px;background:#334155;border-radius:8px;padding:6px}
+ [role=menuitem]{display:block;width:100%;padding:8px;background:none;color:#fff;border:0;text-align:left}
+ [role=dialog]{position:absolute;left:440px;top:180px;width:400px;height:180px;background:#1e293b;border:1px solid #475569;border-radius:12px;padding:20px}
+ #keep{position:absolute;right:120px;bottom:20px} #confirm{position:absolute;right:20px;bottom:20px}
+ [hidden]{display:none!important}
+</style>
+<div class="post">InStar now answers our Messenger and Instagram messages, day and night.</div>
+<button id="more">More</button>
+<div role="menu" hidden><button role="menuitem" id="del">Delete post</button></div>
+<div role="dialog" hidden><h2>Delete this post?</h2><p>It disappears for everyone.</p>
+ <button id="keep">Keep it</button><button id="confirm">Delete</button></div>
+<script>
+ const menu = document.querySelector('[role=menu]'), dialog = document.querySelector('[role=dialog]')
+ more.onclick = () => { menu.hidden = false }
+ del.onclick = () => { menu.hidden = true; dialog.hidden = false }
+ // Not the bare id: "confirm" is window.confirm, so the handler would never reach the button.
+ document.getElementById('confirm').onclick = () => { dialog.hidden = true; document.querySelector('.post').remove() }
+</script>`
+
+async function cameraFollowsTheScene(config) {
+  process.stdout.write('\nThe camera follows the scene...\n')
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'tutorial-scene-'))
+  const pageFile = path.join(tmp, 'posts.html')
+  fs.writeFileSync(pageFile, SCENE_PAGE)
+  const session = await RecordingSession.start(config, {
+    title: 'E2E Scene',
+    profile: 'e2e-scene',
+    fresh: true,
+    width: 1280,
+    height: 720,
+    headless: true,
+    deviceScaleFactor: 1,
+    voiceId: config.defaultVoiceId,
+    modelId: config.defaultModelId,
+    music: null,
+    musicGainDb: 0,
+    showActions: false,
+    quality: 90,
+    emphasis: false,
+    autoZoom: true,
+  }, pathToFileURL(pageFile).href)
+
+  const inside = (outer, box) =>
+    box.x >= outer.x && box.y >= outer.y &&
+    box.x + box.width <= outer.x + outer.width && box.y + box.height <= outer.y + outer.height
+
+  /** tutorial_click's camera handling, without the MCP server around it. */
+  async function click(selector) {
+    const page = session.page
+    const locator = page.locator(selector)
+    const box = await locator.boundingBox()
+    await settleLastAction(session)
+    session.focusOn(await framingBox(locator, box), selector)
+    const before = { overlays: (await openOverlays(page)).length, acted: locator }
+    await locator.click()
+    await page.waitForTimeout(300)
+    await settleCamera(session, before)
+    await page.waitForTimeout(300)
+    await settleCamera(session, before)
+    session.lastAction = session.isZoomed ? before : null
+  }
+
+  try {
+    await click('#more')
+    check('the camera moved in on a small button at the edge', session.isZoomed, `${session.cameraFrame?.scale.toFixed(2)}x`)
+    check('a menu dropping open under its button keeps the shot', session.isZoomed)
+
+    const menuFrame = session.cameraFrame
+    await click('#del')
+    const dialog = await session.page.locator('[role=dialog]').boundingBox()
+    const confirmBox = await session.page.locator('#confirm').boundingBox()
+    // The trap this rebuilds: the next button is inside the old frame, the dialog is not.
+    check(
+      'the test page reproduces the crop',
+      menuFrame !== null && inside(menuFrame, confirmBox) && !inside(menuFrame, dialog),
+      menuFrame ? `frame x ${Math.round(menuFrame.x)}-${Math.round(menuFrame.x + menuFrame.width)}, dialog x ${Math.round(dialog.x)}-${Math.round(dialog.x + dialog.width)}` : 'no frame',
+    )
+    check('a confirmation opening mid-page pulls the camera out', !session.isZoomed)
+
+    const frameForConfirm = await framingBox(session.page.locator('#confirm'), confirmBox)
+    check(
+      "a button in a dialog is framed with the whole dialog",
+      inside(frameForConfirm, dialog),
+      `${Math.round(frameForConfirm.width)}x${Math.round(frameForConfirm.height)} framed for a ${Math.round(confirmBox.width)}px button`,
+    )
+    session.focusOn(frameForConfirm, '#confirm')
+    check(
+      'the camera shows all of that dialog',
+      session.cameraFrame === null || inside(session.cameraFrame, dialog),
+      session.cameraFrame ? `${session.cameraFrame.scale.toFixed(2)}x` : 'stayed wide',
+    )
+
+    await click('#confirm')
+    check('closing the dialog pulls the camera out', !session.isZoomed)
+  } finally {
+    if (!session.isFinished) await session.cancel().catch(() => {})
+    fs.rmSync(session.outputDir, { recursive: true, force: true })
+    fs.rmSync(tmp, { recursive: true, force: true })
+  }
+}
+
+/**
  * What a bot check reads, and the two-factor codes typed into one.
  *
  * Both are things that silently stop working: a Playwright release that puts the
@@ -1159,6 +1276,68 @@ async function botAndTwoFactor(config) {
   )
 }
 
+/**
+ * A "View on Instagram" link opens a new tab, which a recording of one tab never shows.
+ * sameTab on tutorial_click keeps it in the tab being filmed.
+ */
+async function linkStaysInTheTab() {
+  process.stdout.write('\nA new-tab link stays in the filmed tab...\n')
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'tutorial-tab-'))
+  fs.writeFileSync(path.join(tmp, 'native.html'), '<!doctype html><title>Native</title><h1>The post itself</h1>')
+  fs.writeFileSync(
+    path.join(tmp, 'app.html'),
+    '<!doctype html><title>App</title><a id="view" href="native.html" target="_blank" rel="noreferrer">View on Instagram</a>',
+  )
+  const { context, page } = await launchBrowser(loadConfig(), {
+    fresh: true,
+    width: 800,
+    height: 600,
+    headless: true,
+    deviceScaleFactor: 1,
+  })
+  try {
+    await page.goto(pathToFileURL(path.join(tmp, 'app.html')).href)
+    const link = page.locator('#view')
+    await openInThisTab(link)
+    await link.click()
+    await page.waitForURL(/native\.html$/, { timeout: 5000 }).catch(() => {})
+    check('the link opened in the same tab', page.url().endsWith('native.html'), page.url())
+    check('no second tab appeared', context.pages().length === 1, `${context.pages().length} tab(s)`)
+  } finally {
+    await context.close()
+    fs.rmSync(tmp, { recursive: true, force: true })
+  }
+}
+
+/**
+ * A long recording has many camera moves. ffmpeg refuses an expression nested more than
+ * about a hundred levels deep, which a nested if chain reached at some 25 moves.
+ */
+async function manyCameraMoves(config) {
+  process.stdout.write('\nA recording with many camera moves still renders...\n')
+  const events = Array.from({ length: 60 }, (_, i) => ({
+    atMs: i * 3000,
+    releaseMs: i * 3000 + 1500,
+    scale: 1.75,
+    centerX: 200 + (i % 5) * 50,
+    centerY: 120,
+  }))
+  const filter = buildZoomFilter(events, {
+    rampMs: 700,
+    viewportWidth: 640,
+    viewportHeight: 360,
+    outputWidth: 320,
+    outputHeight: 180,
+    fps: 25,
+  })
+  check('sixty moves give one zoompan filter', typeof filter === 'string' && filter.startsWith('zoompan='))
+  const ok = await run(requireFfmpeg(config), [
+    '-hide_banner', '-loglevel', 'error', '-f', 'lavfi',
+    '-i', 'testsrc=size=640x360:rate=25:duration=4', '-vf', filter, '-f', 'null', '-',
+  ]).then(() => true, err => (process.stdout.write(`${String(err.message).slice(-400)}\n`), false))
+  check('ffmpeg accepts and runs it', ok)
+}
+
 /** The parts that run on their own: `node scripts/e2e.mjs privacy`. */
 const SECTIONS = {
   'two-browsers': twoBrowsers,
@@ -1168,6 +1347,9 @@ const SECTIONS = {
   privacy: privacyCheck,
   'trusted-types': overlaysUnderTrustedTypes,
   bot: botAndTwoFactor,
+  scene: cameraFollowsTheScene,
+  'same-tab': linkStaysInTheTab,
+  'camera-moves': manyCameraMoves,
 }
 
 async function main() {
@@ -1608,6 +1790,9 @@ async function main() {
   await privacyCheck(config)
   await overlaysUnderTrustedTypes(config)
   await botAndTwoFactor(config)
+  await cameraFollowsTheScene(config)
+  await linkStaysInTheTab()
+  await manyCameraMoves(config)
 
   const failed = results.filter(r => !r.ok)
   process.stdout.write(`\n${results.length - failed.length}/${results.length} checks passed\n`)

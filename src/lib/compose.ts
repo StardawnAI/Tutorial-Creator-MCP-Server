@@ -129,6 +129,15 @@ export interface ComposeResult {
   overlayCount: number
 }
 
+/**
+ * How long one full-length encode may take. A render of the stage, the camera and the cards
+ * runs at roughly real time here; the fixed fifteen minutes cut a seventeen-minute
+ * recording off just before it finished.
+ */
+function encodeTimeoutMs(videoSec: number): number {
+  return Math.max(15 * 60_000, Math.round(videoSec * 3 * 1000))
+}
+
 /** Seconds -> `HH:MM:SS,mmm` for SubRip. */
 function srtTime(ms: number): string {
   const total = Math.max(0, Math.round(ms))
@@ -827,9 +836,14 @@ export function bookendFilters(options: {
  * The recording set into its window on the stage - labelled `outLabel`.
  *
  * Three layers: the ground (still), the recording at the window's content area, and
- * the top layer (still) with the bar and the ground in the rounded corners. The stills
- * are looped inputs; the recording decides how long the result runs. Each top layer
- * after the first covers only its own stretch, which is how the bar follows the page.
+ * the top layer (still) with the bar and the ground in the rounded corners. Each still is
+ * decoded once and repeated by the `loop` filter; the recording decides how long the result
+ * runs. The bar follows the page: the first top layer lies under everything, and every
+ * other one is laid over it for its own stretches.
+ *
+ * One overlay per distinct top layer, not per stretch: a recording that goes back and forth
+ * between three sites had 24 stretches, and 24 full-frame stills each decoded 25 times a
+ * second held some 20 GB of queued frames before the first one was written.
  */
 export function stageFilters(options: {
   baseInput: number
@@ -838,21 +852,34 @@ export function stageFilters(options: {
   inLabel: string
   outLabel: string
 }): string[] {
+  const hold = (input: number, label: string) => `[${input}:v]loop=loop=-1:size=1[${label}]`
   const filters = [
-    `[${options.baseInput}:v][${options.inLabel}]overlay=${options.content.x}:${options.content.y}:` +
-      `shortest=1[stg0]`,
+    hold(options.baseInput, 'stgbase'),
+    `[stgbase][${options.inLabel}]overlay=${options.content.x}:${options.content.y}:shortest=1[stg0]`,
   ]
+
+  // The stretches of each distinct still, in the order the stills first appear.
+  const layers: Array<{ input: number; stretches: Array<{ fromMs: number; toMs: number }> }> = []
+  for (const top of options.tops) {
+    const layer = layers.find(l => l.input === top.input)
+    if (layer) layer.stretches.push(top)
+    else layers.push({ input: top.input, stretches: [top] })
+  }
+
   let previous = 'stg0'
-  options.tops.forEach((top, i) => {
-    const next = i === options.tops.length - 1 ? options.outLabel : `stg${i + 1}`
+  layers.forEach((layer, i) => {
+    const next = i === layers.length - 1 ? options.outLabel : `stg${i + 1}`
     const when =
       i === 0
         ? ''
-        : `:enable='between(t,${(top.fromMs / 1000).toFixed(3)},${(top.toMs / 1000).toFixed(3)})'`
-    filters.push(`[${previous}][${top.input}:v]overlay=0:0:shortest=1${when}[${next}]`)
+        : `:enable='${layer.stretches
+            .map(s => `between(t,${(s.fromMs / 1000).toFixed(3)},${(s.toMs / 1000).toFixed(3)})`)
+            .join('+')}'`
+    filters.push(hold(layer.input, `stgtop${i}`))
+    filters.push(`[${previous}][stgtop${i}]overlay=0:0:shortest=1${when}[${next}]`)
     previous = next
   })
-  if (options.tops.length === 0) filters.push(`[${previous}]null[${options.outLabel}]`)
+  if (layers.length === 0) filters.push(`[${previous}]null[${options.outLabel}]`)
   return filters
 }
 
@@ -978,9 +1005,14 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
     closingInput = nextInput++
   }
 
-  // The stage's stills, looped: they are frames of video for as long as the picture is.
+  // The stage's stills, one input per file: the loop filter turns each into frames of video
+  // for as long as the picture is.
+  const stills = new Map<string, number>()
   const still = (file: string) => {
-    args.push('-loop', '1', '-framerate', String(OUTPUT_FPS), '-i', file)
+    const known = stills.get(file)
+    if (known !== undefined) return known
+    args.push('-framerate', String(OUTPUT_FPS), '-i', file)
+    stills.set(file, nextInput)
     return nextInput++
   }
   const stage = options.stage
@@ -1131,7 +1163,7 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
     outputFile,
   )
 
-  await run(ffmpeg, args)
+  await run(ffmpeg, args, encodeTimeoutMs(totalSec))
 
   if (options.subtitles && cues.length > 0) {
     const srtFile = path.join(options.outputDir, 'captions.srt')
@@ -1195,7 +1227,7 @@ export async function compose(config: Config, options: ComposeOptions): Promise<
           '-c:a', 'copy', '-movflags', '+faststart',
           subbed,
         ],
-        15 * 60_000,
+        encodeTimeoutMs(totalSec),
         options.outputDir,
       ).catch(err => log.warn('Burning the captions failed; the plain mp4 is unaffected', err))
     } else {

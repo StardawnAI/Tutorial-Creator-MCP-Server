@@ -1,0 +1,47 @@
+{
+  "nodes": [
+    {
+      "id": "document:README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "README.md",
+      "summary": "Main project guide for the Tutorial Creator MCP server. Its 20 sections cover requirements (ffmpeg 7.x, ElevenLabs key), setup and transferring browser logins, registering with Claude Code, the tutorial_* tools, two-person videos, composed music, the HeyGen avatar, defended sign-ins, captions, cuts, HyperFrames cards, keeping secrets out of the video, configuration, output layout, and end-to-end verification.",
+      "tags": ["documentation", "entry-point", "overview", "setup-guide", "mcp"],
+      "complexity": "complex"
+    },
+    {
+      "id": "config:package.json",
+      "type": "config",
+      "name": "package.json",
+      "filePath": "package.json",
+      "summary": "npm manifest for the ESM package tutorial-creator-mcp-server. It sets dist/index.js as the bin and main entry, requires Node >=20, and defines the build, dev, start, typecheck, login and doctor scripts. Runtime dependencies are the MCP SDK, playwright-core and zod; gsap and hyperframes are optional, for the animated cards.",
+      "tags": ["configuration", "build-system", "dependencies", "npm", "entry-point"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:tsconfig.json",
+      "type": "config",
+      "name": "tsconfig.json",
+      "filePath": "tsconfig.json",
+      "summary": "TypeScript compiler configuration that compiles src/**/*.ts to dist for ES2022 with Node16 module resolution. It turns on strict mode plus noUncheckedIndexedAccess and noImplicitOverride, and emits source maps but no declarations.",
+      "tags": ["configuration", "typescript", "build-system", "compiler"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {"source": "document:README.md", "target": "file:src/index.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:README.md", "target": "file:src/tools/recording.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:README.md", "target": "file:src/tools/actions.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:README.md", "target": "file:src/tools/setup.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:README.md", "target": "file:src/cli/doctor.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:README.md", "target": "file:src/cli/login.ts", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:README.md", "target": "file:scripts/recompose.mjs", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:README.md", "target": "file:scripts/e2e.mjs", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:README.md", "target": "document:docs/ARCHITECTURE.md", "type": "related", "direction": "forward", "weight": 0.5},
+    {"source": "config:package.json", "target": "file:src/index.ts", "type": "configures", "direction": "forward", "weight": 0.6},
+    {"source": "config:package.json", "target": "file:src/cli/login.ts", "type": "configures", "direction": "forward", "weight": 0.6},
+    {"source": "config:package.json", "target": "file:src/cli/doctor.ts", "type": "configures", "direction": "forward", "weight": 0.6},
+    {"source": "config:package.json", "target": "config:tsconfig.json", "type": "depends_on", "direction": "forward", "weight": 0.6},
+    {"source": "config:tsconfig.json", "target": "file:src/index.ts", "type": "configures", "direction": "forward", "weight": 0.6}
+  ]
+}

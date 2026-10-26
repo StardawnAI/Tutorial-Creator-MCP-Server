@@ -1,0 +1,42 @@
+{
+  "nodes": [
+    {
+      "id": "config:examples/find-code-on-github.json",
+      "type": "config",
+      "name": "find-code-on-github.json",
+      "filePath": "examples/find-code-on-github.json",
+      "summary": "Example tutorial plan that records how to scope GitHub search to a single repository, exercising click, highlight, type and zoom actions with emphasis and auto-zoom enabled. Replayed step by step by scripts/record.mjs through the tutorial_* MCP tools.",
+      "tags": ["configuration", "example", "tutorial-script", "browser-automation", "narration"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "config:examples/overview.json",
+      "type": "config",
+      "name": "overview.json",
+      "filePath": "examples/overview.json",
+      "summary": "Example tutorial plan for a narrated product overview of the Tutorial Creator GitHub page, using a chapter card, text-anchored scrolls and a sequence of tutorial_say narration lines. Consumed by scripts/record.mjs as a start/steps/finish recording plan.",
+      "tags": ["configuration", "example", "tutorial-script", "narration", "documentation"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "config:examples/signed-in.json",
+      "type": "config",
+      "name": "signed-in.json",
+      "filePath": "examples/signed-in.json",
+      "summary": "Example tutorial plan that proves recording from a reused signed-in browser session by opening the GitHub profile settings page under the 'proof' profile and narrating over it. Consumed by scripts/record.mjs.",
+      "tags": ["configuration", "example", "tutorial-script", "authentication", "session-reuse"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {"source": "config:examples/find-code-on-github.json", "target": "file:scripts/record.mjs", "type": "configures", "direction": "forward", "weight": 0.6},
+    {"source": "config:examples/find-code-on-github.json", "target": "file:src/tools/actions.ts", "type": "related", "direction": "forward", "weight": 0.5},
+    {"source": "config:examples/find-code-on-github.json", "target": "file:src/tools/recording.ts", "type": "related", "direction": "forward", "weight": 0.5},
+    {"source": "config:examples/overview.json", "target": "file:scripts/record.mjs", "type": "configures", "direction": "forward", "weight": 0.6},
+    {"source": "config:examples/overview.json", "target": "file:src/tools/actions.ts", "type": "related", "direction": "forward", "weight": 0.5},
+    {"source": "config:examples/overview.json", "target": "file:src/tools/recording.ts", "type": "related", "direction": "forward", "weight": 0.5},
+    {"source": "config:examples/signed-in.json", "target": "file:scripts/record.mjs", "type": "configures", "direction": "forward", "weight": 0.6},
+    {"source": "config:examples/signed-in.json", "target": "file:src/tools/actions.ts", "type": "related", "direction": "forward", "weight": 0.5},
+    {"source": "config:examples/signed-in.json", "target": "file:src/tools/recording.ts", "type": "related", "direction": "forward", "weight": 0.5}
+  ]
+}
