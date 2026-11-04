@@ -315,6 +315,20 @@ machine, useless anywhere else. `IG_TOTP_SECRET_<PROFILE>` goes the same way for
 account with an authenticator. Chrome's own saved passwords cannot stand in: they are
 sealed against every other process, on purpose.
 
+**Two-factor code from the AWG vault.** When the site asks for a code and there is no
+`IG_TOTP_SECRET_<PROFILE>`, autologin asks AWG's hub for it (AWG's `lib/vault-signin.mjs`,
+found in `AWG_TOOLS_DIR`, default `C:\AWG\Github\StardawnAI\AI-Working-Ground\awg-tools`).
+The key never reaches this tool: it sits on the account's entry in the Bitwarden vault
+(collection "AWG Automation"; the entry's account must equal `IG_USERNAME_<PROFILE>`), the
+person puts it there once in the Bitwarden app or web vault in the field "Authenticator key
+(TOTP)", and the hub releases the current six digits for the site's own page. An entry the
+person marked "ask" waits for their Allow on Telegram. Anything missing (no entry, no key,
+hub unreachable) stops with a sentence saying what to do.
+
+**Account chooser.** A profile that was signed in once and out again shows "Continue as
+<name> / Use another profile" instead of the form. Autologin presses "Use another
+profile" (English and German) and never "Continue".
+
 ### Captions
 
 `tutorial_finish` writes `captions.srt` and a second file, `tutorial.subtitled.mp4`.

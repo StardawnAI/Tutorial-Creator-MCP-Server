@@ -43,6 +43,8 @@ import { autoconsentScript } from '../lib/privacy.js'
 import { readSecret, hasEncryptedSecret } from '../lib/secrets.js'
 import { raiseWindow } from '../lib/foreground.js'
 import { clearHandoffBanner, showHandoffBanner } from '../lib/emphasis.js'
+import { leaveAccountChooser } from '../lib/login-chooser.js'
+import { codeFromVault } from '../lib/vault-code.js'
 import type { Page } from 'playwright-core'
 
 interface SiteLogin {
@@ -221,6 +223,12 @@ async function main(): Promise<void> {
       return
     }
 
+    // A profile that was signed in once shows "Continue as <name> / Use another profile" instead of
+    // the form; "Use another profile" brings the form. Not a sign-in attempt, so before the guard.
+    if (await leaveAccountChooser(page, site.usernameSelector)) {
+      out(`${siteName} showed its account chooser - chose "another profile" to get the sign-in form.`)
+    }
+
     const userField = page.locator(site.usernameSelector).first()
     if ((await userField.count()) === 0) {
       // No login form and no session cookie: an interstitial or a layout change.
@@ -241,24 +249,27 @@ async function main(): Promise<void> {
     // A two-factor prompt is optional: only handled if the site actually shows it.
     if (site.totpSelector) {
       const totpField = page.locator(site.totpSelector).first()
-      try {
-        await totpField.waitFor({ state: 'visible', timeout: 15_000 })
+      const asked = await totpField
+        .waitFor({ state: 'visible', timeout: 15_000 })
+        .then(() => true)
+        .catch(() => false) // timed out: the site did not ask this time - carry on
+      if (asked) {
+        // The key lives in the AWG vault (the person put it on the account's entry once); a local
+        // IG_TOTP_SECRET_<PROFILE> still wins where one exists.
         const totpSecret = readSecret(env.totpSecret)
-        if (!totpSecret) {
-          throw new Error(
-            `${siteName} is asking for a two-factor code, but no ${env.totpSecret} is ` +
-              'configured to answer it (set it with set-secret.ps1, same as the password).',
-          )
-        }
-        const code = await currentCodeForSecret(totpSecret)
-        out('Two-factor code requested - typing the current one.')
+        const code = totpSecret
+          ? await currentCodeForSecret(totpSecret)
+          : await codeFromVault({
+              host: new URL(site.loginUrl).hostname,
+              account: username,
+              origin: new URL(page.url()).origin,
+              reason: `Tutorial Maker autologin: ${siteName} two-factor code for ${username}`,
+            })
+        out(`Two-factor code requested - typing the current one (from ${totpSecret ? env.totpSecret : 'the AWG vault'}).`)
         await totpField.pressSequentially(code, { delay: 40 })
         if (site.totpSubmitSelector) {
           await page.locator(site.totpSubmitSelector).first().click({ timeout: 5000 }).catch(() => {})
         }
-      } catch (err) {
-        if ((err as Error).message.includes('two-factor code, but no')) throw err
-        // waitFor timed out: the site did not ask this time - carry on.
       }
     }
 
