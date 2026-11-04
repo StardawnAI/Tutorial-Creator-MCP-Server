@@ -1,0 +1,1234 @@
+{
+  "schemaVersion": 1,
+  "algorithm": "louvain",
+  "totalFiles": 45,
+  "totalBatches": 8,
+  "exportsByPath": {
+    "scripts/e2e.mjs": [],
+    "scripts/handshake.mjs": [],
+    "scripts/live-run.mjs": [],
+    "scripts/recompose.mjs": [],
+    "scripts/record.mjs": [],
+    "scripts/split-music.mjs": [],
+    "src/cli/doctor.ts": [],
+    "src/cli/login.ts": [],
+    "src/index.ts": [],
+    "src/lib/avatar.ts": [
+      "canRenderAvatar",
+      "listLooks",
+      "resolveLook",
+      "remainingBalance",
+      "renderClip",
+      "renderIdleClip",
+      "speakWithHeyGen",
+      "listSpeechVoices",
+      "renderAvatarClips"
+    ],
+    "src/lib/browser.ts": [
+      "launchBrowser"
+    ],
+    "src/lib/compose.ts": [
+      "AVATAR_SIZE",
+      "AVATAR_CORNER",
+      "buildSrt",
+      "buildAss",
+      "karaokeText",
+      "narrationChain",
+      "TRANSITION_SECONDS",
+      "CARD_DISSOLVE_SECONDS",
+      "avatarOverlayFilters",
+      "bookendFilters",
+      "overlayFilters",
+      "compose",
+      "verifyOutput"
+    ],
+    "src/lib/emphasis.ts": [
+      "spotlight",
+      "readingTimeMs",
+      "instructionLayout",
+      "instruct",
+      "showHandoffBanner",
+      "clearHandoffBanner",
+      "ripple"
+    ],
+    "src/lib/env.ts": [
+      "PROJECT_ROOT",
+      "listMusicTracks",
+      "resolveMusicTrack",
+      "loadConfig",
+      "requireFfmpeg",
+      "requireFfprobe",
+      "requireElevenLabsKey",
+      "requireHeyGenKey",
+      "slugify"
+    ],
+    "src/lib/ffmpeg.ts": [
+      "run",
+      "probeDuration",
+      "probeVideo",
+      "escapeFilterValue"
+    ],
+    "src/lib/foreground.ts": [
+      "raiseWindow"
+    ],
+    "src/lib/heartbeat.ts": [
+      "installHeartbeat"
+    ],
+    "src/lib/logger.ts": [
+      "log"
+    ],
+    "src/lib/motion.ts": [
+      "findHyperFrames",
+      "motionAvailability",
+      "fillTemplate",
+      "transparentCardFormat",
+      "renderMotion",
+      "CARD_SECONDS",
+      "renderCards"
+    ],
+    "src/lib/music-gen.ts": [
+      "musicPrompt",
+      "canGenerateMusic",
+      "generateMusic"
+    ],
+    "src/lib/recorder.ts": [
+      "Recorder"
+    ],
+    "src/lib/session-import.ts": [
+      "importSession",
+      "listProfiles"
+    ],
+    "src/lib/session.ts": [
+      "RecordingSession",
+      "getSession",
+      "requireSession",
+      "setSession"
+    ],
+    "src/lib/totp.ts": [
+      "decodeBase32",
+      "totp",
+      "secondsLeft",
+      "currentCode"
+    ],
+    "src/lib/tts.ts": [
+      "looksLikeApiKey",
+      "TUTORIAL_VOICE_SETTINGS",
+      "estimateSpokenMs",
+      "synthesise",
+      "listVoices"
+    ],
+    "src/lib/words.ts": [
+      "tokens",
+      "estimateTimings",
+      "wordTimings"
+    ],
+    "src/lib/zoom.ts": [
+      "MAX_ZOOM",
+      "MIN_USEFUL_ZOOM",
+      "zoomForBox",
+      "boxContains",
+      "buildZoomFilter"
+    ],
+    "src/tools/actions.ts": [
+      "registerActionTools"
+    ],
+    "src/tools/recording.ts": [
+      "registerRecordingTools"
+    ],
+    "src/tools/setup.ts": [
+      "registerSetupTools"
+    ],
+    "src/types/global.d.ts": []
+  },
+  "batches": [
+    {
+      "batchIndex": 1,
+      "files": [
+        {
+          "path": "src/cli/doctor.ts",
+          "language": "typescript",
+          "sizeLines": 192,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/lib/avatar.ts",
+          "language": "typescript",
+          "sizeLines": 523,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/lib/compose.ts",
+          "language": "typescript",
+          "sizeLines": 1200,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/lib/ffmpeg.ts",
+          "language": "typescript",
+          "sizeLines": 124,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/lib/motion.ts",
+          "language": "typescript",
+          "sizeLines": 339,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/lib/music-gen.ts",
+          "language": "typescript",
+          "sizeLines": 145,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/lib/tts.ts",
+          "language": "typescript",
+          "sizeLines": 177,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/lib/words.ts",
+          "language": "typescript",
+          "sizeLines": 151,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/tools/recording.ts",
+          "language": "typescript",
+          "sizeLines": 870,
+          "fileCategory": "code"
+        }
+      ],
+      "batchImportData": {
+        "src/cli/doctor.ts": [
+          "src/lib/avatar.ts",
+          "src/lib/env.ts",
+          "src/lib/ffmpeg.ts",
+          "src/lib/motion.ts",
+          "src/lib/tts.ts"
+        ],
+        "src/lib/avatar.ts": [
+          "src/lib/env.ts",
+          "src/lib/ffmpeg.ts",
+          "src/lib/logger.ts"
+        ],
+        "src/lib/compose.ts": [
+          "src/lib/avatar.ts",
+          "src/lib/env.ts",
+          "src/lib/ffmpeg.ts",
+          "src/lib/logger.ts",
+          "src/lib/session.ts",
+          "src/lib/words.ts",
+          "src/lib/zoom.ts"
+        ],
+        "src/lib/ffmpeg.ts": [
+          "src/lib/logger.ts"
+        ],
+        "src/lib/motion.ts": [
+          "src/lib/env.ts",
+          "src/lib/ffmpeg.ts",
+          "src/lib/logger.ts"
+        ],
+        "src/lib/music-gen.ts": [
+          "src/lib/env.ts",
+          "src/lib/logger.ts"
+        ],
+        "src/lib/tts.ts": [
+          "src/lib/env.ts",
+          "src/lib/ffmpeg.ts",
+          "src/lib/logger.ts"
+        ],
+        "src/lib/words.ts": [
+          "src/lib/env.ts",
+          "src/lib/logger.ts"
+        ],
+        "src/tools/recording.ts": [
+          "src/lib/avatar.ts",
+          "src/lib/compose.ts",
+          "src/lib/env.ts",
+          "src/lib/logger.ts",
+          "src/lib/motion.ts",
+          "src/lib/music-gen.ts",
+          "src/lib/session.ts",
+          "src/lib/tts.ts"
+        ]
+      },
+      "neighborMap": {
+        "src/cli/doctor.ts": [
+          {
+            "path": "src/lib/env.ts",
+            "batchIndex": 3,
+            "symbols": [
+              "PROJECT_ROOT",
+              "listMusicTracks",
+              "resolveMusicTrack",
+              "loadConfig",
+              "requireFfmpeg",
+              "requireFfprobe",
+              "requireElevenLabsKey",
+              "requireHeyGenKey",
+              "slugify"
+            ]
+          }
+        ],
+        "src/lib/avatar.ts": [
+          {
+            "path": "src/lib/env.ts",
+            "batchIndex": 3,
+            "symbols": [
+              "PROJECT_ROOT",
+              "listMusicTracks",
+              "resolveMusicTrack",
+              "loadConfig",
+              "requireFfmpeg",
+              "requireFfprobe",
+              "requireElevenLabsKey",
+              "requireHeyGenKey",
+              "slugify"
+            ]
+          },
+          {
+            "path": "src/lib/logger.ts",
+            "batchIndex": 2,
+            "symbols": [
+              "log"
+            ]
+          }
+        ],
+        "src/lib/compose.ts": [
+          {
+            "path": "src/lib/env.ts",
+            "batchIndex": 3,
+            "symbols": [
+              "PROJECT_ROOT",
+              "listMusicTracks",
+              "resolveMusicTrack",
+              "loadConfig",
+              "requireFfmpeg",
+              "requireFfprobe",
+              "requireElevenLabsKey",
+              "requireHeyGenKey",
+              "slugify"
+            ]
+          },
+          {
+            "path": "src/lib/logger.ts",
+            "batchIndex": 2,
+            "symbols": [
+              "log"
+            ]
+          },
+          {
+            "path": "src/lib/session.ts",
+            "batchIndex": 2,
+            "symbols": [
+              "RecordingSession",
+              "getSession",
+              "requireSession",
+              "setSession"
+            ]
+          },
+          {
+            "path": "src/lib/zoom.ts",
+            "batchIndex": 2,
+            "symbols": [
+              "MAX_ZOOM",
+              "MIN_USEFUL_ZOOM",
+              "zoomForBox",
+              "boxContains",
+              "buildZoomFilter"
+            ]
+          }
+        ],
+        "src/lib/ffmpeg.ts": [
+          {
+            "path": "src/lib/logger.ts",
+            "batchIndex": 2,
+            "symbols": [
+              "log"
+            ]
+          }
+        ],
+        "src/lib/motion.ts": [
+          {
+            "path": "src/lib/env.ts",
+            "batchIndex": 3,
+            "symbols": [
+              "PROJECT_ROOT",
+              "listMusicTracks",
+              "resolveMusicTrack",
+              "loadConfig",
+              "requireFfmpeg",
+              "requireFfprobe",
+              "requireElevenLabsKey",
+              "requireHeyGenKey",
+              "slugify"
+            ]
+          },
+          {
+            "path": "src/lib/logger.ts",
+            "batchIndex": 2,
+            "symbols": [
+              "log"
+            ]
+          },
+          {
+            "path": "src/lib/session.ts",
+            "batchIndex": 2,
+            "symbols": [
+              "RecordingSession",
+              "getSession",
+              "requireSession",
+              "setSession"
+            ]
+          }
+        ],
+        "src/lib/music-gen.ts": [
+          {
+            "path": "src/lib/env.ts",
+            "batchIndex": 3,
+            "symbols": [
+              "PROJECT_ROOT",
+              "listMusicTracks",
+              "resolveMusicTrack",
+              "loadConfig",
+              "requireFfmpeg",
+              "requireFfprobe",
+              "requireElevenLabsKey",
+              "requireHeyGenKey",
+              "slugify"
+            ]
+          },
+          {
+            "path": "src/lib/logger.ts",
+            "batchIndex": 2,
+            "symbols": [
+              "log"
+            ]
+          }
+        ],
+        "src/lib/tts.ts": [
+          {
+            "path": "src/lib/env.ts",
+            "batchIndex": 3,
+            "symbols": [
+              "PROJECT_ROOT",
+              "listMusicTracks",
+              "resolveMusicTrack",
+              "loadConfig",
+              "requireFfmpeg",
+              "requireFfprobe",
+              "requireElevenLabsKey",
+              "requireHeyGenKey",
+              "slugify"
+            ]
+          },
+          {
+            "path": "src/lib/logger.ts",
+            "batchIndex": 2,
+            "symbols": [
+              "log"
+            ]
+          }
+        ],
+        "src/lib/words.ts": [
+          {
+            "path": "src/lib/env.ts",
+            "batchIndex": 3,
+            "symbols": [
+              "PROJECT_ROOT",
+              "listMusicTracks",
+              "resolveMusicTrack",
+              "loadConfig",
+              "requireFfmpeg",
+              "requireFfprobe",
+              "requireElevenLabsKey",
+              "requireHeyGenKey",
+              "slugify"
+            ]
+          },
+          {
+            "path": "src/lib/logger.ts",
+            "batchIndex": 2,
+            "symbols": [
+              "log"
+            ]
+          }
+        ],
+        "src/tools/recording.ts": [
+          {
+            "path": "src/lib/env.ts",
+            "batchIndex": 3,
+            "symbols": [
+              "PROJECT_ROOT",
+              "listMusicTracks",
+              "resolveMusicTrack",
+              "loadConfig",
+              "requireFfmpeg",
+              "requireFfprobe",
+              "requireElevenLabsKey",
+              "requireHeyGenKey",
+              "slugify"
+            ]
+          },
+          {
+            "path": "src/lib/logger.ts",
+            "batchIndex": 2,
+            "symbols": [
+              "log"
+            ]
+          },
+          {
+            "path": "src/lib/session.ts",
+            "batchIndex": 2,
+            "symbols": [
+              "RecordingSession",
+              "getSession",
+              "requireSession",
+              "setSession"
+            ]
+          },
+          {
+            "path": "src/index.ts",
+            "batchIndex": 2,
+            "symbols": []
+          }
+        ]
+      }
+    },
+    {
+      "batchIndex": 2,
+      "files": [
+        {
+          "path": "src/index.ts",
+          "language": "typescript",
+          "sizeLines": 92,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/lib/emphasis.ts",
+          "language": "typescript",
+          "sizeLines": 303,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/lib/foreground.ts",
+          "language": "typescript",
+          "sizeLines": 91,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/lib/logger.ts",
+          "language": "typescript",
+          "sizeLines": 36,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/lib/recorder.ts",
+          "language": "typescript",
+          "sizeLines": 134,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/lib/session.ts",
+          "language": "typescript",
+          "sizeLines": 559,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/lib/totp.ts",
+          "language": "typescript",
+          "sizeLines": 87,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/lib/zoom.ts",
+          "language": "typescript",
+          "sizeLines": 195,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/tools/actions.ts",
+          "language": "typescript",
+          "sizeLines": 768,
+          "fileCategory": "code"
+        }
+      ],
+      "batchImportData": {
+        "src/index.ts": [
+          "src/lib/env.ts",
+          "src/lib/logger.ts",
+          "src/lib/session.ts",
+          "src/tools/actions.ts",
+          "src/tools/recording.ts",
+          "src/tools/setup.ts"
+        ],
+        "src/lib/emphasis.ts": [
+          "src/lib/logger.ts"
+        ],
+        "src/lib/foreground.ts": [
+          "src/lib/logger.ts"
+        ],
+        "src/lib/logger.ts": [],
+        "src/lib/recorder.ts": [
+          "src/lib/logger.ts"
+        ],
+        "src/lib/session.ts": [
+          "src/lib/browser.ts",
+          "src/lib/compose.ts",
+          "src/lib/env.ts",
+          "src/lib/logger.ts",
+          "src/lib/motion.ts",
+          "src/lib/recorder.ts",
+          "src/lib/zoom.ts"
+        ],
+        "src/lib/totp.ts": [],
+        "src/lib/zoom.ts": [],
+        "src/tools/actions.ts": [
+          "src/lib/emphasis.ts",
+          "src/lib/foreground.ts",
+          "src/lib/logger.ts",
+          "src/lib/session.ts",
+          "src/lib/totp.ts"
+        ]
+      },
+      "neighborMap": {
+        "src/index.ts": [
+          {
+            "path": "src/lib/env.ts",
+            "batchIndex": 3,
+            "symbols": [
+              "PROJECT_ROOT",
+              "listMusicTracks",
+              "resolveMusicTrack",
+              "loadConfig",
+              "requireFfmpeg",
+              "requireFfprobe",
+              "requireElevenLabsKey",
+              "requireHeyGenKey",
+              "slugify"
+            ]
+          },
+          {
+            "path": "src/tools/recording.ts",
+            "batchIndex": 1,
+            "symbols": [
+              "registerRecordingTools"
+            ]
+          },
+          {
+            "path": "src/tools/setup.ts",
+            "batchIndex": 3,
+            "symbols": [
+              "registerSetupTools"
+            ]
+          }
+        ],
+        "src/lib/logger.ts": [
+          {
+            "path": "src/lib/avatar.ts",
+            "batchIndex": 1,
+            "symbols": [
+              "canRenderAvatar",
+              "listLooks",
+              "resolveLook",
+              "remainingBalance",
+              "renderClip",
+              "renderIdleClip",
+              "speakWithHeyGen",
+              "listSpeechVoices",
+              "renderAvatarClips"
+            ]
+          },
+          {
+            "path": "src/lib/browser.ts",
+            "batchIndex": 3,
+            "symbols": [
+              "launchBrowser"
+            ]
+          },
+          {
+            "path": "src/lib/compose.ts",
+            "batchIndex": 1,
+            "symbols": [
+              "AVATAR_SIZE",
+              "AVATAR_CORNER",
+              "buildSrt",
+              "buildAss",
+              "karaokeText",
+              "narrationChain",
+              "TRANSITION_SECONDS",
+              "CARD_DISSOLVE_SECONDS",
+              "avatarOverlayFilters",
+              "bookendFilters",
+              "overlayFilters",
+              "compose",
+              "verifyOutput"
+            ]
+          },
+          {
+            "path": "src/lib/ffmpeg.ts",
+            "batchIndex": 1,
+            "symbols": [
+              "run",
+              "probeDuration",
+              "probeVideo",
+              "escapeFilterValue"
+            ]
+          },
+          {
+            "path": "src/lib/heartbeat.ts",
+            "batchIndex": 3,
+            "symbols": [
+              "installHeartbeat"
+            ]
+          },
+          {
+            "path": "src/lib/motion.ts",
+            "batchIndex": 1,
+            "symbols": [
+              "findHyperFrames",
+              "motionAvailability",
+              "fillTemplate",
+              "transparentCardFormat",
+              "renderMotion",
+              "CARD_SECONDS",
+              "renderCards"
+            ]
+          },
+          {
+            "path": "src/lib/music-gen.ts",
+            "batchIndex": 1,
+            "symbols": [
+              "musicPrompt",
+              "canGenerateMusic",
+              "generateMusic"
+            ]
+          },
+          {
+            "path": "src/lib/session-import.ts",
+            "batchIndex": 3,
+            "symbols": [
+              "importSession",
+              "listProfiles"
+            ]
+          },
+          {
+            "path": "src/lib/tts.ts",
+            "batchIndex": 1,
+            "symbols": [
+              "looksLikeApiKey",
+              "TUTORIAL_VOICE_SETTINGS",
+              "estimateSpokenMs",
+              "synthesise",
+              "listVoices"
+            ]
+          },
+          {
+            "path": "src/lib/words.ts",
+            "batchIndex": 1,
+            "symbols": [
+              "tokens",
+              "estimateTimings",
+              "wordTimings"
+            ]
+          },
+          {
+            "path": "src/tools/recording.ts",
+            "batchIndex": 1,
+            "symbols": [
+              "registerRecordingTools"
+            ]
+          }
+        ],
+        "src/lib/session.ts": [
+          {
+            "path": "src/lib/browser.ts",
+            "batchIndex": 3,
+            "symbols": [
+              "launchBrowser"
+            ]
+          },
+          {
+            "path": "src/lib/compose.ts",
+            "batchIndex": 1,
+            "symbols": [
+              "AVATAR_SIZE",
+              "AVATAR_CORNER",
+              "buildSrt",
+              "buildAss",
+              "karaokeText",
+              "narrationChain",
+              "TRANSITION_SECONDS",
+              "CARD_DISSOLVE_SECONDS",
+              "avatarOverlayFilters",
+              "bookendFilters",
+              "overlayFilters",
+              "compose",
+              "verifyOutput"
+            ]
+          },
+          {
+            "path": "src/lib/env.ts",
+            "batchIndex": 3,
+            "symbols": [
+              "PROJECT_ROOT",
+              "listMusicTracks",
+              "resolveMusicTrack",
+              "loadConfig",
+              "requireFfmpeg",
+              "requireFfprobe",
+              "requireElevenLabsKey",
+              "requireHeyGenKey",
+              "slugify"
+            ]
+          },
+          {
+            "path": "src/lib/motion.ts",
+            "batchIndex": 1,
+            "symbols": [
+              "findHyperFrames",
+              "motionAvailability",
+              "fillTemplate",
+              "transparentCardFormat",
+              "renderMotion",
+              "CARD_SECONDS",
+              "renderCards"
+            ]
+          },
+          {
+            "path": "src/tools/recording.ts",
+            "batchIndex": 1,
+            "symbols": [
+              "registerRecordingTools"
+            ]
+          }
+        ],
+        "src/lib/zoom.ts": [
+          {
+            "path": "src/lib/compose.ts",
+            "batchIndex": 1,
+            "symbols": [
+              "AVATAR_SIZE",
+              "AVATAR_CORNER",
+              "buildSrt",
+              "buildAss",
+              "karaokeText",
+              "narrationChain",
+              "TRANSITION_SECONDS",
+              "CARD_DISSOLVE_SECONDS",
+              "avatarOverlayFilters",
+              "bookendFilters",
+              "overlayFilters",
+              "compose",
+              "verifyOutput"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "batchIndex": 3,
+      "files": [
+        {
+          "path": "src/cli/login.ts",
+          "language": "typescript",
+          "sizeLines": 83,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/lib/browser.ts",
+          "language": "typescript",
+          "sizeLines": 180,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/lib/env.ts",
+          "language": "typescript",
+          "sizeLines": 291,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/lib/heartbeat.ts",
+          "language": "typescript",
+          "sizeLines": 58,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/lib/session-import.ts",
+          "language": "typescript",
+          "sizeLines": 267,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/tools/setup.ts",
+          "language": "typescript",
+          "sizeLines": 165,
+          "fileCategory": "code"
+        }
+      ],
+      "batchImportData": {
+        "src/cli/login.ts": [
+          "src/lib/browser.ts",
+          "src/lib/env.ts"
+        ],
+        "src/lib/browser.ts": [
+          "src/lib/env.ts",
+          "src/lib/heartbeat.ts",
+          "src/lib/logger.ts"
+        ],
+        "src/lib/env.ts": [],
+        "src/lib/heartbeat.ts": [
+          "src/lib/logger.ts"
+        ],
+        "src/lib/session-import.ts": [
+          "src/lib/browser.ts",
+          "src/lib/env.ts",
+          "src/lib/logger.ts"
+        ],
+        "src/tools/setup.ts": [
+          "src/lib/env.ts",
+          "src/lib/session-import.ts"
+        ]
+      },
+      "neighborMap": {
+        "src/lib/browser.ts": [
+          {
+            "path": "src/lib/logger.ts",
+            "batchIndex": 2,
+            "symbols": [
+              "log"
+            ]
+          },
+          {
+            "path": "src/lib/session.ts",
+            "batchIndex": 2,
+            "symbols": [
+              "RecordingSession",
+              "getSession",
+              "requireSession",
+              "setSession"
+            ]
+          }
+        ],
+        "src/lib/env.ts": [
+          {
+            "path": "src/cli/doctor.ts",
+            "batchIndex": 1,
+            "symbols": []
+          },
+          {
+            "path": "src/index.ts",
+            "batchIndex": 2,
+            "symbols": []
+          },
+          {
+            "path": "src/lib/avatar.ts",
+            "batchIndex": 1,
+            "symbols": [
+              "canRenderAvatar",
+              "listLooks",
+              "resolveLook",
+              "remainingBalance",
+              "renderClip",
+              "renderIdleClip",
+              "speakWithHeyGen",
+              "listSpeechVoices",
+              "renderAvatarClips"
+            ]
+          },
+          {
+            "path": "src/lib/compose.ts",
+            "batchIndex": 1,
+            "symbols": [
+              "AVATAR_SIZE",
+              "AVATAR_CORNER",
+              "buildSrt",
+              "buildAss",
+              "karaokeText",
+              "narrationChain",
+              "TRANSITION_SECONDS",
+              "CARD_DISSOLVE_SECONDS",
+              "avatarOverlayFilters",
+              "bookendFilters",
+              "overlayFilters",
+              "compose",
+              "verifyOutput"
+            ]
+          },
+          {
+            "path": "src/lib/motion.ts",
+            "batchIndex": 1,
+            "symbols": [
+              "findHyperFrames",
+              "motionAvailability",
+              "fillTemplate",
+              "transparentCardFormat",
+              "renderMotion",
+              "CARD_SECONDS",
+              "renderCards"
+            ]
+          },
+          {
+            "path": "src/lib/music-gen.ts",
+            "batchIndex": 1,
+            "symbols": [
+              "musicPrompt",
+              "canGenerateMusic",
+              "generateMusic"
+            ]
+          },
+          {
+            "path": "src/lib/session.ts",
+            "batchIndex": 2,
+            "symbols": [
+              "RecordingSession",
+              "getSession",
+              "requireSession",
+              "setSession"
+            ]
+          },
+          {
+            "path": "src/lib/tts.ts",
+            "batchIndex": 1,
+            "symbols": [
+              "looksLikeApiKey",
+              "TUTORIAL_VOICE_SETTINGS",
+              "estimateSpokenMs",
+              "synthesise",
+              "listVoices"
+            ]
+          },
+          {
+            "path": "src/lib/words.ts",
+            "batchIndex": 1,
+            "symbols": [
+              "tokens",
+              "estimateTimings",
+              "wordTimings"
+            ]
+          },
+          {
+            "path": "src/tools/recording.ts",
+            "batchIndex": 1,
+            "symbols": [
+              "registerRecordingTools"
+            ]
+          }
+        ],
+        "src/lib/heartbeat.ts": [
+          {
+            "path": "src/lib/logger.ts",
+            "batchIndex": 2,
+            "symbols": [
+              "log"
+            ]
+          }
+        ],
+        "src/lib/session-import.ts": [
+          {
+            "path": "src/lib/logger.ts",
+            "batchIndex": 2,
+            "symbols": [
+              "log"
+            ]
+          }
+        ],
+        "src/tools/setup.ts": [
+          {
+            "path": "src/index.ts",
+            "batchIndex": 2,
+            "symbols": []
+          }
+        ]
+      }
+    },
+    {
+      "batchIndex": 4,
+      "files": [
+        {
+          "path": "README.md",
+          "language": "markdown",
+          "sizeLines": 384,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "package.json",
+          "language": "json",
+          "sizeLines": 48,
+          "fileCategory": "config"
+        },
+        {
+          "path": "tsconfig.json",
+          "language": "json",
+          "sizeLines": 21,
+          "fileCategory": "config"
+        }
+      ],
+      "batchImportData": {
+        "README.md": [],
+        "package.json": [],
+        "tsconfig.json": []
+      },
+      "neighborMap": {}
+    },
+    {
+      "batchIndex": 5,
+      "files": [
+        {
+          "path": "assets/motion/brand.css",
+          "language": "css",
+          "sizeLines": 125,
+          "fileCategory": "markup"
+        },
+        {
+          "path": "assets/motion/chapter.html",
+          "language": "html",
+          "sizeLines": 97,
+          "fileCategory": "markup"
+        },
+        {
+          "path": "assets/motion/closing.html",
+          "language": "html",
+          "sizeLines": 139,
+          "fileCategory": "markup"
+        },
+        {
+          "path": "assets/motion/opening.html",
+          "language": "html",
+          "sizeLines": 116,
+          "fileCategory": "markup"
+        }
+      ],
+      "batchImportData": {
+        "assets/motion/brand.css": [],
+        "assets/motion/chapter.html": [],
+        "assets/motion/closing.html": [],
+        "assets/motion/opening.html": []
+      },
+      "neighborMap": {}
+    },
+    {
+      "batchIndex": 6,
+      "files": [
+        {
+          "path": "docs/ARCHITECTURE.md",
+          "language": "markdown",
+          "sizeLines": 374,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "docs/PLAN.md",
+          "language": "markdown",
+          "sizeLines": 393,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "docs/STATUS.md",
+          "language": "markdown",
+          "sizeLines": 861,
+          "fileCategory": "docs"
+        }
+      ],
+      "batchImportData": {
+        "docs/ARCHITECTURE.md": [],
+        "docs/PLAN.md": [],
+        "docs/STATUS.md": []
+      },
+      "neighborMap": {}
+    },
+    {
+      "batchIndex": 7,
+      "files": [
+        {
+          "path": "examples/find-code-on-github.json",
+          "language": "json",
+          "sizeLines": 75,
+          "fileCategory": "config"
+        },
+        {
+          "path": "examples/overview.json",
+          "language": "json",
+          "sizeLines": 83,
+          "fileCategory": "config"
+        },
+        {
+          "path": "examples/signed-in.json",
+          "language": "json",
+          "sizeLines": 55,
+          "fileCategory": "config"
+        }
+      ],
+      "batchImportData": {
+        "examples/find-code-on-github.json": [],
+        "examples/overview.json": [],
+        "examples/signed-in.json": []
+      },
+      "neighborMap": {}
+    },
+    {
+      "batchIndex": 8,
+      "files": [
+        {
+          "path": "assets/chapters.json",
+          "language": "json",
+          "sizeLines": 22,
+          "fileCategory": "config"
+        },
+        {
+          "path": "scripts/e2e.mjs",
+          "language": "javascript",
+          "sizeLines": 1159,
+          "fileCategory": "code"
+        },
+        {
+          "path": "scripts/handshake.mjs",
+          "language": "javascript",
+          "sizeLines": 167,
+          "fileCategory": "code"
+        },
+        {
+          "path": "scripts/live-run.mjs",
+          "language": "javascript",
+          "sizeLines": 168,
+          "fileCategory": "code"
+        },
+        {
+          "path": "scripts/recompose.mjs",
+          "language": "javascript",
+          "sizeLines": 224,
+          "fileCategory": "code"
+        },
+        {
+          "path": "scripts/record.mjs",
+          "language": "javascript",
+          "sizeLines": 135,
+          "fileCategory": "code"
+        },
+        {
+          "path": "scripts/split-music.mjs",
+          "language": "javascript",
+          "sizeLines": 112,
+          "fileCategory": "code"
+        },
+        {
+          "path": "src/types/global.d.ts",
+          "language": "typescript",
+          "sizeLines": 4,
+          "fileCategory": "code"
+        }
+      ],
+      "batchImportData": {
+        "assets/chapters.json": [],
+        "scripts/e2e.mjs": [],
+        "scripts/handshake.mjs": [],
+        "scripts/live-run.mjs": [],
+        "scripts/recompose.mjs": [],
+        "scripts/record.mjs": [],
+        "scripts/split-music.mjs": [],
+        "src/types/global.d.ts": []
+      },
+      "neighborMap": {}
+    }
+  ]
+}

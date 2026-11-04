@@ -43,6 +43,7 @@ import { autoconsentScript } from '../lib/privacy.js'
 import { readSecret, hasEncryptedSecret } from '../lib/secrets.js'
 import { raiseWindow } from '../lib/foreground.js'
 import { clearHandoffBanner, showHandoffBanner } from '../lib/emphasis.js'
+import { accountKey, acquire, decide, pause, record, readLedger, release, secretChangedAt } from '../lib/login-guard.js'
 import { leaveAccountChooser } from '../lib/login-chooser.js'
 import { codeFromVault } from '../lib/vault-code.js'
 import type { Page } from 'playwright-core'
@@ -101,15 +102,34 @@ const SITES: Record<string, SiteLogin> = {
 /** How long a person has to finish a security check the site shows after the password. */
 const PERSON_TIMEOUT_MS = 10 * 60_000
 
-function parseArgs(argv: string[]): { site: string | null; profile: string | null } {
+function parseArgs(argv: string[]): { site: string | null; profile: string | null; approved: boolean } {
   let site: string | null = null
   let profile: string | null = null
+  let approved = false
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
     if (arg === '--site' && argv[i + 1]) site = argv[++i] ?? null
     else if (arg === '--profile' && argv[i + 1]) profile = argv[++i] ?? null
+    else if (arg === '--approved') approved = true
   }
-  return { site, profile }
+  return { site, profile, approved }
+}
+
+/**
+ * Profiles that belong to a real account of a person (comma list in AUTOLOGIN_REAL_PROFILES,
+ * default jpresting). A fresh sign-in to one of them needs the person's word first.
+ */
+function isRealAccount(profile: string): boolean {
+  const list = (process.env.AUTOLOGIN_REAL_PROFILES ?? 'jpresting').split(',').map(p => p.trim().toLowerCase())
+  return list.includes(profile.toLowerCase())
+}
+
+/** Types like a person: each key with its own short delay, not 40 ms on the dot. */
+async function typeLikeAPerson(page: Page, field: ReturnType<Page['locator']>, text: string): Promise<void> {
+  for (const ch of text) {
+    await field.pressSequentially(ch, { delay: 0 })
+    await page.waitForTimeout(pause(60, 170))
+  }
 }
 
 /** IG_USERNAME_INSTAGRAM_CUSTOMER for prefix "IG", profile "instagram-customer". */
@@ -176,7 +196,7 @@ async function waitForPerson(page: Page, site: SiteLogin, out: (s: string) => vo
 }
 
 async function main(): Promise<void> {
-  const { site: siteName, profile } = parseArgs(process.argv.slice(2))
+  const { site: siteName, profile, approved } = parseArgs(process.argv.slice(2))
   const out = (s: string) => process.stdout.write(`${s}\n`)
 
   if (!siteName || !SITES[siteName] || !profile) {
@@ -214,6 +234,7 @@ async function main(): Promise<void> {
     deviceScaleFactor: 1,
   })
 
+  let lockedKey: string | null = null
   try {
     await page.goto(site.loginUrl, { waitUntil: 'domcontentloaded' })
     await rejectCookies(page)
@@ -239,11 +260,41 @@ async function main(): Promise<void> {
       )
     }
 
+    // From here on this is a FRESH sign-in, the thing sites lock accounts for. The guard decides
+    // first: a real account needs the person's word, one attempt per account, never two at once.
+    const key = accountKey(siteName, username)
+    const verdict = decide({
+      now: Date.now(),
+      last: readLedger()[key],
+      secretAt: secretChangedAt(env.password),
+      real: isRealAccount(profile),
+      approved,
+      account: `${siteName} account ${username}`,
+    })
+    if (!verdict.ok) {
+      process.stderr.write(`autologin stopped (${verdict.code}): ${verdict.message}
+`)
+      process.exitCode = 3
+      return
+    }
+    if (!acquire(key)) {
+      process.stderr.write(`autologin stopped (already-running): another sign-in to ${siteName} as ${username} holds the lock.
+`)
+      process.exitCode = 3
+      return
+    }
+    lockedKey = key
+    record(key, 'started')
+
     out(`Signing in to ${siteName}${hasEncryptedSecret(env.username) ? '' : ` as ${username}`}...`)
+    await page.waitForTimeout(pause(2000, 5000))
     await userField.click()
-    await userField.pressSequentially(username, { delay: 40 })
+    await typeLikeAPerson(page, userField, username)
+    await page.waitForTimeout(pause(600, 1600))
     const passwordField = page.locator(site.passwordSelector).first()
-    await passwordField.pressSequentially(password, { delay: 40 })
+    await passwordField.click()
+    await typeLikeAPerson(page, passwordField, password)
+    await page.waitForTimeout(pause(700, 1800))
     await passwordField.press('Enter')
 
     // A two-factor prompt is optional: only handled if the site actually shows it.
@@ -284,9 +335,23 @@ async function main(): Promise<void> {
       }
     }
 
-    if (!(await isSignedIn(page, site))) await waitForPerson(page, site, out)
+    if (!(await isSignedIn(page, site))) {
+      // The login form still showing after the submit means the site refused the password: stop
+      // after this one attempt instead of waiting ten minutes for a person who has nothing to do.
+      if (!site.pendingUrl?.test(page.url()) && (await page.locator(site.usernameSelector).first().count().catch(() => 0)) > 0) {
+        record(key, 'failed')
+        throw new Error(
+          `${siteName} did not accept the sign-in as ${username} (the login form is still showing). Stopped after ` +
+            `one attempt and will not try again with this password; set the new one with set-secret.ps1 -Name ${env.password}.`,
+        )
+      }
+      record(key, 'checkpoint')
+      await waitForPerson(page, site, out)
+    }
+    record(key, 'signed-in')
     out(`Signed in. Profile "${profile}" is ready for a recording.`)
   } finally {
+    if (lockedKey) release(lockedKey)
     await context.close()
   }
 }

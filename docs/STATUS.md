@@ -5,6 +5,18 @@ Newest entry on top.
 
 ---
 
+## 2026-11-04 - Autologin stops locking real accounts
+
+Instagram locked Jim's real account `jpresting` on 2026-11-03 (security lock, new password). The
+suspects: autologin before every recording, a stale password retried, runs side by side, nobody told.
+Done: `src/lib/login-guard.ts` (8 tests) and `autologin` use it - one attempt per account, a rejected
+password or an unfinished security check blocks the next run until the password file is newer, no two at
+once, none within 30 minutes of the last, a real account only with `--approved`, a login form still
+showing after the submit ends the run at once (it used to wait ten minutes), typing with a varying pace.
+Not done: a live run against Instagram - on purpose, that is the thing that locks the account.
+
+---
+
 ## 2026-11-04 - Autologin: two-step code from the AWG vault, and Instagram's account chooser
 
 Asked for as: Instagram's two-step code for the founder's account `jpresting` went to his private
