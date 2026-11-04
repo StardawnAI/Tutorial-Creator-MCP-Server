@@ -1,0 +1,8 @@
+- generic [active] [ref=e1]:
+  - img [ref=e2]
+  - generic [ref=e5]:
+    - generic:
+      - heading "Create talking avatar video online" [level=1]
+      - heading "All-in-one AI video generator" [level=2]
+  - generic:
+    - document
