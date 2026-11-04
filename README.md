@@ -329,6 +329,16 @@ hub unreachable) stops with a sentence saying what to do.
 <name> / Use another profile" instead of the form. Autologin presses "Use another
 profile" (English and German) and never "Continue".
 
+**Not locking an account.** Instagram and Facebook lock accounts that are logged in to again and again,
+from two windows at once, or with a stale password (Instagram locked a real account on 2026-11-03). So
+autologin makes one attempt per account and then stops: a profile that is still signed in is reused and never
+logged in again; a rejected password or a security check nobody finished blocks every further attempt
+until the stored password file is newer than that attempt (set the new one with `set-secret.ps1`); two
+sign-ins to one account never run at once, and none starts within 30 minutes of the last. A real account
+of a person (`AUTOLOGIN_REAL_PROFILES` in `.env`, default `jpresting`) is only signed in with `--approved`,
+after the person was told and said yes. Typing is paced like a person's. The record is
+`profiles/login-ledger.json` (names and times, no values); the rules are in `src/lib/login-guard.ts`.
+
 ### Captions
 
 `tutorial_finish` writes `captions.srt` and a second file, `tutorial.subtitled.mp4`.
