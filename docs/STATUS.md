@@ -5,6 +5,41 @@ Newest entry on top.
 
 ---
 
+## 2026-11-04 - Autologin: two-step code from the AWG vault, and Instagram's account chooser
+
+Asked for as: Instagram's two-step code for the founder's account `jpresting` went to his private
+WhatsApp, which no agent may read (his rule of 2026-11-03: two-factor goes through the vault, never
+SMS so an agent can read codes); and autologin stopped with "login form did not appear" on a profile
+that remembers an account.
+
+### Built
+
+- `src/lib/vault-code.ts` - without a local `IG_TOTP_SECRET_<PROFILE>`, the code comes from AWG's hub
+  (`awg-tools/lib/vault-signin.mjs`, `AWG_TOOLS_DIR`): the entry of the account (= `IG_USERNAME_<PROFILE>`)
+  on www.instagram.com must hold the authenticator key; the key never reaches this tool. A missing entry or
+  key, an unreachable hub, a refusal, an Allow nobody pressed: each ends in a sentence saying what to do.
+- `src/lib/login-chooser.ts` - presses "Use another profile" (never "Continue") when the form is not
+  there. Measured on instagram.com 2026-11-04 in a profile that remembers `jpresting`: role=button divs,
+  the username and password fields appear after the press.
+- `autologin.ts`: both are called; an error while answering the code prompt is no longer swallowed as
+  "the site did not ask".
+
+### Proof
+
+- `npm test`: 15 tests (the chooser against a copy of the measured page in Chromium, never pressing
+  "Continue"; the vault client with a fake hub: pick by site and account, pending then released, denied,
+  not a code, unreachable). The committed tree was built and tested in a scratch folder.
+- Live: the chooser left on the real Instagram page without signing in; the real hub listed the entries and
+  answered for `jpresting` "holds no authenticator key yet".
+
+### Not proven yet
+
+- A real code released through `codeFromVault` (the founder has not put the key on the entry; a test on
+  another account's key was refused by the safety filter and not worked around), and the code field of
+  Instagram's authenticator-app prompt (the selector is the one that was already here).
+
+---
+
 ## 2026-09-28 - The camera follows the scene; sign-ins without a person (M20)
 
 Asked for as: in the InStar App Review video the camera zoomed in on a menu at the right
