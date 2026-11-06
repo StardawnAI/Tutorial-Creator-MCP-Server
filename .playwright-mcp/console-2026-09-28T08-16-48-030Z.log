@@ -1,0 +1,10 @@
+[     288ms] [LOG] %c%s color: red; background: yellow; font-size: 24px; Achtung! @ https://www.gstatic.com/_/mss/boq-identity/_/js/k=boq-identity.AccountsSignInUi.de.N7gODUBGPRw.es5.O/am=QQQAAADgwBsJAPrfAAACCLYDvq8FoAkQMgAAAAAAAAAAgBUAAFQRQA/d=1/excm=_b,_tp,accountchooserview/ed=1/dg=0/wt=2/ujg=1/rs=AOaEmlH5roWxEFEb3IIZN9_d947_oNYm3g/dti=1/m=_b,_tp:563
+[     288ms] [LOG] %c%s font-size: 18px; Wenn Sie diese Konsole verwenden, können Angreifer möglicherweise mithilfe einer sogenannten Self-XSS-Attacke Ihre Identität stehlen und Ihre Daten ausspionieren.
+Sie sollten keinen Code eingeben oder einfügen, den Sie nicht verstehen. @ https://www.gstatic.com/_/mss/boq-identity/_/js/k=boq-identity.AccountsSignInUi.de.N7gODUBGPRw.es5.O/am=QQQAAADgwBsJAPrfAAACCLYDvq8FoAkQMgAAAAAAAAAAgBUAAFQRQA/d=1/excm=_b,_tp,accountchooserview/ed=1/dg=0/wt=2/ujg=1/rs=AOaEmlH5roWxEFEb3IIZN9_d947_oNYm3g/dti=1/m=_b,_tp:563
+[    3637ms] TypeError: Cannot read properties of null (reading 'addEventListener')
+    at chrome-extension://bokldcdphgknojlbfhpbbgkggjfhhaek/background.js:53:33
+[    3801ms] [LOG] preBlurElements:  []  length: 0 @ chrome-extension://oeingmcibfkfneecplcppjhcekgedmco/js/content.js:0
+[    3802ms] [LOG] preBlurAreasInfo:  []  length: 0 @ chrome-extension://oeingmcibfkfneecplcppjhcekgedmco/js/content.js:0
+[    3831ms] [ERROR] Permissions policy violation: unload is not allowed in this document. @ chrome-extension://kbfnbcaeplbcioakkpcpgfkobkghlhen/src/js/Grammarly-check.js:0
+[    3872ms] [INFO] 🌐 i18next is made possible by our own product, Locize — consider powering your project with managed localization (AI, CDN, integrations): https://locize.com 💙 @ chrome-extension://lknmjhcajhfbbglglccadlfdjbaiifig/content-scripts/multi-tabs.js:469
+[   44406ms] [WARNING] The powerPreference option is currently ignored when calling requestAdapter() on Windows. See https://crbug.com/369219127 @ :0
