@@ -97,7 +97,9 @@ export async function spotlight(
   const viewport = page.viewportSize() ?? { width: 1920, height: 1080 }
   const { css, html } = ringMarkup(padded(box, 8, viewport), options.dim !== false, options.durationMs)
 
-  await page.screencast
+  // Not awaited: showOverlay settles only when the overlay is taken down, and the caller
+  // paces the recording itself - waiting here as well doubled every caption and ring.
+  void page.screencast
     .showOverlay(`<style>${css}</style>${html}`, { duration: options.durationMs })
     .catch(err => log.warn('Could not draw the spotlight', err))
 }
@@ -231,7 +233,9 @@ export async function instruct(
     ring +
     `<div class="tc-card" style="left:${cardX}px;top:${cardY}px">${escapeHtml(text)}</div>`
 
-  await page.screencast
+  // Not awaited: showOverlay settles only when the overlay is taken down, and the caller
+  // paces the recording itself - waiting here as well doubled every caption and ring.
+  void page.screencast
     .showOverlay(overlay, { duration: durationMs })
     .catch(err => log.warn('Could not draw the instruction', err))
 
@@ -314,7 +318,9 @@ export async function ripple(page: Page, x: number, y: number, durationMs = 700)
     </style>` +
     `<div class="tc-ripple" style="left:${Math.round(x)}px;top:${Math.round(y)}px"></div>`
 
-  await page.screencast
+  // Not awaited: showOverlay settles only when the overlay is taken down, and the caller
+  // paces the recording itself - waiting here as well doubled every caption and ring.
+  void page.screencast
     .showOverlay(html, { duration: durationMs })
     .catch(err => log.warn('Could not draw the click ripple', err))
 }

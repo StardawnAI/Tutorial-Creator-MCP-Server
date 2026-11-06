@@ -151,7 +151,7 @@ finished video.
 | `tutorial_say` | Speak a line; the recording waits for it |
 | `tutorial_chapter` | Chapter card - animated and numbered with motion on, otherwise static over a blurred backdrop |
 | `tutorial_goto` | Navigate |
-| `tutorial_click` | Click, after ringing the target and moving the camera to it; `optional` for prompts that only sometimes appear; `files` picks a file in an upload dialog, which a recording cannot show |
+| `tutorial_click` | Click, after ringing the target and moving the camera to it; `optional` for prompts that only sometimes appear; `files` picks a file in an upload dialog and shows a file dialog on camera (the folder, the chosen files, Open pressed) in place of the operating system's, which no recording can see |
 | `tutorial_type` | Type into a field; mark `sensitive` for codes and passwords, `totpFrom` for a two-factor code |
 | `tutorial_press` | Press a key |
 | `tutorial_scroll` | Scroll smoothly, or bring an element into view |

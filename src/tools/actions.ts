@@ -27,6 +27,13 @@ import { framingBox, openOverlays, settleCamera, settleLastAction } from '../lib
 import { describePrivacy } from '../lib/privacy.js'
 import { currentCode } from '../lib/totp.js'
 import { log } from '../lib/logger.js'
+import {
+  closeFilePicker,
+  describeFiles,
+  openFilePicker,
+  pickerLabels,
+  selectPickerFiles,
+} from '../lib/file-picker.js'
 
 function text(body: string) {
   return { content: [{ type: 'text' as const, text: body }] }
@@ -138,6 +145,51 @@ async function prepareTarget(
   await page.waitForTimeout(dwell)
 
   return box
+}
+
+/**
+ * The file dialog a viewer would see: drawn into the page (lib/file-picker.ts), the
+ * files ringed and picked, Open pressed, the dialog gone - at the pace of every other
+ * step, with no wait of its own beyond the press.
+ */
+async function playFilePicker(
+  session: RecordingSession,
+  files: string[],
+  labels: Record<string, string> | undefined,
+  instruction: string | undefined,
+): Promise<void> {
+  const page = session.page
+  const emphasis = session.options.emphasis
+  await openFilePicker(page, {
+    folder: path.basename(path.dirname(files[0]!)),
+    files: describeFiles(files),
+    labels: pickerLabels(labels),
+    locale: session.options.locale ?? 'en-US',
+  })
+  const win = await page.locator('#tc-fp .win').boundingBox()
+  const row = await page.locator('#tc-fp-file-0').boundingBox()
+  const open = await page.locator('#tc-fp-open').boundingBox()
+  const press = async (box: Box | null) => {
+    if (box && emphasis) await ripple(page, box.x + box.width / 2, box.y + box.height / 2)
+  }
+
+  // The camera is still in on the button that opened the picker. The dialog fills the
+  // middle of the screen, so its caption is read in the wide shot, then one move in.
+  session.releaseZoom()
+  await page.waitForTimeout(450)
+  if (instruction && row && emphasis) await page.waitForTimeout(await instruct(page, row, instruction))
+  if (win) session.focusOn(win, instruction ?? 'file dialog')
+  if (row && emphasis) await spotlight(page, row, { durationMs: 1100 })
+  await page.waitForTimeout(700)
+
+  await press(row)
+  await selectPickerFiles(page)
+  await page.waitForTimeout(450)
+  if (open && emphasis) await spotlight(page, open, { durationMs: 700 })
+  await page.waitForTimeout(300)
+  await press(open)
+  await page.waitForTimeout(150)
+  await closeFilePicker(page)
 }
 
 export function registerActionTools(server: McpServer): void {
@@ -285,6 +337,27 @@ export function registerActionTools(server: McpServer): void {
               'it; the files are handed to the page as if they had been picked there. Absolute ' +
               "paths, or relative to the server's working directory.",
           ),
+        picker: z
+          .boolean()
+          .default(true)
+          .describe(
+            'With files: show a file dialog on camera - the folder and the chosen files, the ' +
+              'files picked and Open pressed - before they reach the page. Off, the files arrive ' +
+              'without a dialog in the video.',
+          ),
+        pickerLabels: z
+          .record(z.string())
+          .optional()
+          .describe(
+            'Words of that dialog in the page language, by key: title, thisPc, search ' +
+              '("{folder}" for the folder), newFolder, home, gallery, desktop, downloads, ' +
+              'documents, pictures, music, videos, name, modified, type, size, fileName, ' +
+              'allFiles, open, cancel, fileType ("{ext}" for the extension). Missing keys stay English.',
+          ),
+        fileInstruction: z
+          .string()
+          .optional()
+          .describe('Caption for choosing the file in that dialog, shown like instruction.'),
         waitForMs: z.number().int().min(0).max(30_000).default(BEAT_MS),
       },
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
@@ -312,12 +385,16 @@ export function registerActionTools(server: McpServer): void {
             session.page.waitForEvent('filechooser', { timeout: 20_000 }),
             locator.click({ timeout: 20_000 }),
           ])
+          if (box && session.options.emphasis) {
+            await ripple(session.page, box.x + box.width / 2, box.y + box.height / 2)
+          }
+          if (args.picker) await playFilePicker(session, files, args.pickerLabels, args.fileInstruction)
           await chooser.setFiles(files)
         } else {
           await locator.click({ timeout: 20_000 })
         }
 
-        if (box && session.options.emphasis) {
+        if (box && session.options.emphasis && !files.length) {
           await ripple(session.page, box.x + box.width / 2, box.y + box.height / 2)
         }
         // A dialog that opens across the page is there within a frame or two; waiting

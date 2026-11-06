@@ -19,7 +19,7 @@
     "dev": "tsc --watch",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
-    "test": "node --test dist/lib/login-guard.test.js dist/lib/login-chooser.test.js dist/lib/vault-code.test.js",
+    "test": "node --test dist/lib/login-guard.test.js dist/lib/login-chooser.test.js dist/lib/vault-code.test.js dist/lib/file-picker.test.js",
     "login": "node dist/cli/login.js",
     "autologin": "node dist/cli/autologin.js",
     "set-secret": "powershell -File scripts/set-secret.ps1",
