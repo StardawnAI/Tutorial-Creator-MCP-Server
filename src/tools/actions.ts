@@ -6,6 +6,8 @@
  * machine speed teaches nobody anything.
  */
 
+import fs from 'node:fs'
+import path from 'node:path'
 import { z } from 'zod'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { Locator, Page } from 'playwright-core'
@@ -274,6 +276,15 @@ export function registerActionTools(server: McpServer): void {
               'follows it - "View on Instagram", "Open in a new window". Go back with ' +
               'tutorial_goto.',
           ),
+        files: z
+          .array(z.string().min(1))
+          .optional()
+          .describe(
+            'Files to choose when this click opens a file picker - "Upload from device". The ' +
+              "operating system's file dialog is outside the browser, so no recording can show " +
+              'it; the files are handed to the page as if they had been picked there. Absolute ' +
+              "paths, or relative to the server's working directory.",
+          ),
         waitForMs: z.number().int().min(0).max(30_000).default(BEAT_MS),
       },
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
@@ -282,6 +293,9 @@ export function registerActionTools(server: McpServer): void {
       try {
         const session = requireSession()
         const locator = resolveTarget(session.page, args)
+        const files = (args.files ?? []).map(f => path.resolve(f))
+        const missing = files.filter(f => !fs.existsSync(f))
+        if (missing.length) return failure(`No such file to choose: ${missing.join(', ')}`)
         if (args.optional) {
           const present = await locator
             .waitFor({ state: 'visible', timeout: 3000 })
@@ -292,7 +306,16 @@ export function registerActionTools(server: McpServer): void {
         const before = { overlays: (await openOverlays(session.page)).length, acted: locator }
 
         if (args.sameTab) await openInThisTab(locator)
-        await locator.click({ timeout: 20_000 })
+        if (files.length) {
+          // Listening for the chooser is what keeps the operating system's dialog closed.
+          const [chooser] = await Promise.all([
+            session.page.waitForEvent('filechooser', { timeout: 20_000 }),
+            locator.click({ timeout: 20_000 }),
+          ])
+          await chooser.setFiles(files)
+        } else {
+          await locator.click({ timeout: 20_000 })
+        }
 
         if (box && session.options.emphasis) {
           await ripple(session.page, box.x + box.width / 2, box.y + box.height / 2)
@@ -305,7 +328,8 @@ export function registerActionTools(server: McpServer): void {
         await session.page.waitForTimeout(args.waitForMs - glance)
         await settleCamera(session, before)
         session.lastAction = session.isZoomed ? before : null
-        return text(`Clicked ${describeTarget(args)}.`)
+        const chosen = files.length ? ` and chose ${files.map(f => path.basename(f)).join(', ')}` : ''
+        return text(`Clicked ${describeTarget(args)}${chosen}.`)
       } catch (err) {
         return failure(`Could not click ${describeTarget(args)}: ${(err as Error).message}`)
       }
