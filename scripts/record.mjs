@@ -68,6 +68,13 @@ async function call(name, args = {}) {
   const failed = res?.result?.isError === true
   const first = body.split('\n')[0]
   process.stdout.write(`  ${failed ? '!' : '>'} ${name.padEnd(20)} ${first}\n`)
+  // SOFT_WAITS=1: a wait that times out is logged and the take goes on, so one wrong
+  // expectation late in a long script does not throw away everything recorded before it.
+  // The finished video still has to be checked frame by frame.
+  if (failed && name === 'tutorial_wait' && process.env.SOFT_WAITS === '1') {
+    process.stdout.write(`  ! ${''.padEnd(20)} (soft wait: continuing)\n`)
+    return res.result
+  }
   if (failed) throw new Error(`${name}: ${body}`)
   return res.result
 }
