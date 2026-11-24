@@ -1,0 +1,26 @@
+# .understandignore — patterns for files/dirs to exclude from analysis
+# Syntax: same as .gitignore (globs, # comments, ! negation, trailing / for dirs)
+#
+# Built-in defaults (always excluded unless negated):
+#   node_modules/, .git/, dist/, build/, obj/, *.lock, *.min.js, etc.
+
+# --- From .gitignore ---
+*.tsbuildinfo
+recordings/
+out/
+tmp/
+profiles/
+assets/music/
+assets/branding/
+assets/source/
+.env
+.env.local
+Thumbs.db
+desktop.ini
+.DS_Store
+.playwright-mcp/
+
+# --- Tooling metadata, not project code ---
+.awg/
+.ua/
+package-lock.json
