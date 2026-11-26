@@ -1,0 +1,96 @@
+[
+  {
+    "order": 1,
+    "title": "The MCP Server Entry Point",
+    "description": "Everything starts in src/index.ts, the stdio entry point that loads configuration, registers three tool groups (recording, browser actions, setup) and cancels any live recording when the process is told to shut down. The README frames what those tools add up to: an agent drives a browser that is already signed in to your app, narrates what it does, and gets back a finished mp4 through the flow tutorial_start, then tutorial_say / tutorial_click / tutorial_type, then tutorial_finish. package.json wires dist/index.js up as the bin and defines the build, login and doctor scripts you will meet later in the tour.",
+    "nodeIds": ["file:src/index.ts", "document:README.md", "config:package.json"],
+    "languageLesson": "An MCP stdio server talks JSON-RPC over stdin/stdout, so stdout belongs to the protocol alone. Any stray console.log would corrupt the stream, which is why this project routes all diagnostics elsewhere (see Step 2)."
+  },
+  {
+    "order": 2,
+    "title": "Configuration and Logging Foundation",
+    "description": "env.ts and logger.ts are the two most depended-upon modules in the codebase: nearly every other file imports them. env.ts loads the local .env, resolves project paths and caches, finds ffmpeg/ffprobe and the Playwright Chromium build, and offers guard functions that fail with a readable message when a tool or API key is missing. logger.ts writes leveled, JSON-annotated messages to stderr, which keeps stdout clean for the MCP protocol described in Step 1.",
+    "nodeIds": ["file:src/lib/env.ts", "file:src/lib/logger.ts"]
+  },
+  {
+    "order": 3,
+    "title": "Recording Tools and Session State",
+    "description": "recording.ts registers the lifecycle tools (tutorial_start, tutorial_say, tutorial_chapter, tutorial_finish, tutorial_cancel, tutorial_status plus the avatar and voice listings), and session.ts holds the state those tools operate on. A session owns its browsers and recorders, the narration cues, chapters, zoom events and on-air stretches across browser cuts, and there is exactly one global active session. Together with index.ts and the logger they form the most tightly coupled cluster in the graph, because every tool call reads or mutates this shared state.",
+    "nodeIds": ["file:src/tools/recording.ts", "file:src/lib/session.ts"]
+  },
+  {
+    "order": 4,
+    "title": "Browser Actions and On-Screen Emphasis",
+    "description": "While a session from Step 3 is live, actions.ts exposes the in-recording tools: goto, switch, click, type, press, scroll, wait, handoff, snapshot, screenshot, highlight and zoom. Each action first highlights its target so the viewer can follow along, using emphasis.ts, which draws spotlight rings, callouts with arrows, click ripples and a hand-off banner into the screencast overlay. The key design choice is that the emphasis layer never modifies the recorded page itself, so the app under test behaves exactly as it would for a real user.",
+    "nodeIds": ["file:src/tools/actions.ts", "file:src/lib/emphasis.ts"]
+  },
+  {
+    "order": 5,
+    "title": "The Signed-In Headless Browser",
+    "description": "browser.ts owns the Playwright lifecycle: it launches a persistent Chromium context from a saved profile directory, adds anti-throttling and anti-automation flags, hides headless traces and installs the repaint heartbeat on every page. Profiles get their login in one of two ways: login.ts (npm run login) opens a visible browser once so you sign in by hand, or the setup tool tutorial_import_session in setup.ts hands a storageState export from your real browser to session-import.ts, which filters cookies to the requested hosts, restores localStorage and deletes the export afterwards. Either way, every later headless recording reuses that stored session.",
+    "nodeIds": ["file:src/lib/browser.ts", "file:src/cli/login.ts", "file:src/tools/setup.ts", "file:src/lib/session-import.ts"]
+  },
+  {
+    "order": 6,
+    "title": "Screencast Capture and One Clock",
+    "description": "recorder.ts wraps Playwright's page.screencast to write the page to webm and records the wall-clock moment of the first frame; every narration cue offset from Step 3 is measured against that origin. Because the screencast only emits frames when something repaints, heartbeat.ts keeps an invisible 1x1 px element changing colour every animation frame so video time tracks real time. This is how the project guarantees that picture and sound cannot drift apart: there is only one clock.",
+    "nodeIds": ["file:src/lib/recorder.ts", "file:src/lib/heartbeat.ts", "file:src/types/global.d.ts", "config:tsconfig.json"],
+    "languageLesson": "global.d.ts uses TypeScript declaration merging: redeclaring `interface Window` inside a `declare global` block adds the optional __tutorialHeartbeat property to the built-in type without touching lib.dom.d.ts. With strict mode and noUncheckedIndexedAccess from tsconfig.json, the compiler then checks every access to that flag."
+  },
+  {
+    "order": 7,
+    "title": "Defended Sign-Ins",
+    "description": "Real apps fight bots, so two small helpers keep recordings from getting stuck at the login. totp.ts implements RFC 6238 time-based one-time passwords from a base32 secret in an environment variable, letting a recording pass two-factor authentication without a person. When a manual security check (such as a CAPTCHA) cannot be automated, foreground.ts brings the recorder's browser window to the front on Windows via a generated PowerShell script, so the human answers the check inside the browser that is actually being recorded.",
+    "nodeIds": ["file:src/lib/totp.ts", "file:src/lib/foreground.ts"]
+  },
+  {
+    "order": 8,
+    "title": "Narration and Word Timing",
+    "description": "tts.ts is the ElevenLabs client: it synthesises each narration line with tutorial voice settings and caches the audio by a hash of every input. The recording then waits for exactly as long as the speech lasts (speak first, then act), which is what keeps the single clock from Step 6 honest. words.ts computes per-word timings for karaoke-style captions using ElevenLabs forced alignment, falling back to length-based estimates when alignment is unavailable.",
+    "nodeIds": ["file:src/lib/tts.ts", "file:src/lib/words.ts"]
+  },
+  {
+    "order": 9,
+    "title": "The Composition Engine",
+    "description": "compose.ts turns the raw capture, the narration clips and everything else into the finished mp4 in two ffmpeg passes: it builds SRT/ASS karaoke captions from the word timings in Step 8, normalises loudness and ducks the music under the voice, adds dissolve transitions, and runs a sanity check on the result. zoom.ts converts the zoom intents recorded during capture into one time-exact zoompan expression with eased transitions, so the camera moves happen after recording and the app is never rescaled. ffmpeg.ts underneath spawns ffmpeg/ffprobe with argument arrays, which makes paths with spaces safe.",
+    "nodeIds": ["file:src/lib/compose.ts", "file:src/lib/zoom.ts", "file:src/lib/ffmpeg.ts"],
+    "languageLesson": "Spawning a process with an argument array (spawn('ffmpeg', ['-i', path])) passes each argument to the program unchanged, while building one shell command string requires quoting every path by hand. The array form avoids a whole class of bugs with spaces and special characters in file names."
+  },
+  {
+    "order": 10,
+    "title": "Avatar and Background Music",
+    "description": "Two optional media sources feed the composer from Step 9. avatar.ts integrates HeyGen: it lists and resolves avatar looks, can voice the narration through HeyGen, and renders lip-synced and idle avatar clips after the recording, with retrying API calls and an on-disk clip cache. music-gen.ts generates a background track sized to the video through Google Lyria, using a fixed calm instrumental brief with rotating instrumentation.",
+    "nodeIds": ["file:src/lib/avatar.ts", "file:src/lib/music-gen.ts"]
+  },
+  {
+    "order": 11,
+    "title": "Animated Opening, Chapter and Closing Cards",
+    "description": "motion.ts renders the opening, chapter and closing cards through the optional HyperFrames renderer: it detects whether HyperFrames is available, picks a transparent output format and caches rendered cards by content hash. The cards themselves are HTML templates animated with GSAP timelines, all sharing brand.css for the colour tokens, typeface and fixed 1920x1080 canvas. The chapter card is drawn over the recording whenever tutorial_chapter (Step 3) is called, while the opening and closing cards dissolve into and out of the recording during composition.",
+    "nodeIds": ["file:src/lib/motion.ts", "file:assets/motion/opening.html", "file:assets/motion/chapter.html", "file:assets/motion/closing.html", "file:assets/motion/brand.css"],
+    "languageLesson": "A paused GSAP timeline (gsap.timeline({ paused: true })) does not play on its own; the renderer seeks it frame by frame. That makes the animation deterministic, so every rendered frame is reproducible no matter how fast the machine is."
+  },
+  {
+    "order": 12,
+    "title": "Why It Is Built This Way",
+    "description": "Now that you have seen every part of the pipeline, ARCHITECTURE.md explains the reasoning behind it. It covers why capture uses a dedicated Playwright browser with page.screencast instead of desktop capture, how the timeline stays honest, the speak-then-act narration model, ffmpeg composition, camera moves and emphasis, the defended sign-in strategy and the HyperFrames cards. Reading it after Steps 1 to 11 connects each design decision to the code that implements it.",
+    "nodeIds": ["document:docs/ARCHITECTURE.md"]
+  },
+  {
+    "order": 13,
+    "title": "Operator Tools",
+    "description": "A few command-line tools sit outside the MCP server. doctor.ts (npm run doctor) checks ffmpeg and its filters, the ElevenLabs and HeyGen keys, HyperFrames support, default music and browser profiles, and only exits non-zero on hard blockers. recompose.mjs re-renders a finished recording from its saved timeline.json with new music, an avatar, cards or transitions without recording again, and split-music.mjs cuts a long music mix into named tracks using the timestamps in chapters.json.",
+    "nodeIds": ["file:src/cli/doctor.ts", "file:scripts/recompose.mjs", "file:scripts/split-music.mjs", "config:assets/chapters.json"]
+  },
+  {
+    "order": 14,
+    "title": "Example Plans and Verification",
+    "description": "record.mjs replays a JSON tutorial plan, such as examples/overview.json, through a freshly started MCP server, which shows the start/steps/finish sequence an agent follows. Three scripts guard the whole system: handshake.mjs checks that the built server lists every tutorial_* tool and prints nothing but JSON-RPC on stdout, live-run.mjs records a full tutorial through the MCP protocol just as Claude Code would, and e2e.mjs runs the pipeline directly and asserts duration, a non-black picture, loudness, caption timing, avatar, motion cards, browser switching and a TOTP login.",
+    "nodeIds": ["file:scripts/record.mjs", "config:examples/overview.json", "file:scripts/handshake.mjs", "file:scripts/live-run.mjs", "file:scripts/e2e.mjs"]
+  },
+  {
+    "order": 15,
+    "title": "Project Plan and History",
+    "description": "PLAN.md is the milestone checklist from M0 foundations to M16 HyperFrames motion design, with each item ticked against concrete verification evidence. STATUS.md is the reverse-chronological log of what was built, which decisions were made and why, and which defects turned up, such as ffmpeg pitfalls, loudness problems and security checks. Together they show how the architecture you just toured grew step by step, and where to look before changing it.",
+    "nodeIds": ["document:docs/PLAN.md", "document:docs/STATUS.md"]
+  }
+]

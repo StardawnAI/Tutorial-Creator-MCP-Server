@@ -1,0 +1,16 @@
+{
+  "fixedSectionOk": true,
+  "nodesRecovered": 0,
+  "edgesRestored": 0,
+  "crossBatchEdgesAdded": 0,
+  "typesRemapped": 0,
+  "complexityRemapped": 0,
+  "notes": [
+    "Merge script needed only 5 corrections (all dropped tested_by edges); no ID normalization or complexity remapping was required, so upstream batch output quality is high.",
+    "Could-not-fix section was empty: no nodes without id, no unknown node types, no unknown complexity values, no dangling edges.",
+    "The 5 dropped tested_by edges (compose.ts/session.ts/totp.ts -> scripts/e2e.mjs, index.ts -> scripts/handshake.mjs and scripts/live-run.mjs) were not restored: every one already has a script -> source depends_on counterpart in the graph (from batch 8), so re-adding them as depends_on would duplicate existing edges.",
+    "All 66 internal import links from scan-result.json importMap (45 entries) are present as file->file imports edges; no cross-batch gaps.",
+    "Every file in the scan (45) has a node; all 160 node IDs are unique and match their type prefix; every function/class node has a contains edge from an existing file node; no isolated nodes, self-loops, or invalid weights/directions.",
+    "Final graph: 160 nodes (113 function, 35 file, 6 config, 4 document, 2 class), 466 edges. Complexity distribution simple 84 / moderate 49 / complex 27."
+  ]
+}

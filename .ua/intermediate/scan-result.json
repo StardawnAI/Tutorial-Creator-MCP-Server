@@ -1,0 +1,427 @@
+{
+  "name": "tutorial-creator-mcp-server",
+  "description": "MCP server that records narrated screen-capture tutorial videos of web apps, driving a logged-in Playwright browser, generating ElevenLabs narration, and compositing the final mp4 with ffmpeg. Optional HyperFrames and GSAP render animated opening, chapter and closing cards.",
+  "languages": [
+    "css",
+    "html",
+    "javascript",
+    "json",
+    "markdown",
+    "typescript"
+  ],
+  "frameworks": [
+    "Model Context Protocol SDK",
+    "Playwright",
+    "Zod",
+    "GSAP",
+    "HyperFrames"
+  ],
+  "files": [
+    {
+      "path": "README.md",
+      "language": "markdown",
+      "sizeLines": 384,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "assets/chapters.json",
+      "language": "json",
+      "sizeLines": 22,
+      "fileCategory": "config"
+    },
+    {
+      "path": "assets/motion/brand.css",
+      "language": "css",
+      "sizeLines": 125,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "assets/motion/chapter.html",
+      "language": "html",
+      "sizeLines": 97,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "assets/motion/closing.html",
+      "language": "html",
+      "sizeLines": 139,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "assets/motion/opening.html",
+      "language": "html",
+      "sizeLines": 116,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "language": "markdown",
+      "sizeLines": 374,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/PLAN.md",
+      "language": "markdown",
+      "sizeLines": 393,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/STATUS.md",
+      "language": "markdown",
+      "sizeLines": 861,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "examples/find-code-on-github.json",
+      "language": "json",
+      "sizeLines": 75,
+      "fileCategory": "config"
+    },
+    {
+      "path": "examples/overview.json",
+      "language": "json",
+      "sizeLines": 83,
+      "fileCategory": "config"
+    },
+    {
+      "path": "examples/signed-in.json",
+      "language": "json",
+      "sizeLines": 55,
+      "fileCategory": "config"
+    },
+    {
+      "path": "package.json",
+      "language": "json",
+      "sizeLines": 48,
+      "fileCategory": "config"
+    },
+    {
+      "path": "scripts/e2e.mjs",
+      "language": "javascript",
+      "sizeLines": 1159,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scripts/handshake.mjs",
+      "language": "javascript",
+      "sizeLines": 167,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scripts/live-run.mjs",
+      "language": "javascript",
+      "sizeLines": 168,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scripts/recompose.mjs",
+      "language": "javascript",
+      "sizeLines": 224,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scripts/record.mjs",
+      "language": "javascript",
+      "sizeLines": 135,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scripts/split-music.mjs",
+      "language": "javascript",
+      "sizeLines": 112,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/cli/doctor.ts",
+      "language": "typescript",
+      "sizeLines": 192,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/cli/login.ts",
+      "language": "typescript",
+      "sizeLines": 83,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/index.ts",
+      "language": "typescript",
+      "sizeLines": 92,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/avatar.ts",
+      "language": "typescript",
+      "sizeLines": 523,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/browser.ts",
+      "language": "typescript",
+      "sizeLines": 180,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/compose.ts",
+      "language": "typescript",
+      "sizeLines": 1200,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/emphasis.ts",
+      "language": "typescript",
+      "sizeLines": 303,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/env.ts",
+      "language": "typescript",
+      "sizeLines": 291,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/ffmpeg.ts",
+      "language": "typescript",
+      "sizeLines": 124,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/foreground.ts",
+      "language": "typescript",
+      "sizeLines": 91,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/heartbeat.ts",
+      "language": "typescript",
+      "sizeLines": 58,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/logger.ts",
+      "language": "typescript",
+      "sizeLines": 36,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/motion.ts",
+      "language": "typescript",
+      "sizeLines": 339,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/music-gen.ts",
+      "language": "typescript",
+      "sizeLines": 145,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/recorder.ts",
+      "language": "typescript",
+      "sizeLines": 134,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/session-import.ts",
+      "language": "typescript",
+      "sizeLines": 267,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/session.ts",
+      "language": "typescript",
+      "sizeLines": 559,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/totp.ts",
+      "language": "typescript",
+      "sizeLines": 87,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/tts.ts",
+      "language": "typescript",
+      "sizeLines": 177,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/words.ts",
+      "language": "typescript",
+      "sizeLines": 151,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/zoom.ts",
+      "language": "typescript",
+      "sizeLines": 195,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/tools/actions.ts",
+      "language": "typescript",
+      "sizeLines": 768,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/tools/recording.ts",
+      "language": "typescript",
+      "sizeLines": 870,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/tools/setup.ts",
+      "language": "typescript",
+      "sizeLines": 165,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/types/global.d.ts",
+      "language": "typescript",
+      "sizeLines": 4,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tsconfig.json",
+      "language": "json",
+      "sizeLines": 21,
+      "fileCategory": "config"
+    }
+  ],
+  "totalFiles": 45,
+  "filteredByIgnore": 3,
+  "estimatedComplexity": "moderate",
+  "importMap": {
+    "README.md": [],
+    "assets/chapters.json": [],
+    "assets/motion/brand.css": [],
+    "assets/motion/chapter.html": [],
+    "assets/motion/closing.html": [],
+    "assets/motion/opening.html": [],
+    "docs/ARCHITECTURE.md": [],
+    "docs/PLAN.md": [],
+    "docs/STATUS.md": [],
+    "examples/find-code-on-github.json": [],
+    "examples/overview.json": [],
+    "examples/signed-in.json": [],
+    "package.json": [],
+    "scripts/e2e.mjs": [],
+    "scripts/handshake.mjs": [],
+    "scripts/live-run.mjs": [],
+    "scripts/recompose.mjs": [],
+    "scripts/record.mjs": [],
+    "scripts/split-music.mjs": [],
+    "src/cli/doctor.ts": [
+      "src/lib/avatar.ts",
+      "src/lib/env.ts",
+      "src/lib/ffmpeg.ts",
+      "src/lib/motion.ts",
+      "src/lib/tts.ts"
+    ],
+    "src/cli/login.ts": [
+      "src/lib/browser.ts",
+      "src/lib/env.ts"
+    ],
+    "src/index.ts": [
+      "src/lib/env.ts",
+      "src/lib/logger.ts",
+      "src/lib/session.ts",
+      "src/tools/actions.ts",
+      "src/tools/recording.ts",
+      "src/tools/setup.ts"
+    ],
+    "src/lib/avatar.ts": [
+      "src/lib/env.ts",
+      "src/lib/ffmpeg.ts",
+      "src/lib/logger.ts"
+    ],
+    "src/lib/browser.ts": [
+      "src/lib/env.ts",
+      "src/lib/heartbeat.ts",
+      "src/lib/logger.ts"
+    ],
+    "src/lib/compose.ts": [
+      "src/lib/avatar.ts",
+      "src/lib/env.ts",
+      "src/lib/ffmpeg.ts",
+      "src/lib/logger.ts",
+      "src/lib/session.ts",
+      "src/lib/words.ts",
+      "src/lib/zoom.ts"
+    ],
+    "src/lib/emphasis.ts": [
+      "src/lib/logger.ts"
+    ],
+    "src/lib/env.ts": [],
+    "src/lib/ffmpeg.ts": [
+      "src/lib/logger.ts"
+    ],
+    "src/lib/foreground.ts": [
+      "src/lib/logger.ts"
+    ],
+    "src/lib/heartbeat.ts": [
+      "src/lib/logger.ts"
+    ],
+    "src/lib/logger.ts": [],
+    "src/lib/motion.ts": [
+      "src/lib/env.ts",
+      "src/lib/ffmpeg.ts",
+      "src/lib/logger.ts"
+    ],
+    "src/lib/music-gen.ts": [
+      "src/lib/env.ts",
+      "src/lib/logger.ts"
+    ],
+    "src/lib/recorder.ts": [
+      "src/lib/logger.ts"
+    ],
+    "src/lib/session-import.ts": [
+      "src/lib/browser.ts",
+      "src/lib/env.ts",
+      "src/lib/logger.ts"
+    ],
+    "src/lib/session.ts": [
+      "src/lib/browser.ts",
+      "src/lib/compose.ts",
+      "src/lib/env.ts",
+      "src/lib/logger.ts",
+      "src/lib/motion.ts",
+      "src/lib/recorder.ts",
+      "src/lib/zoom.ts"
+    ],
+    "src/lib/totp.ts": [],
+    "src/lib/tts.ts": [
+      "src/lib/env.ts",
+      "src/lib/ffmpeg.ts",
+      "src/lib/logger.ts"
+    ],
+    "src/lib/words.ts": [
+      "src/lib/env.ts",
+      "src/lib/logger.ts"
+    ],
+    "src/lib/zoom.ts": [],
+    "src/tools/actions.ts": [
+      "src/lib/emphasis.ts",
+      "src/lib/foreground.ts",
+      "src/lib/logger.ts",
+      "src/lib/session.ts",
+      "src/lib/totp.ts"
+    ],
+    "src/tools/recording.ts": [
+      "src/lib/avatar.ts",
+      "src/lib/compose.ts",
+      "src/lib/env.ts",
+      "src/lib/logger.ts",
+      "src/lib/motion.ts",
+      "src/lib/music-gen.ts",
+      "src/lib/session.ts",
+      "src/lib/tts.ts"
+    ],
+    "src/tools/setup.ts": [
+      "src/lib/env.ts",
+      "src/lib/session-import.ts"
+    ],
+    "src/types/global.d.ts": [],
+    "tsconfig.json": []
+  }
+}

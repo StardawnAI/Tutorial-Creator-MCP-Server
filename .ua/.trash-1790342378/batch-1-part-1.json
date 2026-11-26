@@ -1,0 +1,1483 @@
+{
+  "nodes": [
+    {
+      "id": "file:src/cli/doctor.ts",
+      "type": "file",
+      "name": "doctor.ts",
+      "filePath": "src/cli/doctor.ts",
+      "summary": "Command-line environment check that verifies ffmpeg/ffprobe and required filters, API keys for ElevenLabs and HeyGen, HyperFrames motion support, default music and browser profiles, then reports problems and warnings and exits non-zero only on hard blockers.",
+      "tags": [
+        "entry-point",
+        "cli",
+        "diagnostics",
+        "environment-check"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/cli/doctor.ts:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "src/cli/doctor.ts",
+      "lineRange": [
+        18,
+        187
+      ],
+      "summary": "Runs every environment check (ffmpeg filters, keys, voices, HeyGen balance, HyperFrames, music, profiles) and prints a report, exiting with an error code on blockers.",
+      "tags": [
+        "cli",
+        "diagnostics",
+        "entry-point"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:src/lib/avatar.ts",
+      "type": "file",
+      "name": "avatar.ts",
+      "filePath": "src/lib/avatar.ts",
+      "summary": "HeyGen integration that lists and resolves avatar looks, speaks narration through HeyGen voices, and renders lip-synced and idle avatar clips after the recording, with retrying API calls and an on-disk clip cache.",
+      "tags": [
+        "service",
+        "api-client",
+        "avatar",
+        "heygen",
+        "caching"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/lib/avatar.ts:canRenderAvatar",
+      "type": "function",
+      "name": "canRenderAvatar",
+      "filePath": "src/lib/avatar.ts",
+      "lineRange": [
+        60,
+        62
+      ],
+      "summary": "Reports whether a HeyGen key is configured so avatar rendering is possible.",
+      "tags": [
+        "predicate",
+        "avatar",
+        "config"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/avatar.ts:call",
+      "type": "function",
+      "name": "call",
+      "filePath": "src/lib/avatar.ts",
+      "lineRange": [
+        76,
+        107
+      ],
+      "summary": "Performs a HeyGen API request with retries on network failures while returning server answers, including refusals, as-is.",
+      "tags": [
+        "http-client",
+        "retry",
+        "heygen"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/avatar.ts:describeError",
+      "type": "function",
+      "name": "describeError",
+      "filePath": "src/lib/avatar.ts",
+      "lineRange": [
+        110,
+        124
+      ],
+      "summary": "Turns a HeyGen error response into an actionable Error message.",
+      "tags": [
+        "error-handling",
+        "heygen",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/avatar.ts:listLooks",
+      "type": "function",
+      "name": "listLooks",
+      "filePath": "src/lib/avatar.ts",
+      "lineRange": [
+        142,
+        169
+      ],
+      "summary": "Lists HeyGen avatar looks, walking pages client-side when a name search is given.",
+      "tags": [
+        "heygen",
+        "avatar",
+        "pagination"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/avatar.ts:resolveLook",
+      "type": "function",
+      "name": "resolveLook",
+      "filePath": "src/lib/avatar.ts",
+      "lineRange": [
+        178,
+        210
+      ],
+      "summary": "Resolves a look id, avatar group id from the app URL, or partial name to a single avatar look.",
+      "tags": [
+        "heygen",
+        "avatar",
+        "lookup"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/avatar.ts:remainingBalance",
+      "type": "function",
+      "name": "remainingBalance",
+      "filePath": "src/lib/avatar.ts",
+      "lineRange": [
+        213,
+        218
+      ],
+      "summary": "Fetches the remaining HeyGen wallet balance, or null when unavailable.",
+      "tags": [
+        "heygen",
+        "billing",
+        "api-client"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/avatar.ts:uploadAudio",
+      "type": "function",
+      "name": "uploadAudio",
+      "filePath": "src/lib/avatar.ts",
+      "lineRange": [
+        221,
+        233
+      ],
+      "summary": "Uploads a narration clip to HeyGen and returns the audio asset id.",
+      "tags": [
+        "heygen",
+        "upload",
+        "audio"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/avatar.ts:findVideoUrl",
+      "type": "function",
+      "name": "findVideoUrl",
+      "filePath": "src/lib/avatar.ts",
+      "lineRange": [
+        236,
+        251
+      ],
+      "summary": "Searches a finished job response for the rendered video URL wherever it appears.",
+      "tags": [
+        "utility",
+        "parsing",
+        "heygen"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/avatar.ts:renderClip",
+      "type": "function",
+      "name": "renderClip",
+      "filePath": "src/lib/avatar.ts",
+      "lineRange": [
+        264,
+        318
+      ],
+      "summary": "Renders a square 720p lip-synced avatar clip for one narration audio file and downloads it.",
+      "tags": [
+        "heygen",
+        "avatar",
+        "video-render"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/avatar.ts:renderIdleClip",
+      "type": "function",
+      "name": "renderIdleClip",
+      "filePath": "src/lib/avatar.ts",
+      "lineRange": [
+        328,
+        363
+      ],
+      "summary": "Renders a silent idle clip of the avatar breathing and blinking, looped under gaps between lines.",
+      "tags": [
+        "heygen",
+        "avatar",
+        "ffmpeg"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/avatar.ts:speakWithHeyGen",
+      "type": "function",
+      "name": "speakWithHeyGen",
+      "filePath": "src/lib/avatar.ts",
+      "lineRange": [
+        374,
+        412
+      ],
+      "summary": "Synthesises a narration line with a HeyGen speech voice, caching the audio and probing its duration.",
+      "tags": [
+        "heygen",
+        "text-to-speech",
+        "caching"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/avatar.ts:listSpeechVoices",
+      "type": "function",
+      "name": "listSpeechVoices",
+      "filePath": "src/lib/avatar.ts",
+      "lineRange": [
+        415,
+        446
+      ],
+      "summary": "Lists voices accepted by the HeyGen speech endpoint (starfish engine).",
+      "tags": [
+        "heygen",
+        "voices",
+        "api-client"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/avatar.ts:renderAvatarClips",
+      "type": "function",
+      "name": "renderAvatarClips",
+      "filePath": "src/lib/avatar.ts",
+      "lineRange": [
+        473,
+        523
+      ],
+      "summary": "Renders avatar clips for every narration line with caching, skipping lines that fail instead of failing the video.",
+      "tags": [
+        "heygen",
+        "avatar",
+        "batch-processing"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/lib/compose.ts",
+      "type": "file",
+      "name": "compose.ts",
+      "filePath": "src/lib/compose.ts",
+      "summary": "Core composition engine that turns the raw screen capture, narration clips, music, avatar bubble and motion cards into the finished mp4 via two ffmpeg passes, building SRT/ASS karaoke captions, loudness-normalised ducked audio, dissolve transitions, zoom filters and a post-render sanity check.",
+      "tags": [
+        "service",
+        "video-composition",
+        "ffmpeg",
+        "audio-mixing",
+        "subtitles"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Builds large ffmpeg filtergraphs as strings from TypeScript data structures; audio is rendered as a separate pass so it can be inspected in isolation."
+    },
+    {
+      "id": "function:src/lib/compose.ts:buildSrt",
+      "type": "function",
+      "name": "buildSrt",
+      "filePath": "src/lib/compose.ts",
+      "lineRange": [
+        122,
+        137
+      ],
+      "summary": "Builds an SRT subtitle document from narration cues.",
+      "tags": [
+        "subtitles",
+        "serialization",
+        "srt"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/compose.ts:buildAss",
+      "type": "function",
+      "name": "buildAss",
+      "filePath": "src/lib/compose.ts",
+      "lineRange": [
+        167,
+        228
+      ],
+      "summary": "Builds an ASS subtitle document, using karaoke timing so words light up as they are spoken when timings exist.",
+      "tags": [
+        "subtitles",
+        "serialization",
+        "karaoke"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/lib/compose.ts:karaokeText",
+      "type": "function",
+      "name": "karaokeText",
+      "filePath": "src/lib/compose.ts",
+      "lineRange": [
+        246,
+        263
+      ],
+      "summary": "Converts word timings into ASS karaoke-tagged text with line wrapping and a leading silent syllable.",
+      "tags": [
+        "subtitles",
+        "karaoke",
+        "formatting"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/compose.ts:measureLoudness",
+      "type": "function",
+      "name": "measureLoudness",
+      "filePath": "src/lib/compose.ts",
+      "lineRange": [
+        288,
+        305
+      ],
+      "summary": "Measures integrated loudness and true peak of an audio file with ffmpeg loudnorm.",
+      "tags": [
+        "audio",
+        "ffmpeg",
+        "measurement"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/compose.ts:narrationChain",
+      "type": "function",
+      "name": "narrationChain",
+      "filePath": "src/lib/compose.ts",
+      "lineRange": [
+        341,
+        346
+      ],
+      "summary": "Returns the ffmpeg filter chain that pads, normalises and trims a narration clip.",
+      "tags": [
+        "audio",
+        "ffmpeg",
+        "filtergraph"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/compose.ts:buildAudio",
+      "type": "function",
+      "name": "buildAudio",
+      "filePath": "src/lib/compose.ts",
+      "lineRange": [
+        355,
+        500
+      ],
+      "summary": "First pass: levels each narration clip, places it on a silent timeline, loops and fades music and ducks it under the voice with sidechain compression.",
+      "tags": [
+        "audio-mixing",
+        "ffmpeg",
+        "filtergraph"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/lib/compose.ts:joinSegments",
+      "type": "function",
+      "name": "joinSegments",
+      "filePath": "src/lib/compose.ts",
+      "lineRange": [
+        528,
+        587
+      ],
+      "summary": "Builds the filtergraph that joins capture segments with dissolves, falling back to hard cuts for short segments.",
+      "tags": [
+        "video",
+        "transitions",
+        "filtergraph"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/lib/compose.ts:avatarOverlayFilters",
+      "type": "function",
+      "name": "avatarOverlayFilters",
+      "filePath": "src/lib/compose.ts",
+      "lineRange": [
+        635,
+        710
+      ],
+      "summary": "Builds filters that overlay the round avatar bubble in the corner after camera moves, with idle looping between spoken lines.",
+      "tags": [
+        "video",
+        "avatar",
+        "filtergraph"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/lib/compose.ts:bookendFilters",
+      "type": "function",
+      "name": "bookendFilters",
+      "filePath": "src/lib/compose.ts",
+      "lineRange": [
+        748,
+        803
+      ],
+      "summary": "Builds filters that dissolve opening and closing cards into and out of the recording.",
+      "tags": [
+        "video",
+        "motion-cards",
+        "filtergraph"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/lib/compose.ts:overlayFilters",
+      "type": "function",
+      "name": "overlayFilters",
+      "filePath": "src/lib/compose.ts",
+      "lineRange": [
+        810,
+        828
+      ],
+      "summary": "Builds filters laying transparent full-frame chapter cards over the picture at their moments.",
+      "tags": [
+        "video",
+        "motion-cards",
+        "filtergraph"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/compose.ts:compose",
+      "type": "function",
+      "name": "compose",
+      "filePath": "src/lib/compose.ts",
+      "lineRange": [
+        831,
+        1144
+      ],
+      "summary": "Second pass: assembles zoom, segments, avatar, cards and captions into the final mp4 and muxes the audio mix.",
+      "tags": [
+        "video-composition",
+        "ffmpeg",
+        "orchestration"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/lib/compose.ts:verifyOutput",
+      "type": "function",
+      "name": "verifyOutput",
+      "filePath": "src/lib/compose.ts",
+      "lineRange": [
+        1150,
+        1200
+      ],
+      "summary": "Sanity-checks a finished render for all-black or motionless video that indicates a failed capture.",
+      "tags": [
+        "validation",
+        "ffmpeg",
+        "quality-check"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/lib/ffmpeg.ts",
+      "type": "file",
+      "name": "ffmpeg.ts",
+      "filePath": "src/lib/ffmpeg.ts",
+      "summary": "Thin ffmpeg/ffprobe wrappers that spawn processes with argument arrays (safe for paths with spaces), probe media duration and video stream properties, and escape filter values.",
+      "tags": [
+        "utility",
+        "ffmpeg",
+        "process-spawn",
+        "media-probe"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/lib/ffmpeg.ts:run",
+      "type": "function",
+      "name": "run",
+      "filePath": "src/lib/ffmpeg.ts",
+      "lineRange": [
+        24,
+        67
+      ],
+      "summary": "Spawns a process with an argument array, optional cwd and env, and resolves with stdout/stderr or rejects on failure.",
+      "tags": [
+        "process-spawn",
+        "ffmpeg",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/lib/ffmpeg.ts:probeDuration",
+      "type": "function",
+      "name": "probeDuration",
+      "filePath": "src/lib/ffmpeg.ts",
+      "lineRange": [
+        70,
+        78
+      ],
+      "summary": "Returns a media file duration in seconds via ffprobe, or null.",
+      "tags": [
+        "ffprobe",
+        "media-probe",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/ffmpeg.ts:probeVideo",
+      "type": "function",
+      "name": "probeVideo",
+      "filePath": "src/lib/ffmpeg.ts",
+      "lineRange": [
+        88,
+        119
+      ],
+      "summary": "Probes width, height, frame rate and duration of a video stream.",
+      "tags": [
+        "ffprobe",
+        "media-probe",
+        "video"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/ffmpeg.ts:escapeFilterValue",
+      "type": "function",
+      "name": "escapeFilterValue",
+      "filePath": "src/lib/ffmpeg.ts",
+      "lineRange": [
+        122,
+        124
+      ],
+      "summary": "Escapes a value for safe use inside an ffmpeg filter argument.",
+      "tags": [
+        "utility",
+        "escaping",
+        "ffmpeg"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/motion.ts",
+      "type": "file",
+      "name": "motion.ts",
+      "filePath": "src/lib/motion.ts",
+      "summary": "Renders opening, chapter and closing motion cards from GSAP-animated HTML templates through the optional HyperFrames renderer, detecting availability, picking a transparent output format, and caching rendered cards by content hash.",
+      "tags": [
+        "service",
+        "motion-graphics",
+        "hyperframes",
+        "templating",
+        "caching"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:src/lib/motion.ts:findHyperFrames",
+      "type": "function",
+      "name": "findHyperFrames",
+      "filePath": "src/lib/motion.ts",
+      "lineRange": [
+        47,
+        63
+      ],
+      "summary": "Locates the HyperFrames CLI and the GSAP build used by templates, memoising the result or null.",
+      "tags": [
+        "discovery",
+        "hyperframes",
+        "singleton"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/motion.ts:motionAvailability",
+      "type": "function",
+      "name": "motionAvailability",
+      "filePath": "src/lib/motion.ts",
+      "lineRange": [
+        66,
+        76
+      ],
+      "summary": "Reports whether motion cards can be rendered and why not.",
+      "tags": [
+        "predicate",
+        "hyperframes",
+        "diagnostics"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/motion.ts:fillTemplate",
+      "type": "function",
+      "name": "fillTemplate",
+      "filePath": "src/lib/motion.ts",
+      "lineRange": [
+        94,
+        99
+      ],
+      "summary": "Fills {{slot}} placeholders in an HTML template with escaped values, leaving missing slots empty.",
+      "tags": [
+        "templating",
+        "html",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/motion.ts:transparentCardFormat",
+      "type": "function",
+      "name": "transparentCardFormat",
+      "filePath": "src/lib/motion.ts",
+      "lineRange": [
+        130,
+        137
+      ],
+      "summary": "Chooses webm (libvpx) or mov (ProRes) as the transparent card format depending on the ffmpeg build.",
+      "tags": [
+        "ffmpeg",
+        "format-detection",
+        "memoization"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:src/lib/motion.ts:renderMotion",
+      "type": "function",
+      "name": "renderMotion",
+      "filePath": "src/lib/motion.ts",
+      "lineRange": [
+        146,
+        238
+      ],
+      "summary": "Renders one motion card through HyperFrames, cached by template, styles, logo and renderer version.",
+      "tags": [
+        "hyperframes",
+        "video-render",
+        "caching"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/lib/motion.ts:renderCards",
+      "type": "function",
+      "name": "renderCards",
+      "filePath": "src/lib/motion.ts",
+      "lineRange": [
+        275,
+        339
+      ],
+      "summary": "Renders every opening, chapter and closing card a recording asks for, reporting and skipping failures.",
+      "tags": [
+        "hyperframes",
+        "motion-cards",
+        "batch-processing"
+      ],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:src/cli/doctor.ts",
+      "target": "function:src/cli/doctor.ts:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/cli/doctor.ts",
+      "target": "file:src/lib/avatar.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/cli/doctor.ts",
+      "target": "file:src/lib/env.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/cli/doctor.ts",
+      "target": "file:src/lib/ffmpeg.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/cli/doctor.ts",
+      "target": "file:src/lib/motion.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/cli/doctor.ts",
+      "target": "file:src/lib/tts.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:canRenderAvatar",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:canRenderAvatar",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:call",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:describeError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:listLooks",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:listLooks",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:resolveLook",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:resolveLook",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:remainingBalance",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:remainingBalance",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:uploadAudio",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:findVideoUrl",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:renderClip",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:renderClip",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:renderIdleClip",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:renderIdleClip",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:speakWithHeyGen",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:speakWithHeyGen",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:listSpeechVoices",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:listSpeechVoices",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:renderAvatarClips",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "function:src/lib/avatar.ts:renderAvatarClips",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "file:src/lib/env.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "file:src/lib/ffmpeg.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/avatar.ts",
+      "target": "file:src/lib/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:buildSrt",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:buildSrt",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:buildAss",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:buildAss",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:karaokeText",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:karaokeText",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:measureLoudness",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:narrationChain",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:narrationChain",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:buildAudio",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:joinSegments",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:avatarOverlayFilters",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:avatarOverlayFilters",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:bookendFilters",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:bookendFilters",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:overlayFilters",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:overlayFilters",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:compose",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:compose",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:verifyOutput",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "function:src/lib/compose.ts:verifyOutput",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "file:src/lib/avatar.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "file:src/lib/env.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "file:src/lib/ffmpeg.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "file:src/lib/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "file:src/lib/session.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "file:src/lib/words.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/compose.ts",
+      "target": "file:src/lib/zoom.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/ffmpeg.ts",
+      "target": "function:src/lib/ffmpeg.ts:run",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/ffmpeg.ts",
+      "target": "function:src/lib/ffmpeg.ts:run",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/ffmpeg.ts",
+      "target": "function:src/lib/ffmpeg.ts:probeDuration",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/ffmpeg.ts",
+      "target": "function:src/lib/ffmpeg.ts:probeDuration",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/ffmpeg.ts",
+      "target": "function:src/lib/ffmpeg.ts:probeVideo",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/ffmpeg.ts",
+      "target": "function:src/lib/ffmpeg.ts:probeVideo",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/ffmpeg.ts",
+      "target": "function:src/lib/ffmpeg.ts:escapeFilterValue",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/ffmpeg.ts",
+      "target": "function:src/lib/ffmpeg.ts:escapeFilterValue",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/ffmpeg.ts",
+      "target": "file:src/lib/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "function:src/lib/motion.ts:findHyperFrames",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "function:src/lib/motion.ts:findHyperFrames",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "function:src/lib/motion.ts:motionAvailability",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "function:src/lib/motion.ts:motionAvailability",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "function:src/lib/motion.ts:fillTemplate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "function:src/lib/motion.ts:fillTemplate",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "function:src/lib/motion.ts:transparentCardFormat",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "function:src/lib/motion.ts:transparentCardFormat",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "function:src/lib/motion.ts:renderMotion",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "function:src/lib/motion.ts:renderMotion",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "function:src/lib/motion.ts:renderCards",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "function:src/lib/motion.ts:renderCards",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "file:src/lib/env.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "file:src/lib/ffmpeg.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/motion.ts",
+      "target": "file:src/lib/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:src/cli/doctor.ts:main",
+      "target": "function:src/lib/env.ts:loadConfig",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli/doctor.ts:main",
+      "target": "function:src/lib/ffmpeg.ts:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli/doctor.ts:main",
+      "target": "function:src/lib/tts.ts:looksLikeApiKey",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli/doctor.ts:main",
+      "target": "function:src/lib/tts.ts:listVoices",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli/doctor.ts:main",
+      "target": "function:src/lib/avatar.ts:remainingBalance",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli/doctor.ts:main",
+      "target": "function:src/lib/motion.ts:motionAvailability",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli/doctor.ts:main",
+      "target": "function:src/lib/motion.ts:transparentCardFormat",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/cli/doctor.ts:main",
+      "target": "function:src/lib/ffmpeg.ts:probeDuration",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/avatar.ts:call",
+      "target": "function:src/lib/env.ts:requireHeyGenKey",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/avatar.ts:renderIdleClip",
+      "target": "function:src/lib/ffmpeg.ts:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/avatar.ts:renderIdleClip",
+      "target": "function:src/lib/env.ts:requireFfmpeg",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/avatar.ts:speakWithHeyGen",
+      "target": "function:src/lib/ffmpeg.ts:probeDuration",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/avatar.ts:speakWithHeyGen",
+      "target": "function:src/lib/env.ts:requireFfprobe",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/compose.ts:measureLoudness",
+      "target": "function:src/lib/ffmpeg.ts:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/compose.ts:buildAudio",
+      "target": "function:src/lib/env.ts:requireFfmpeg",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/compose.ts:buildAudio",
+      "target": "function:src/lib/ffmpeg.ts:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/compose.ts:compose",
+      "target": "function:src/lib/env.ts:requireFfmpeg",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/compose.ts:compose",
+      "target": "function:src/lib/env.ts:requireFfprobe",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/compose.ts:compose",
+      "target": "function:src/lib/ffmpeg.ts:probeVideo",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/compose.ts:compose",
+      "target": "function:src/lib/zoom.ts:buildZoomFilter",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/compose.ts:compose",
+      "target": "function:src/lib/ffmpeg.ts:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/compose.ts:compose",
+      "target": "function:src/lib/words.ts:wordTimings",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/compose.ts:compose",
+      "target": "function:src/lib/ffmpeg.ts:probeDuration",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/compose.ts:verifyOutput",
+      "target": "function:src/lib/env.ts:requireFfmpeg",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/compose.ts:verifyOutput",
+      "target": "function:src/lib/ffmpeg.ts:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/compose.ts:verifyOutput",
+      "target": "function:src/lib/env.ts:requireFfprobe",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/motion.ts:transparentCardFormat",
+      "target": "function:src/lib/ffmpeg.ts:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/motion.ts:renderMotion",
+      "target": "function:src/lib/ffmpeg.ts:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/motion.ts:renderMotion",
+      "target": "function:src/lib/ffmpeg.ts:probeDuration",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:src/lib/motion.ts:renderMotion",
+      "target": "function:src/lib/env.ts:requireFfprobe",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    }
+  ]
+}

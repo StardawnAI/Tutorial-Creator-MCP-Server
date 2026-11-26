@@ -1,0 +1,297 @@
+{
+  "nodes": [
+    {
+      "id": "config:assets/chapters.json",
+      "type": "config",
+      "name": "chapters.json",
+      "filePath": "assets/chapters.json",
+      "summary": "Default chapter list for split-music.mjs: twenty MM:SS start stamps with track titles that mark where a one-hour ambient music mix is cut into separate background tracks.",
+      "tags": ["configuration", "music", "chapters", "data"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:scripts/e2e.mjs",
+      "type": "file",
+      "name": "e2e.mjs",
+      "filePath": "scripts/e2e.mjs",
+      "summary": "End-to-end check of the whole recording pipeline without MCP. It records short tutorials against local test pages, then asserts duration, a non-black picture, the audio mix and loudness, caption timing, the avatar bubble, motion cards, two-browser switching and a bot login with two-factor (TOTP) codes.",
+      "tags": ["test", "e2e", "entry-point", "video-pipeline", "audio"],
+      "complexity": "complex",
+      "languageNotes": "Plain ESM script that imports the compiled dist/lib/*.js output rather than the TypeScript sources, so it needs a build first; ffmpeg is used both to produce synthetic narration and to measure the result."
+    },
+    {
+      "id": "function:scripts/e2e.mjs:speechStandIn",
+      "type": "function",
+      "name": "speechStandIn",
+      "filePath": "scripts/e2e.mjs",
+      "lineRange": [65, 77],
+      "summary": "Generates a synthetic narration clip with ffmpeg (quiet, slowly swelling pink noise plus one sharp transient), so the mixing chain is tested without a speech API key and with speech-like loudness properties.",
+      "tags": ["test-fixture", "audio", "ffmpeg"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:scripts/e2e.mjs:loudnessOf",
+      "type": "function",
+      "name": "loudnessOf",
+      "filePath": "scripts/e2e.mjs",
+      "lineRange": [80, 90],
+      "summary": "Measures the integrated loudness of a time window of a rendered file with ffmpeg, used to assert that the voice sits above the music.",
+      "tags": ["audio", "measurement", "ffmpeg", "assertion"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:scripts/e2e.mjs:frameAndMark",
+      "type": "function",
+      "name": "frameAndMark",
+      "filePath": "scripts/e2e.mjs",
+      "lineRange": [93, 105],
+      "summary": "Frames an element in the recording session and draws the spotlight, ripple and instruction emphasis on it, mirroring what a real browser action does.",
+      "tags": ["test-helper", "emphasis", "browser"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:scripts/e2e.mjs:twoBrowsers",
+      "type": "function",
+      "name": "twoBrowsers",
+      "filePath": "scripts/e2e.mjs",
+      "lineRange": [165, 313],
+      "summary": "Test scenario that records across two browser profiles in one tutorial and checks that switching between them produces a continuous, correctly timed video.",
+      "tags": ["test", "e2e", "multi-browser", "session"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:scripts/e2e.mjs:avatarBubble",
+      "type": "function",
+      "name": "avatarBubble",
+      "filePath": "scripts/e2e.mjs",
+      "lineRange": [323, 469],
+      "summary": "Test scenario for the talking-avatar overlay: composes stand-in avatar clips into the corner bubble and verifies overlay filters, placement and timing in the output.",
+      "tags": ["test", "e2e", "avatar", "compositing"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:scripts/e2e.mjs:motionCards",
+      "type": "function",
+      "name": "motionCards",
+      "filePath": "scripts/e2e.mjs",
+      "lineRange": [482, 646],
+      "summary": "Test scenario for the animated HyperFrames opening, chapter and closing cards: fills and renders card templates when HyperFrames is available and checks they are spliced into the final video.",
+      "tags": ["test", "e2e", "motion-graphics", "hyperframes"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:scripts/e2e.mjs:botAndTwoFactor",
+      "type": "function",
+      "name": "botAndTwoFactor",
+      "filePath": "scripts/e2e.mjs",
+      "lineRange": [655, 720],
+      "summary": "Test scenario that serves a local login page over HTTP and verifies bot sign-in with TOTP two-factor codes, including code generation and timing within the code window.",
+      "tags": ["test", "e2e", "authentication", "totp"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:scripts/e2e.mjs:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "scripts/e2e.mjs",
+      "lineRange": [722, 1154],
+      "summary": "Runs the main end-to-end recording against a local test page (chapters, narration cues, typing, clicks, zoom), composes the mp4 and asserts duration, picture, audio, captions and cue placement, then runs the additional scenarios and reports pass/fail.",
+      "tags": ["entry-point", "test", "e2e", "orchestration"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:scripts/handshake.mjs",
+      "type": "file",
+      "name": "handshake.mjs",
+      "filePath": "scripts/handshake.mjs",
+      "summary": "MCP protocol smoke test: spawns the built server over stdio, completes the JSON-RPC handshake, checks that every expected tutorial_* tool is listed, and asserts that nothing except JSON-RPC reaches stdout.",
+      "tags": ["test", "smoke-test", "mcp", "json-rpc", "entry-point"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:scripts/handshake.mjs:request",
+      "type": "function",
+      "name": "request",
+      "filePath": "scripts/handshake.mjs",
+      "lineRange": [54, 66],
+      "summary": "Sends a JSON-RPC request to the spawned server and resolves when the response with the matching id arrives, with a timeout.",
+      "tags": ["json-rpc", "stdio", "test-helper"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:scripts/handshake.mjs:waitForReady",
+      "type": "function",
+      "name": "waitForReady",
+      "filePath": "scripts/handshake.mjs",
+      "lineRange": [69, 82],
+      "summary": "Waits until the spawned MCP server reports on stderr that it is ready to accept requests.",
+      "tags": ["process", "startup", "test-helper"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:scripts/handshake.mjs:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "scripts/handshake.mjs",
+      "lineRange": [90, 161],
+      "summary": "Performs initialize, tools/list and error-path tool calls (status without a session, say without a session) and checks responses plus stdout cleanliness.",
+      "tags": ["entry-point", "test", "mcp"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:scripts/live-run.mjs",
+      "type": "file",
+      "name": "live-run.mjs",
+      "filePath": "scripts/live-run.mjs",
+      "summary": "Records a full tutorial through the MCP protocol itself, the same path Claude Code takes: spawns the server, calls tutorial_start, chapter, say, type, highlight, click and finish against a local test page, and works with or without an ElevenLabs key.",
+      "tags": ["test", "integration-test", "mcp", "entry-point"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:scripts/live-run.mjs:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "scripts/live-run.mjs",
+      "lineRange": [108, 161],
+      "summary": "Drives a scripted account-verification walkthrough via MCP tool calls and reports the finished video path and whether narration was voiced or silent.",
+      "tags": ["entry-point", "mcp-client", "test"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:scripts/recompose.mjs",
+      "type": "file",
+      "name": "recompose.mjs",
+      "filePath": "scripts/recompose.mjs",
+      "summary": "CLI that re-renders a finished recording from its saved timeline.json without recording again, optionally with new or generated music, a HeyGen avatar bubble, animated cards, extra chapters and different transitions.",
+      "tags": ["cli", "video-pipeline", "compositing", "entry-point"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:scripts/recompose.mjs:parseArgs",
+      "type": "function",
+      "name": "parseArgs",
+      "filePath": "scripts/recompose.mjs",
+      "lineRange": [67, 76],
+      "summary": "Parses the recompose command line into positional arguments and --flag values.",
+      "tags": ["cli", "argument-parsing", "utility"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:scripts/recompose.mjs:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "scripts/recompose.mjs",
+      "lineRange": [78, 219],
+      "summary": "Loads the recording's timeline, relocates moved files, resolves music (existing, a file, or Lyria-generated), renders avatar and card clips as requested, and composes and verifies the new output video.",
+      "tags": ["entry-point", "orchestration", "video-pipeline"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:scripts/record.mjs",
+      "type": "file",
+      "name": "record.mjs",
+      "filePath": "scripts/record.mjs",
+      "summary": "Records a tutorial from a JSON script file through a freshly started MCP server, useful when the editor's long-running server predates a .env change; cancels the session on failure.",
+      "tags": ["cli", "mcp-client", "entry-point", "automation"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:scripts/record.mjs:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "scripts/record.mjs",
+      "lineRange": [83, 115],
+      "summary": "Reads the script plan, calls tutorial_start, replays each step as a tool call, then calls tutorial_finish and prints the result.",
+      "tags": ["entry-point", "mcp-client", "orchestration"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:scripts/split-music.mjs",
+      "type": "file",
+      "name": "split-music.mjs",
+      "filePath": "scripts/split-music.mjs",
+      "summary": "CLI that cuts a long music mix into named chapter tracks in assets/music/ with ffmpeg, using a chapter list (assets/chapters.json by default), so each recording can pick a fitting track.",
+      "tags": ["cli", "audio", "ffmpeg", "utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:scripts/split-music.mjs:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "scripts/split-music.mjs",
+      "lineRange": [31, 107],
+      "summary": "Reads the chapter list, converts timestamps to seconds and runs ffmpeg once per chapter to write slugified track files, the last one running to the end of the source.",
+      "tags": ["entry-point", "audio", "ffmpeg"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/types/global.d.ts",
+      "type": "file",
+      "name": "global.d.ts",
+      "filePath": "src/types/global.d.ts",
+      "summary": "Ambient type declaration that augments the browser Window interface with the optional __tutorialHeartbeat flag set by the repaint heartbeat.",
+      "tags": ["type-definition", "ambient-declaration", "browser"],
+      "complexity": "simple",
+      "languageNotes": "Global interface merging: declaring interface Window in a non-module .d.ts extends the DOM lib type everywhere."
+    }
+  ],
+  "edges": [
+    {"source": "file:scripts/e2e.mjs", "target": "function:scripts/e2e.mjs:speechStandIn", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:scripts/e2e.mjs", "target": "function:scripts/e2e.mjs:loudnessOf", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:scripts/e2e.mjs", "target": "function:scripts/e2e.mjs:frameAndMark", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:scripts/e2e.mjs", "target": "function:scripts/e2e.mjs:twoBrowsers", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:scripts/e2e.mjs", "target": "function:scripts/e2e.mjs:avatarBubble", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:scripts/e2e.mjs", "target": "function:scripts/e2e.mjs:motionCards", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:scripts/e2e.mjs", "target": "function:scripts/e2e.mjs:botAndTwoFactor", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:scripts/e2e.mjs", "target": "function:scripts/e2e.mjs:main", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:scripts/handshake.mjs", "target": "function:scripts/handshake.mjs:request", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:scripts/handshake.mjs", "target": "function:scripts/handshake.mjs:waitForReady", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:scripts/handshake.mjs", "target": "function:scripts/handshake.mjs:main", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:scripts/live-run.mjs", "target": "function:scripts/live-run.mjs:main", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:scripts/recompose.mjs", "target": "function:scripts/recompose.mjs:parseArgs", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:scripts/recompose.mjs", "target": "function:scripts/recompose.mjs:main", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:scripts/record.mjs", "target": "function:scripts/record.mjs:main", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:scripts/split-music.mjs", "target": "function:scripts/split-music.mjs:main", "type": "contains", "direction": "forward", "weight": 1.0},
+
+    {"source": "function:scripts/e2e.mjs:main", "target": "function:scripts/e2e.mjs:twoBrowsers", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "function:scripts/e2e.mjs:main", "target": "function:scripts/e2e.mjs:avatarBubble", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "function:scripts/e2e.mjs:main", "target": "function:scripts/e2e.mjs:motionCards", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "function:scripts/e2e.mjs:main", "target": "function:scripts/e2e.mjs:botAndTwoFactor", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "function:scripts/e2e.mjs:main", "target": "function:scripts/e2e.mjs:speechStandIn", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "function:scripts/e2e.mjs:main", "target": "function:scripts/e2e.mjs:loudnessOf", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "function:scripts/handshake.mjs:main", "target": "function:scripts/handshake.mjs:request", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "function:scripts/handshake.mjs:main", "target": "function:scripts/handshake.mjs:waitForReady", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "function:scripts/recompose.mjs:main", "target": "function:scripts/recompose.mjs:parseArgs", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:scripts/e2e.mjs", "target": "file:src/lib/env.ts", "type": "depends_on", "direction": "forward", "weight": 0.6},
+    {"source": "file:scripts/e2e.mjs", "target": "file:src/lib/session.ts", "type": "depends_on", "direction": "forward", "weight": 0.6},
+    {"source": "file:scripts/e2e.mjs", "target": "file:src/lib/compose.ts", "type": "depends_on", "direction": "forward", "weight": 0.6},
+    {"source": "file:scripts/e2e.mjs", "target": "file:src/lib/words.ts", "type": "depends_on", "direction": "forward", "weight": 0.6},
+    {"source": "file:scripts/e2e.mjs", "target": "file:src/lib/motion.ts", "type": "depends_on", "direction": "forward", "weight": 0.6},
+    {"source": "file:scripts/e2e.mjs", "target": "file:src/lib/emphasis.ts", "type": "depends_on", "direction": "forward", "weight": 0.6},
+    {"source": "file:scripts/e2e.mjs", "target": "file:src/lib/ffmpeg.ts", "type": "depends_on", "direction": "forward", "weight": 0.6},
+    {"source": "file:scripts/e2e.mjs", "target": "file:src/lib/music-gen.ts", "type": "depends_on", "direction": "forward", "weight": 0.6},
+    {"source": "file:scripts/e2e.mjs", "target": "file:src/lib/browser.ts", "type": "depends_on", "direction": "forward", "weight": 0.6},
+    {"source": "file:scripts/e2e.mjs", "target": "file:src/lib/totp.ts", "type": "depends_on", "direction": "forward", "weight": 0.6},
+    {"source": "file:scripts/recompose.mjs", "target": "file:src/lib/env.ts", "type": "depends_on", "direction": "forward", "weight": 0.6},
+    {"source": "file:scripts/recompose.mjs", "target": "file:src/lib/compose.ts", "type": "depends_on", "direction": "forward", "weight": 0.6},
+    {"source": "file:scripts/recompose.mjs", "target": "file:src/lib/music-gen.ts", "type": "depends_on", "direction": "forward", "weight": 0.6},
+    {"source": "file:scripts/recompose.mjs", "target": "file:src/lib/avatar.ts", "type": "depends_on", "direction": "forward", "weight": 0.6},
+    {"source": "file:scripts/recompose.mjs", "target": "file:src/lib/motion.ts", "type": "depends_on", "direction": "forward", "weight": 0.6},
+    {"source": "file:scripts/split-music.mjs", "target": "file:src/lib/env.ts", "type": "depends_on", "direction": "forward", "weight": 0.6},
+    {"source": "file:scripts/split-music.mjs", "target": "file:src/lib/ffmpeg.ts", "type": "depends_on", "direction": "forward", "weight": 0.6},
+    {"source": "file:scripts/handshake.mjs", "target": "file:src/index.ts", "type": "depends_on", "direction": "forward", "weight": 0.6},
+    {"source": "file:scripts/live-run.mjs", "target": "file:src/index.ts", "type": "depends_on", "direction": "forward", "weight": 0.6},
+    {"source": "file:scripts/record.mjs", "target": "file:src/index.ts", "type": "depends_on", "direction": "forward", "weight": 0.6},
+
+    {"source": "file:src/lib/compose.ts", "target": "file:scripts/e2e.mjs", "type": "tested_by", "direction": "forward", "weight": 0.5},
+    {"source": "file:src/lib/session.ts", "target": "file:scripts/e2e.mjs", "type": "tested_by", "direction": "forward", "weight": 0.5},
+    {"source": "file:src/lib/totp.ts", "target": "file:scripts/e2e.mjs", "type": "tested_by", "direction": "forward", "weight": 0.5},
+    {"source": "file:src/index.ts", "target": "file:scripts/handshake.mjs", "type": "tested_by", "direction": "forward", "weight": 0.5},
+    {"source": "file:src/index.ts", "target": "file:scripts/live-run.mjs", "type": "tested_by", "direction": "forward", "weight": 0.5},
+
+    {"source": "file:scripts/record.mjs", "target": "config:examples/overview.json", "type": "depends_on", "direction": "forward", "weight": 0.6},
+    {"source": "config:assets/chapters.json", "target": "file:scripts/split-music.mjs", "type": "configures", "direction": "forward", "weight": 0.6},
+    {"source": "file:src/types/global.d.ts", "target": "file:src/lib/heartbeat.ts", "type": "related", "direction": "forward", "weight": 0.5}
+  ]
+}
